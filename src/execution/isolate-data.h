@@ -32,7 +32,8 @@ class Isolate;
   V(kUsesSharedHeapFlag, kUInt8Size, uses_shared_heap_flag)                   \
   V(kExecutionModeOffset, kUInt8Size, execution_mode)                         \
   V(kStackIsIterableOffset, kUInt8Size, stack_is_iterable)                    \
-  V(kTablesAlignmentPaddingOffset, 2, tables_alignment_padding)               \
+  V(kTablesAlignmentPaddingOffset,                                            \
+    (kSystemPointerSize - 6), tables_alignment_padding)                       \
   /* Tier 0 tables (small but fast access). */                                \
   V(kBuiltinTier0EntryTableOffset,                                            \
     Builtins::kBuiltinTier0Count* kSystemPointerSize,                         \
@@ -47,7 +48,8 @@ class Isolate;
   V(kFastCCallCallerFPOffset, kSystemPointerSize, fast_c_call_caller_fp)      \
   V(kFastCCallCallerPCOffset, kSystemPointerSize, fast_c_call_caller_pc)      \
   V(kFastApiCallTargetOffset, kSystemPointerSize, fast_api_call_target)       \
-  V(kLongTaskStatsCounterOffset, kSizetSize, long_task_stats_counter)         \
+  V(kLongTaskStatsCounterOffset,                                              \
+    RoundUp<kSystemPointerSize>(kSizetSize), long_task_stats_counter)         \
   V(kThreadLocalTopOffset, ThreadLocalTop::kSizeInBytes, thread_local_top)    \
   V(kHandleScopeDataOffset, HandleScopeData::kSizeInBytes, handle_scope_data) \
   V(kEmbedderDataOffset, Internals::kNumIsolateDataSlots* kSystemPointerSize, \
@@ -87,7 +89,11 @@ class IsolateData final {
   IsolateData(const IsolateData&) = delete;
   IsolateData& operator=(const IsolateData&) = delete;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr ssize_t kIsolateRootBias = kRootRegisterBias;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kIsolateRootBias = kRootRegisterBias;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // The value of the kRootRegister.
   Address isolate_root() const {
@@ -168,6 +174,19 @@ class IsolateData final {
   // cheaper it is to access them. See also: https://crbug.com/993264.
   // The recommended guideline is to put frequently-accessed fields close to
   // the beginning of IsolateData.
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define FIELDS(V)                                                      \
+  ISOLATE_DATA_FIELDS(V)                                               \
+  /* This padding aligns IsolateData size by bytes. */                 \
+  V(kPaddingOffset,                                                    \
+    kSystemPointerSize + RoundUp<kSystemPointerSize>(                  \
+    static_cast<int>(kPaddingOffset)) - kPaddingOffset)                \
+  /* Total size. */                                                    \
+  V(kSize, 0)
+
+  DEFINE_FIELD_OFFSET_CONSTANTS(0, FIELDS)
+#undef FIELDS
+#else   // !__CHERI_PURE_CAPABILITY__
 #define FIELDS(V)                                                      \
   ISOLATE_DATA_FIELDS(V)                                               \
   /* This padding aligns IsolateData size by 8 bytes. */               \
@@ -178,6 +197,7 @@ class IsolateData final {
 
   DEFINE_FIELD_OFFSET_CONSTANTS(0, FIELDS)
 #undef FIELDS
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   const Address cage_base_;
 

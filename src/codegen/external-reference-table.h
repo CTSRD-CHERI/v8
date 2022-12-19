@@ -53,7 +53,11 @@ class ExternalReferenceTable {
       kStatsCountersReferenceCount;
   static constexpr uint32_t kEntrySize =
       static_cast<uint32_t>(kSystemPointerSize);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr uint32_t kSizeInBytes = RoundUp<kEntrySize>(kSize * kEntrySize + 2 * kUInt32Size);
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr uint32_t kSizeInBytes = kSize * kEntrySize + 2 * kUInt32Size;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   Address address(uint32_t i) const { return ref_addr_[i]; }
   const char* name(uint32_t i) const { return ref_name_[i]; }

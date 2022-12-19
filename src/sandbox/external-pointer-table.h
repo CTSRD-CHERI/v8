@@ -221,7 +221,11 @@ class V8_EXPORT_PRIVATE ExternalPointerTable
  public:
   // Size of an ExternalPointerTable, for layout computation in IsolateData.
   // Asserted to be equal to the actual size in external-pointer-table.cc.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static int constexpr kSize = 3 * kSystemPointerSize;
+#else   // !__CHERI_PURE_CAPABILITY__
   static int constexpr kSize = 4 * kSystemPointerSize;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   ExternalPointerTable() = default;
 
