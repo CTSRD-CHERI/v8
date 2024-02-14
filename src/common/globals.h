@@ -196,7 +196,11 @@ using CodeT = Code;
 // Determine whether tagged pointers are 8 bytes (used in Torque layouts for
 // choosing where to insert padding).
 #if V8_TARGET_ARCH_64_BIT && !defined(V8_COMPRESS_POINTERS)
+#if defined(V8_HOST_CHERI_PURE_CAPABILITY)
+#define TAGGED_SIZE_8_BYTES false
+#else
 #define TAGGED_SIZE_8_BYTES true
+#endif
 #else
 #define TAGGED_SIZE_8_BYTES false
 #endif
