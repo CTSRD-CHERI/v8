@@ -125,6 +125,35 @@ void DeclareMethods(AggregateType* container_type,
   }
 }
 
+bool IsCapability(const Type* field_type) {
+  if (field_type->IsSubtypeOf(TypeOracle::GetRawPtrType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetIntPtrType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetUIntPtrType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetTaggedType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetJSAnyType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetExternalPointerType()))
+    return true;
+  if (field_type->IsAggregateType()) {
+    auto* aggregate_type = AggregateType::DynamicCast(field_type);
+    const std::vector<Field>& fields = aggregate_type->fields();
+    if (fields.size() == 0) return false;
+    const Field& first_field = fields[0];
+    return IsCapability(first_field.name_and_type.type);
+  }
+  return false;
+}
+
+void AlignToCapabilitySize(ResidueClass& offset) {
+  auto offset_opt = offset.SingleValue();
+  if (!offset_opt.has_value()) return;
+  auto maybe_unaligned_offset = offset_opt.value();
+  auto cap_size = TargetArchitecture::RawPtrSize();
+  auto aligned_offset =
+      (maybe_unaligned_offset + cap_size - 1) & (~(cap_size - 1));
+  auto offset_to_add = aligned_offset - maybe_unaligned_offset;
+  offset += offset_to_add;
+}
+
 const BitFieldStructType* TypeVisitor::ComputeType(
     BitFieldStructDeclaration* decl, MaybeSpecializationKey specialized_from) {
   CurrentSourcePosition::Scope position_scope(decl->pos);
@@ -203,6 +232,9 @@ const StructType* TypeVisitor::ComputeType(
     if (field_type->IsConstexpr()) {
       ReportError("struct field \"", field.name_and_type.name->value,
                   "\" carries constexpr type \"", *field_type, "\"");
+    }
+    if (IsCapability(field_type)) {
+      AlignToCapabilitySize(offset);
     }
     Field f{field.name_and_type.name->pos,
             struct_type,
@@ -440,6 +472,9 @@ void TypeVisitor::VisitClassFieldsAndMethods(
       }
     }
     base::Optional<ClassFieldIndexInfo> array_length = field_expression.index;
+    if (IsCapability(field_type)) {
+      AlignToCapabilitySize(class_offset);
+    }
     const Field& field = class_type->RegisterField(
         {field_expression.name_and_type.name->pos,
          class_type,
