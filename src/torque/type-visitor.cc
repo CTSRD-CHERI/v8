@@ -143,15 +143,16 @@ bool IsCapability(const Type* field_type) {
   return false;
 }
 
-void AlignToCapabilitySize(ResidueClass& offset) {
+uint8_t AlignToCapabilitySize(ResidueClass& offset) {
   auto offset_opt = offset.SingleValue();
-  if (!offset_opt.has_value()) return;
+  if (!offset_opt.has_value()) return 0;
   auto maybe_unaligned_offset = offset_opt.value();
   auto cap_size = TargetArchitecture::RawPtrSize();
   auto aligned_offset =
       (maybe_unaligned_offset + cap_size - 1) & (~(cap_size - 1));
   auto offset_to_add = aligned_offset - maybe_unaligned_offset;
   offset += offset_to_add;
+  return offset_to_add;
 }
 
 const BitFieldStructType* TypeVisitor::ComputeType(
@@ -234,7 +235,22 @@ const StructType* TypeVisitor::ComputeType(
                   "\" carries constexpr type \"", *field_type, "\"");
     }
     if (IsCapability(field_type)) {
-      AlignToCapabilitySize(offset);
+      ResidueClass adjusted_offset = offset;
+      auto needed_padding = AlignToCapabilitySize(adjusted_offset);
+      auto* u8 = TypeOracle::GetUint8Type();
+      for (auto i = 0; i < needed_padding; i++) {
+        struct_type->RegisterField(
+            {field.name_and_type.name->pos,
+             struct_type,
+             base::nullopt,
+             {"__" + u8->SimpleName() + std::to_string(i), u8},
+             offset.SingleValue(),
+             false,
+             false,
+             FieldSynchronization::kNone,
+             FieldSynchronization::kNone});
+      }
+      offset = adjusted_offset;
     }
     Field f{field.name_and_type.name->pos,
             struct_type,
@@ -473,7 +489,22 @@ void TypeVisitor::VisitClassFieldsAndMethods(
     }
     base::Optional<ClassFieldIndexInfo> array_length = field_expression.index;
     if (IsCapability(field_type)) {
-      AlignToCapabilitySize(class_offset);
+      ResidueClass adjusted_offset = class_offset;
+      auto needed_padding = AlignToCapabilitySize(adjusted_offset);
+      auto* u8 = TypeOracle::GetUint8Type();
+      for (auto i = 0; i < needed_padding; i++) {
+        class_type->RegisterField(
+            {field_expression.name_and_type.name->pos,
+             class_type,
+             array_length,
+             {"__" + u8->SimpleName() + std::to_string(i), u8},
+             class_offset.SingleValue(),
+             false,
+             false,
+             FieldSynchronization::kNone,
+             FieldSynchronization::kNone});
+      }
+      class_offset = adjusted_offset;
     }
     const Field& field = class_type->RegisterField(
         {field_expression.name_and_type.name->pos,
