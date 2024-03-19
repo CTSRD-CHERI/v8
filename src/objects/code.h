@@ -713,9 +713,8 @@ class Code : public HeapObject {
   // due to padding for code alignment.
 #if V8_TARGET_ARCH_ARM64
 #if defined(__CHERI_PURE_CAPABILITY__)
-  static_assert(V8_EXTERNAL_CODE_SPACE_BOOL);
-  static_assert(COMPRESS_POINTERS_BOOL);
-  static constexpr int kHeaderPaddingSize = 12;
+  static_assert(COMPRESS_POINTERS_BOOL == V8_EXTERNAL_CODE_SPACE_BOOL);
+  static constexpr int kHeaderPaddingSize = COMPRESS_POINTERS_BOOL ? 12 : 28;
 #else
   static constexpr int kHeaderPaddingSize =
       V8_EXTERNAL_CODE_SPACE_BOOL ? 4 : (COMPRESS_POINTERS_BOOL ? 8 : 20);

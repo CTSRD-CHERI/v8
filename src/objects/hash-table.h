@@ -186,7 +186,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) HashTable
   // Pretenure hashtables above this capacity.
   static const int kMinCapacityForPretenure = 256;
 
-  static const int kMaxRegularCapacity = kMaxRegularHeapObjectSize / 32;
+  static const int kMaxRegularCapacity = kMaxRegularHeapObjectSize / 64;
 
   // Returns the index for an entry (of the key)
   static constexpr inline int EntryToIndex(InternalIndex entry) {
