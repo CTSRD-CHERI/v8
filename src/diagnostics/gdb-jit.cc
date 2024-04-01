@@ -631,6 +631,14 @@ class ELF {
     V8_TARGET_ARCH_PPC64 && V8_TARGET_LITTLE_ENDIAN
     const uint8_t ident[16] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0,
                                0,    0,   0,   0,   0, 0, 0, 0};
+#elif V8_TARGET_ARCH_ARM64 && V8_TARGET_LITTLE_ENDIAN
+#if defined(__CHERI_PURE_CAPABILITY__)
+    const uint8_t ident[16] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0,
+                               0,    0,   0,   0,   0, 0, 0, 0};
+#else // defined(__CHERI_PURE_CAPABILITY__)
+    const uint8_t ident[16] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 9,
+                               0,    0,   0,   0,   0, 0, 0, 0};
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #elif V8_TARGET_ARCH_PPC64 && V8_TARGET_BIG_ENDIAN && V8_OS_LINUX
     const uint8_t ident[16] = {0x7F, 'E', 'L', 'F', 2, 2, 1, 0,
                                0,    0,   0,   0,   0, 0, 0, 0};
@@ -656,6 +664,11 @@ class ELF {
     // Set to EM_ARM, defined as 40, in "ARM ELF File Format" at
     // infocenter.arm.com/help/topic/com.arm.doc.dui0101a/DUI0101A_Elf.pdf
     header->machine = 40;
+#elif V8_TARGET_ARCH_ARM64
+    // Set to EM_AARCH64, defined as 183, in
+    // "ELF for the Arm 64-bit architecture" at
+    // https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst
+    header->machine = 183;
 #elif V8_TARGET_ARCH_PPC64 && V8_OS_LINUX
     // Set to EM_PPC64, defined as 21, in Power ABI,
     // Join the next 4 lines, omitting the spaces and double-slashes.
@@ -772,7 +785,8 @@ class ELFSymbol {
     uint16_t section;
   };
 #elif V8_TARGET_ARCH_X64 && V8_TARGET_ARCH_64_BIT || \
-    V8_TARGET_ARCH_PPC64 && V8_OS_LINUX || V8_TARGET_ARCH_S390X
+    V8_TARGET_ARCH_PPC64 && V8_OS_LINUX || V8_TARGET_ARCH_S390X || \
+    V8_TARGET_ARCH_ARM64 && V8_TARGET_ARCH_64_BIT
   struct SerializedLayout {
     SerializedLayout(uint32_t name, uintptr_t value, uintptr_t size,
                      Binding binding, Type type, uint16_t section)
@@ -1089,6 +1103,8 @@ class DebugInfoSection : public DebugSection {
 #elif V8_TARGET_ARCH_X64
       w->Write<uint8_t>(DW_OP_reg6);  // and here on x64.
 #elif V8_TARGET_ARCH_ARM
+      UNIMPLEMENTED();
+#elif V8_TARGET_ARCH_ARM64
       UNIMPLEMENTED();
 #elif V8_TARGET_ARCH_MIPS
       UNIMPLEMENTED();
