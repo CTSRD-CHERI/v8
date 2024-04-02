@@ -483,7 +483,7 @@ class ImplementationVisitor {
             .Throw();
       }
     }
-#if 0
+#ifndef __CHERI_PURE_CAPABILITY__
     if (fields_size != initializers.size()) {
       ReportError("expected ", fields_size, " initializers for ",
                   aggregate_name, " found ", initializers.size());
