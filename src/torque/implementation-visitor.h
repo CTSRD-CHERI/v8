@@ -458,6 +458,10 @@ class ImplementationVisitor {
   VisitResult Visit(Expression* expr);
   const Type* Visit(Statement* stmt);
 
+  static bool IsInternal(const std::string& name) {
+    return name.rfind("__", 0) == 0;
+  }
+
   template <typename T>
   void CheckInitializersWellformed(
       const std::string& aggregate_name, const std::vector<T>& aggregate_fields,
@@ -465,10 +469,13 @@ class ImplementationVisitor {
       bool ignore_first_field = false) {
     size_t fields_offset = ignore_first_field ? 1 : 0;
     size_t fields_size = aggregate_fields.size() - fields_offset;
+    size_t adjusted_index = 0;
     for (size_t i = 0; i < std::min(fields_size, initializers.size()); i++) {
       const std::string& field_name =
           aggregate_fields[i + fields_offset].name_and_type.name;
-      Identifier* found_name = initializers[i].name;
+      Identifier* found_name = initializers[adjusted_index].name;
+      if (ImplementationVisitor::IsInternal(field_name)) continue;
+      adjusted_index++;
       if (field_name != found_name->value) {
         Error("Expected field name \"", field_name, "\" instead of \"",
               found_name->value, "\"")
@@ -476,10 +483,12 @@ class ImplementationVisitor {
             .Throw();
       }
     }
+#if 0
     if (fields_size != initializers.size()) {
       ReportError("expected ", fields_size, " initializers for ",
                   aggregate_name, " found ", initializers.size());
     }
+#endif
   }
 
   InitializerResults VisitInitializerResults(
