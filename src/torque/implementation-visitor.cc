@@ -1488,8 +1488,7 @@ void ImplementationVisitor::InitializeClass(
   }
 
   for (const Field& f : class_type->fields()) {
-    // Support optional padding fields.
-    if (f.name_and_type.type->IsVoid()) continue;
+    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     VisitResult initializer_value =
         initializer_results.field_value_map.at(f.name_and_type.name);
     LocationReference field =
@@ -1568,6 +1567,7 @@ VisitResult ImplementationVisitor::GenerateArrayLength(
   std::map<std::string, LocalValue> bindings;
   for (Field f : class_type->ComputeAllFields()) {
     if (f.index) break;
+    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     const std::string& fieldname = f.name_and_type.name;
     VisitResult value = initializer_results.field_value_map.at(fieldname);
     bindings.insert(
@@ -4151,6 +4151,7 @@ void CppClassGenerator::GenerateClass() {
   ClassFieldOffsetGenerator g(hdr_, inl_, type_, gen_name_,
                               type_->GetSuperClass());
   for (auto f : type_->fields()) {
+    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     CurrentSourcePosition::Scope scope(f.pos);
     g.RecordOffsetFor(f);
   }
@@ -4267,6 +4268,7 @@ void CppClassGenerator::GenerateCppObjectDefinitionAsserts() {
   ClassFieldOffsetGenerator g(hdr_, inl_, type_, gen_name_,
                               type_->GetSuperClass());
   for (auto f : type_->fields()) {
+    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     CurrentSourcePosition::Scope scope(f.pos);
     g.RecordOffsetFor(f);
   }
@@ -4274,6 +4276,7 @@ void CppClassGenerator::GenerateCppObjectDefinitionAsserts() {
   hdr_ << "\n";
 
   for (auto f : type_->fields()) {
+    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     std::string field = "k" + CamelifyString(f.name_and_type.name) + "Offset";
     std::string type = f.name_and_type.type->SimpleName();
     hdr_ << "  static_assert(" << field << " == D::" << field << ",\n"
@@ -4553,6 +4556,8 @@ void CppClassGenerator::EmitLoadFieldStatement(
     std::vector<const Field*>& struct_fields) {
   const Field& innermost_field =
       struct_fields.empty() ? class_field : *struct_fields.back();
+  if (ImplementationVisitor::IsInternal(innermost_field.name_and_type.name))
+    return;
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
   const std::string class_field_size =
@@ -4621,6 +4626,8 @@ void CppClassGenerator::EmitStoreFieldStatement(
     std::vector<const Field*>& struct_fields) {
   const Field& innermost_field =
       struct_fields.empty() ? class_field : *struct_fields.back();
+  if (ImplementationVisitor::IsInternal(innermost_field.name_and_type.name))
+    return;
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
   const std::string class_field_size =

@@ -238,13 +238,15 @@ const StructType* TypeVisitor::ComputeType(
       ResidueClass adjusted_offset = offset;
       auto needed_padding = AlignToCapabilitySize(adjusted_offset);
       auto* u8 = TypeOracle::GetUint8Type();
+      assert(offset.SingleValue().has_value() || needed_padding == 0);
       for (auto i = 0; i < needed_padding; i++) {
+        auto new_offset = offset.SingleValue().value() + i;
         struct_type->RegisterField(
             {field.name_and_type.name->pos,
              struct_type,
              base::nullopt,
              {"__" + u8->SimpleName() + std::to_string(i), u8},
-             offset.SingleValue(),
+             new_offset,
              false,
              false,
              FieldSynchronization::kNone,
@@ -492,13 +494,15 @@ void TypeVisitor::VisitClassFieldsAndMethods(
       ResidueClass adjusted_offset = class_offset;
       auto needed_padding = AlignToCapabilitySize(adjusted_offset);
       auto* u8 = TypeOracle::GetUint8Type();
+      assert(class_offset.SingleValue().has_value() || needed_padding == 0);
       for (auto i = 0; i < needed_padding; i++) {
+        auto new_offset = class_offset.SingleValue().value() + i;
         class_type->RegisterField(
             {field_expression.name_and_type.name->pos,
              class_type,
              array_length,
              {"__" + u8->SimpleName() + std::to_string(i), u8},
-             class_offset.SingleValue(),
+             new_offset,
              false,
              false,
              FieldSynchronization::kNone,
