@@ -63,8 +63,8 @@ ExternalProject_Add(
 ExternalProject_Add(
   googletest
   SOURCE_DIR	 ${CMAKE_SOURCE_DIR}/third_party/googletest/src
-  GIT_REPOSITORY https://chromium.googlesource.com/external/github.com/google/googletest.git
-  GIT_TAG        af29db7ec28d6df1c7f0f745186884091e602e07
+  GIT_REPOSITORY https://github.com/chromium-cheri/googletest.git
+  GIT_TAG        21deeb2fd041682052abbaa71d9acdfb0798cd97 
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -123,7 +123,7 @@ add_custom_target(cp-icu ALL
 
 set(GN_ARGS
 	[[clang_use_chrome_plugins=false]]
-	[[xtra_cxxflags="-mabi=purecap -march=morello -Xclang -morello-vararg=new]]
+	[[extra_cxxflags="-mabi=purecap -march=morello -Xclang -morello-vararg=new]]
 	[[extra_ldflags=""]]
 	is_clang=true
 	is_component_build=true
