@@ -1065,7 +1065,6 @@ void CodeDataContainer::CodeDataContainerVerify(Isolate* isolate) {
   VerifyObjectField(isolate, kNextCodeLinkOffset);
   CHECK(next_code_link().IsCodeT() || next_code_link().IsUndefined(isolate));
   if (V8_EXTERNAL_CODE_SPACE_BOOL) {
-#ifdef V8_COMPRESS_POINTERS
     if (raw_code(PtrComprCageBase(isolate->code_cage_base())) != Smi::zero()) {
 #ifdef V8_EXTERNAL_CODE_SPACE
       // kind and builtin_id() getters are not available on CodeDataContainer
@@ -1104,7 +1103,6 @@ void CodeDataContainer::CodeDataContainerVerify(Isolate* isolate) {
       CHECK_EQ(code().InstructionStart(), code_entry_point());
 #endif  // V8_COMPRESS_POINTERS_IN_SHARED_CAGE
     }
-#endif // V8_COMPRESS_POINTERS
   }
 }
 

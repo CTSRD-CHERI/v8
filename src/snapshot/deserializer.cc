@@ -1194,7 +1194,7 @@ int Deserializer<IsolateT>::ReadSingleBytecodeData(byte data,
     case CASE_RANGE(kFixedRawData, 32): {
       // Deserialize raw data of fixed length from 1 to 32 times kTaggedSize.
       int size_in_tagged = FixedRawDataWithSize::Decode(data);
-#if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_COMPRESS_POINTERS)
       static_assert(kSystemPointerAddrSize == kTaggedSize ||
                     kSystemPointerAddrSize == 2 * kTaggedSize);
 #else
