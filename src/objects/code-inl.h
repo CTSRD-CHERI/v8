@@ -1090,7 +1090,9 @@ void CodeDataContainer::SetCodeAndEntryPoint(Isolate* isolate_for_sandbox,
 void CodeDataContainer::UpdateCodeEntryPoint(Isolate* isolate_for_sandbox,
                                              Code code) {
   CHECK(V8_EXTERNAL_CODE_SPACE_BOOL);
+#ifdef V8_COMPRESS_POINTERS
   DCHECK_EQ(raw_code(PtrComprCageBase(isolate_for_sandbox->code_cage_base())), code);
+#endif
   set_code_entry_point(isolate_for_sandbox, code.InstructionStart());
 }
 
