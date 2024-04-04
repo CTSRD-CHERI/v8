@@ -766,7 +766,7 @@ Handle<Object> JsonParser<Char>::BuildJsonObject(
   // setting up the object. Otherwise verification of that object may fail.
   Handle<ByteArray> mutable_double_buffer;
   // Allocate enough space so we can double-align the payload.
-  const int kMutableDoubleSize = sizeof(double) * 2;
+  const int kMutableDoubleSize = sizeof(double) * 3;
   static_assert(HeapNumber::kSize <= kMutableDoubleSize);
   if (new_mutable_double > 0) {
     mutable_double_buffer =
