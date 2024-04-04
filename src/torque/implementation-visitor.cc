@@ -4772,6 +4772,7 @@ void ImplementationVisitor::GenerateClassDefinitions(
         std::stringstream parameters;
         for (const Field& f : type->ComputeAllFields()) {
           if (f.name_and_type.name == "map") continue;
+          if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
           if (!f.index) {
             std::string type_string =
                 f.name_and_type.type->HandlifiedCppTypeName();
@@ -4822,6 +4823,7 @@ void ImplementationVisitor::GenerateClassDefinitions(
 
         for (const Field& f : type->ComputeAllFields()) {
           if (f.name_and_type.name == "map") continue;
+	  if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
           if (!f.index) {
             factory_impl << "  result.TorqueGeneratedClass::set_"
                          << SnakeifyString(f.name_and_type.name) << "(";
