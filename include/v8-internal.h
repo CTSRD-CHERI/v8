@@ -14,6 +14,7 @@
 
 #include "v8-version.h"  // NOLINT(build/include_directory)
 #include "v8config.h"    // NOLINT(build/include_directory)
+#include "src/base/macros.h"
 
 namespace v8 {
 
@@ -522,9 +523,10 @@ class Internals {
   static const int kHeapObjectMapOffset = 0;
   static const int kMapInstanceTypeOffset = 1 * kApiTaggedSize + kApiInt32Size;
   static const int kStringResourceOffset =
-      1 * kApiTaggedSize + 2 * kApiInt32Size;
+      AlignToCapSize(1 * kApiTaggedSize + 2 * kApiInt32Size);
 
-  static const int kOddballKindOffset = 4 * kApiTaggedSize + kApiDoubleSize;
+  static const int kOddballKindOffset =
+      AlignToCapSize(4 * kApiTaggedSize + kApiDoubleSize);
   static const int kJSObjectHeaderSize = 3 * kApiTaggedSize;
   static const int kFixedArrayHeaderSize = 2 * kApiTaggedSize;
   static const int kEmbedderDataArrayHeaderSize = 2 * kApiTaggedSize;
