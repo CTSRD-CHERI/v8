@@ -13,6 +13,13 @@
 #include "src/base/platform/wrappers.h"
 #include "src/common/cheri.h"
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#define AlignToCapSize(x) ((x) + 15) & (~15)
+#else
+#define AlignToCapSize(x) (x)
+#endif
+
+
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.
 #define EXPAND(x) x
 
