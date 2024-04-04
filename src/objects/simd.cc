@@ -151,6 +151,10 @@ inline int extract_first_nonzero_index(float64x2_t v) {
 template <typename T>
 inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
                                    uintptr_t index, T search_element) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // We don't really support this on CHERI yet.
+  return slow_search(array, array_len, index, search_element);
+#else
   static_assert(std::is_same<T, uint32_t>::value ||
                 std::is_same<T, uint64_t>::value ||
                 std::is_same<T, double>::value);
@@ -221,6 +225,7 @@ inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
   // to fill a vector register. The slow_search function will take care of
   // iterating through the few remaining items.
   return slow_search(array, array_len, index, search_element);
+#endif // __CHERI_PURE_CAPABILITY__
 }
 
 #if defined(_MSC_VER) && defined(__clang__)
