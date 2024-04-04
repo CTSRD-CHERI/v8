@@ -445,7 +445,9 @@ size_t Isolate::HashIsolateForEmbeddedBlob() {
                   Code::kMainCageBaseUpper32BitsOffsetEnd + 1);
 #endif
 #else
+#ifdef V8_COMPRESS_POINTERS
     static_assert(Code::kInstructionSizeOffset == Code::kDataStart);
+#endif // V8_COMPRESS_POINTERS
 #endif  // V8_EXTERNAL_CODE_SPACE
     static_assert(Code::kMetadataSizeOffset ==
                   Code::kInstructionSizeOffsetEnd + 1);
