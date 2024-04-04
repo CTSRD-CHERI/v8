@@ -161,6 +161,10 @@ inline int32_t reinterpret_vmaxvq_u64(uint64x2_t v) {
 template <typename T>
 inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
                                    uintptr_t index, T search_element) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // We don't really support this on CHERI yet.
+  return slow_search(array, array_len, index, search_element);
+#endif
   static constexpr bool is_uint32 =
       sizeof(T) == sizeof(uint32_t) && std::is_integral<T>::value;
   static constexpr bool is_uint64 =
