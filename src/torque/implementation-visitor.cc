@@ -4151,7 +4151,6 @@ void CppClassGenerator::GenerateClass() {
   ClassFieldOffsetGenerator g(hdr_, inl_, type_, gen_name_,
                               type_->GetSuperClass());
   for (auto f : type_->fields()) {
-    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     CurrentSourcePosition::Scope scope(f.pos);
     g.RecordOffsetFor(f);
   }
@@ -4268,7 +4267,6 @@ void CppClassGenerator::GenerateCppObjectDefinitionAsserts() {
   ClassFieldOffsetGenerator g(hdr_, inl_, type_, gen_name_,
                               type_->GetSuperClass());
   for (auto f : type_->fields()) {
-    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
     CurrentSourcePosition::Scope scope(f.pos);
     g.RecordOffsetFor(f);
   }
