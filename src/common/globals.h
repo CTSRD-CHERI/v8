@@ -429,7 +429,7 @@ static_assert(kExternalPointerSize == kSystemPointerSize);
 #endif
 
 constexpr int kEmbedderDataSlotSize = kSystemPointerSize;
-#ifdef __CHERI_PURE_CAPABILITY__
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_COMPRESS_POINTERS)
 constexpr int kEmbedderDataSlotObservableSize = kPtrAddrSize;
 #else
 constexpr int kEmbedderDataSlotObservableSize = kEmbedderDataSlotSize;
@@ -1959,6 +1959,8 @@ class PtrComprCageBase {
   PtrComprCageBase(const Isolate* isolate) {}
   // NOLINTNEXTLINE
   PtrComprCageBase(const LocalIsolate* isolate) {}
+  // NOLINTNEXTLINE
+  explicit constexpr PtrComprCageBase(Address address) {}
 };
 #endif
 
