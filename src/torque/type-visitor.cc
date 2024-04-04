@@ -131,7 +131,8 @@ bool IsCapability(const Type* field_type) {
       field_type->IsSubtypeOf(TypeOracle::GetUIntPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetTaggedType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetJSAnyType()) ||
-      field_type->IsSubtypeOf(TypeOracle::GetExternalPointerType()))
+      field_type->IsSubtypeOf(TypeOracle::GetExternalPointerType()) ||
+      field_type->IsSubtypeOf(TypeOracle::GetHeapObjectType()))
     return true;
   if (field_type->IsAggregateType()) {
     auto* aggregate_type = AggregateType::DynamicCast(field_type);
@@ -226,6 +227,7 @@ const StructType* TypeVisitor::ComputeType(
   CurrentSourcePosition::Scope decl_position_activator(decl->pos);
 
   ResidueClass offset = 0;
+  uint64_t padding_count = 0;
   for (auto& field : decl->fields) {
     CurrentSourcePosition::Scope position_activator(
         field.name_and_type.type->pos);
@@ -245,7 +247,7 @@ const StructType* TypeVisitor::ComputeType(
             {field.name_and_type.name->pos,
              struct_type,
              base::nullopt,
-             {"__" + u8->SimpleName() + std::to_string(i), u8},
+             {"__cheri_padding_" + u8->SimpleName() + std::to_string(padding_count++), u8},
              new_offset,
              false,
              false,
@@ -473,6 +475,7 @@ void TypeVisitor::VisitClassFieldsAndMethods(
     header_size = super_class->header_size();
   }
 
+  uint64_t padding_count = 0;
   for (const ClassFieldExpression& field_expression :
        class_declaration->fields) {
     CurrentSourcePosition::Scope position_activator(
@@ -490,7 +493,9 @@ void TypeVisitor::VisitClassFieldsAndMethods(
       }
     }
     base::Optional<ClassFieldIndexInfo> array_length = field_expression.index;
-    if (IsCapability(field_type)) {
+    bool is_indexed =
+        field_expression.index && !field_expression.index->optional;
+    if (IsCapability(field_type) || is_indexed) {
       ResidueClass adjusted_offset = class_offset;
       auto needed_padding = AlignToCapabilitySize(adjusted_offset);
       auto* u8 = TypeOracle::GetUint8Type();
@@ -501,7 +506,7 @@ void TypeVisitor::VisitClassFieldsAndMethods(
             {field_expression.name_and_type.name->pos,
              class_type,
              array_length,
-             {"__" + u8->SimpleName() + std::to_string(i), u8},
+             {"__cheri_padding_" + u8->SimpleName() + std::to_string(padding_count++), u8},
              new_offset,
              false,
              false,
