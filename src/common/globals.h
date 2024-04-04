@@ -2233,6 +2233,8 @@ class PtrComprCageBase {
   PtrComprCageBase(const Isolate* isolate) {}
   // NOLINTNEXTLINE
   PtrComprCageBase(const LocalIsolate* isolate) {}
+  // NOLINTNEXTLINE
+  explicit constexpr PtrComprCageBase(Address address) {}
 };
 #endif
 
