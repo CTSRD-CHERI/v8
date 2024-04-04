@@ -4823,7 +4823,7 @@ void ImplementationVisitor::GenerateClassDefinitions(
 
         for (const Field& f : type->ComputeAllFields()) {
           if (f.name_and_type.name == "map") continue;
-	  if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+          if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
           if (!f.index) {
             factory_impl << "  result.TorqueGeneratedClass::set_"
                          << SnakeifyString(f.name_and_type.name) << "(";
