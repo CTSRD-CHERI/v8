@@ -391,6 +391,9 @@ constexpr int kElidedFrameSlots = 0;
 #endif
 
 constexpr int kDoubleSizeLog2 = 3;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr int kCapSizeLog2 = 4;
+#endif
 // The maximal length of the string representation for a double value
 // (e.g. "-2.2250738585072020E-308"). It is composed as follows:
 // - 17 decimal digits, see base::kBase10MaximalLength (dtoa.h)
