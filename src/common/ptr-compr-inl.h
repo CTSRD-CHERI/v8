@@ -241,6 +241,32 @@ V8_INLINE Address DecompressTaggedAny(TOnHeapAddress on_heap_addr,
 }
 
 #else
+V8_INLINE Tagged_t V8HeapCompressionScheme::CompressTagged(Address tagged) {
+  UNREACHABLE();
+}
+
+V8_INLINE Address
+V8HeapCompressionScheme::DecompressTaggedSigned(Tagged_t raw_value) {
+  UNREACHABLE();
+}
+
+template <typename TOnHeapAddress>
+V8_INLINE Address V8HeapCompressionScheme::DecompressTaggedPointer(
+    TOnHeapAddress on_heap_addr, Tagged_t raw_value) {
+  UNREACHABLE();
+}
+
+template <typename TOnHeapAddress>
+V8_INLINE Address V8HeapCompressionScheme::DecompressTaggedAny(
+    TOnHeapAddress on_heap_addr, Tagged_t raw_value) {
+  UNREACHABLE();
+}
+
+V8_INLINE Address
+V8HeapCompressionScheme::GetPtrComprCageBaseAddress(Address on_heap_addr) {
+  UNREACHABLE();
+}
+
 V8_INLINE Tagged_t CompressTagged(Address tagged) { UNREACHABLE(); }
 
 V8_INLINE constexpr PtrComprCageBase GetPtrComprCageBaseFromOnHeapAddress(
@@ -265,7 +291,6 @@ V8_INLINE Address DecompressTaggedAny(TOnHeapAddress on_heap_addr,
 V8_INLINE Address GetPtrComprCageBaseAddress(Address on_heap_addr) {
   UNREACHABLE();
 }
-
 #endif  // V8_COMPRESS_POINTERS
 
 V8_INLINE PtrComprCageBase GetPtrComprCageBase(HeapObject object) {
