@@ -133,10 +133,17 @@ class JSArray : public TorqueGeneratedJSArray<JSArray, JSObject> {
   // Min. stack size for detecting an Array.prototype.join() call cycle.
   static const uint32_t kMinJoinStackSize = 2;
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  static const int kInitialMaxFastElementArray =
+      (kMaxRegularHeapObjectSize - FixedArray::kHeaderSize - kHeaderSize -
+       AllocationMemento::kSize) >>
+      kCapSizeLog2;
+#else
   static const int kInitialMaxFastElementArray =
       (kMaxRegularHeapObjectSize - FixedArray::kHeaderSize - kHeaderSize -
        AllocationMemento::kSize) >>
       kDoubleSizeLog2;
+#endif
 
   TQ_OBJECT_CONSTRUCTORS(JSArray)
 };
