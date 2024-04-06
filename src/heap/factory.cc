@@ -2104,7 +2104,11 @@ Map Factory::InitializeMap(Map map, InstanceType type, int instance_size,
   map.set_instance_type(type);
   ReadOnlyRoots ro_roots(roots);
   map.init_prototype_and_constructor_or_back_pointer(ro_roots);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  map.set_instance_size(RoundUp(instance_size, kSystemPointerSize));
+#else
   map.set_instance_size(instance_size);
+#endif
   if (map.IsJSObjectMap()) {
     DCHECK(!ReadOnlyHeap::Contains(map));
     map.SetInObjectPropertiesStartInWords(instance_size / kTaggedSize -

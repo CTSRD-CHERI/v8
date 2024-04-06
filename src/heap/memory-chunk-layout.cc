@@ -49,13 +49,21 @@ size_t MemoryChunkLayout::AllocatableMemoryInCodePage() {
 }
 
 intptr_t MemoryChunkLayout::ObjectStartOffsetInDataPage() {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return RoundUp(MemoryChunk::kHeaderSize, kSystemPointerSize);
+#else
   return RoundUp(MemoryChunk::kHeaderSize,
                  ALIGN_TO_ALLOCATION_ALIGNMENT(kDoubleSize));
+#endif
 }
 
 intptr_t MemoryChunkLayout::ObjectStartOffsetInReadOnlyPage() {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return RoundUp(BasicMemoryChunk::kHeaderSize, kSystemPointerSize);
+#else
   return RoundUp(BasicMemoryChunk::kHeaderSize,
                  ALIGN_TO_ALLOCATION_ALIGNMENT(kDoubleSize));
+#endif
 }
 
 size_t MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(
