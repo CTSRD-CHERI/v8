@@ -168,7 +168,11 @@ AllocationResult Heap::AllocatePartialMap(InstanceType instance_type,
       Map::unchecked_cast(isolate()->root(RootIndex::kMetaMap)),
       SKIP_WRITE_BARRIER);
   map.set_instance_type(instance_type);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  map.set_instance_size(RoundUp(instance_size, kSystemPointerSize));
+#else
   map.set_instance_size(instance_size);
+#endif
   map.set_visitor_id(Map::GetVisitorId(map));
   map.set_inobject_properties_start_or_constructor_function_index(0);
   DCHECK(!map.IsJSObjectMap());

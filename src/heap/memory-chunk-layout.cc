@@ -42,7 +42,11 @@ size_t MemoryChunkLayout::AllocatableMemoryInCodePage() {
 }
 
 intptr_t MemoryChunkLayout::ObjectStartOffsetInDataPage() {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return RoundUp(MemoryChunk::kHeaderSize + Bitmap::kSize, kSystemPointerSize);
+#else
   return RoundUp(MemoryChunk::kHeaderSize + Bitmap::kSize, kDoubleSize);
+#endif
 }
 
 size_t MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(
