@@ -154,6 +154,9 @@ class TaggedImpl {
     return kCanBeWeak && HAS_WEAK_HEAP_OBJECT_TAG(ptr_);
   }
 
+  V8_INLINE void Align(StorageType to) { ptr_ = (ptr_ + to - 1) & (~(to - 1)); }
+  V8_INLINE void IncrementPtr(StorageType howmuch) { ptr_ += howmuch; }
+
   //
   // The following set of methods get HeapObject out of the tagged value
   // which may involve decompression in which case the isolate root is required.
