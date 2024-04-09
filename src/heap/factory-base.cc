@@ -979,6 +979,7 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   DCHECK(ReadOnlyHeap::Contains(map));
   HeapObject result = AllocateRaw(size, allocation, alignment);
   DisallowGarbageCollection no_gc;
+  result.align_to_cap_size();
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   return result;
 }

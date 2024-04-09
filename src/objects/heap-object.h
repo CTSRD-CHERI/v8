@@ -230,6 +230,16 @@ class HeapObject : public Object {
 
   inline Address GetFieldAddress(int field_offset) const;
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  V8_INLINE void align_to_cap_size(void) {
+    DCHECK(kTaggedSize == 16);
+    this->Align(kTaggedSize);
+    this->IncrementPtr(1);
+  }
+#else
+  V8_INLINE void align_to_cap_size(void) {}
+#endif
+
  protected:
   // Special-purpose constructor for subclasses that have fast paths where
   // their ptr() is a Smi.
