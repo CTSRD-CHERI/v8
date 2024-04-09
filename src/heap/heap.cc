@@ -2998,8 +2998,11 @@ static_assert(IsAligned(ByteArray::kHeaderSize, kTaggedSize));
 static_assert(IsAligned(ByteArray::kHeaderSize, kDoubleAlignment));
 #endif
 
+#ifndef __CHERI_PURE_CAPABILITY__
+// TODO(cheri): Add a sensible assertion on CHERI to stay in-line with v8...?
 static_assert(!USE_ALLOCATION_ALIGNMENT_BOOL ||
               (HeapNumber::kValueOffset & kDoubleAlignmentMask) == kTaggedSize);
+#endif
 
 int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
   if (V8_COMPRESS_POINTERS_8GB_BOOL) return 0;
