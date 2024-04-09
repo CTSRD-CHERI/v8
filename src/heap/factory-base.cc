@@ -134,6 +134,7 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithFiller(
   DisallowGarbageCollection no_gc;
   DCHECK(ReadOnlyHeap::Contains(*map));
   DCHECK(ReadOnlyHeap::Contains(*filler));
+  result.align_to_cap_size();
   result.set_map_after_allocation(*map, SKIP_WRITE_BARRIER);
   FixedArray array = FixedArray::cast(result);
   array.set_length(length);
@@ -151,6 +152,7 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithZeroes(
   }
   HeapObject result = AllocateRawFixedArray(length, allocation);
   DisallowGarbageCollection no_gc;
+  result.align_to_cap_size();
   result.set_map_after_allocation(read_only_roots().fixed_array_map(),
                                   SKIP_WRITE_BARRIER);
   FixedArray array = FixedArray::cast(result);
@@ -186,6 +188,7 @@ Handle<WeakFixedArray> FactoryBase<Impl>::NewWeakFixedArrayWithMap(
 
   HeapObject result =
       AllocateRawArray(WeakFixedArray::SizeFor(length), allocation);
+  result.align_to_cap_size();
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   DisallowGarbageCollection no_gc;
   WeakFixedArray array = WeakFixedArray::cast(result);

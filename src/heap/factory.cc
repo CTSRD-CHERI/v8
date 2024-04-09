@@ -382,6 +382,7 @@ HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   WriteBarrierMode write_barrier_mode = allocation == AllocationType::kYoung
                                             ? SKIP_WRITE_BARRIER
                                             : UPDATE_WRITE_BARRIER;
+  result.align_to_cap_size();
   result.set_map_after_allocation(*map, write_barrier_mode);
   return result;
 }
