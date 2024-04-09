@@ -3151,7 +3151,11 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
       return 0;
     case kDoubleAligned:
     case kDoubleUnaligned:
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      return 0;
+#else
       return kDoubleSize - kTaggedSize;
+#endif
     default:
       UNREACHABLE();
   }
@@ -3162,7 +3166,11 @@ int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
   if (alignment == kDoubleAligned && (address & kDoubleAlignmentMask) != 0)
     return kTaggedSize;
   if (alignment == kDoubleUnaligned && (address & kDoubleAlignmentMask) == 0)
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    return 0;
+#else
     return kDoubleSize - kTaggedSize;  // No fill if double is always aligned.
+#endif
   return 0;
 }
 
