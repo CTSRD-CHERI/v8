@@ -713,6 +713,13 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
     return WordShr(a, shift);
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#define SMI_COMPARISON_OP(SmiOpName, IntPtrOpName, Int32OpName)  \
+  TNode<BoolT> SmiOpName(TNode<Smi> a, TNode<Smi> b) {           \
+    return IntPtrOpName(BitcastTaggedToWordForTagAndSmiBits(a),  \
+                        BitcastTaggedToWordForTagAndSmiBits(b)); \
+  }
+#else
 #define SMI_COMPARISON_OP(SmiOpName, IntPtrOpName, Int32OpName)           \
   TNode<BoolT> SmiOpName(TNode<Smi> a, TNode<Smi> b) {                    \
     if (kTaggedSize == kInt64Size) {                                      \
@@ -726,6 +733,7 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
           TruncateIntPtrToInt32(BitcastTaggedToWordForTagAndSmiBits(b))); \
     }                                                                     \
   }
+#endif
   SMI_COMPARISON_OP(SmiEqual, WordEqual, Word32Equal)
   SMI_COMPARISON_OP(SmiNotEqual, WordNotEqual, Word32NotEqual)
   SMI_COMPARISON_OP(SmiAbove, UintPtrGreaterThan, Uint32GreaterThan)
