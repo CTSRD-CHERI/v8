@@ -509,8 +509,10 @@ class V8_EXPORT_PRIVATE SwissNameDictionary::BodyDescriptor final
     // address (a Smi) rather than a map.
 
     SwissNameDictionary table = SwissNameDictionary::unchecked_cast(obj);
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
     static_assert(MetaTablePointerOffset() + kTaggedSize ==
                   DataTableStartOffset());
+#endif
     return offset >= MetaTablePointerOffset() &&
            (offset < table.DataTableEndOffset(table.Capacity()));
   }
@@ -519,8 +521,10 @@ class V8_EXPORT_PRIVATE SwissNameDictionary::BodyDescriptor final
   static inline void IterateBody(Map map, HeapObject obj, int object_size,
                                  ObjectVisitor* v) {
     SwissNameDictionary table = SwissNameDictionary::unchecked_cast(obj);
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
     static_assert(MetaTablePointerOffset() + kTaggedSize ==
                   DataTableStartOffset());
+#endif
     int start_offset = MetaTablePointerOffset();
     int end_offset = table.DataTableEndOffset(table.Capacity());
     IteratePointers(obj, start_offset, end_offset, v);
