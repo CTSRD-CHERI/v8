@@ -3386,8 +3386,10 @@ TNode<BigInt> CodeStubAssembler::AllocateRawBigInt(TNode<IntPtrT> length) {
       Allocate(size, AllocationFlag::kAllowLargeObjectAllocation);
   StoreMapNoWriteBarrier(raw_result, RootIndex::kBigIntMap);
   if (FIELD_SIZE(BigInt::kOptionalPaddingOffset) != 0) {
-#if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_COMPRESS_POINTERS)
     DCHECK_EQ(8, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
+#elif defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    DCHECK_EQ(12, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
 #else
     DCHECK_EQ(4, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
 #endif
