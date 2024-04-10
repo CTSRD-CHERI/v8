@@ -2427,7 +2427,12 @@ void TurboAssembler::LoadEntryFromBuiltinIndex(Register builtin_index) {
   // The builtin_index register contains the builtin index as a Smi.
   // Untagging is folded into the indexing operand below.
   if (SmiValuesAre32Bits()) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    Asr(builtin_index.X(), builtin_index.X(),
+        kSmiShift - kSystemPointerSizeLog2);
+#else
     Asr(builtin_index, builtin_index, kSmiShift - kSystemPointerSizeLog2);
+#endif
     Add(builtin_index, builtin_index,
         IsolateData::builtin_entry_table_offset());
 #if defined(__CHERI_PURE_CAPABILITY__)

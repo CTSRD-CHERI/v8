@@ -257,11 +257,11 @@ void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
   cselc(cd, czr, cd, cond);
 }
 
-void TurboAssembler::Gcvalue(const Register& cd, const Register& rd) {
+void TurboAssembler::Gcvalue(const Register& cs, const Register& rd) {
   DCHECK(allow_macro_instructions());
-  DCHECK(cd.Is128Bits());
+  DCHECK(cs.Is128Bits());
   DCHECK(rd.Is64Bits());
-  gcvalue(cd, rd);
+  gcvalue(cs, rd);
 }
 
 void TurboAssembler::Scvalue(const Register& cd, const Register& cn,
@@ -1306,9 +1306,13 @@ void TurboAssembler::SmiUntag(Register dst, Register src) {
     {
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
-      Gcvalue(src, temp);
-      Asr(temp, temp, kSmiShift);
-      Scvalue(dst, dst, temp);
+      if (src.Is128Bits()) {
+        Gcvalue(src, temp);
+        Asr(temp, temp, kSmiShift);
+        Scvalue(dst, dst, temp);
+      } else {
+        Asr(dst, src, kSmiShift);
+      }
     }
 #else
     Asr(dst, src, kSmiShift);
