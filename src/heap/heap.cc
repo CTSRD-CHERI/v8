@@ -3282,6 +3282,7 @@ void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
     }
   } else {
     DCHECK_GT(size, 2 * kTaggedSize);
+    filler.align_to_cap_size();
     filler.set_map_after_allocation(roots.unchecked_free_space_map(),
                                     SKIP_WRITE_BARRIER);
     FreeSpace::cast(filler).set_size(size, kRelaxedStore);
