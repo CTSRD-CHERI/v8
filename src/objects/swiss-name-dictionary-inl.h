@@ -696,12 +696,16 @@ constexpr int SwissNameDictionary::CapacityOffset() {
 
 // static
 constexpr int SwissNameDictionary::MetaTablePointerOffset() {
-  return CapacityOffset() + sizeof(int32_t);
+  return AlignToCapSize(CapacityOffset() + sizeof(int32_t));
 }
 
 // static
 constexpr int SwissNameDictionary::DataTableStartOffset() {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return RoundUp(MetaTablePointerOffset() + kTaggedSize, kTaggedSize);
+#else
   return MetaTablePointerOffset() + kTaggedSize;
+#endif
 }
 
 // static
