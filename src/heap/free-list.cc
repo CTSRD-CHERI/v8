@@ -75,6 +75,7 @@ FreeSpace FreeListCategory::SearchForNodeInList(size_t minimum_size,
 void FreeListCategory::Free(Address start, size_t size_in_bytes, FreeMode mode,
                             FreeList* owner) {
   FreeSpace free_space = FreeSpace::cast(HeapObject::FromAddress(start));
+  free_space.align_to_cap_size();
   free_space.set_next(top());
   set_top(free_space);
   available_ += size_in_bytes;
