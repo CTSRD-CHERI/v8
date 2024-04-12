@@ -6,7 +6,9 @@
 
 #include "include/v8-fast-api-calls.h"
 #include "src/base/lazy-instance.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/compiler/linkage.h"
 #include "src/compiler/opcodes.h"
 #include "src/compiler/operator.h"
@@ -24,7 +26,9 @@
 namespace v8 {
 namespace internal {
 namespace compiler {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 size_t hash_value(BaseTaggedness base_taggedness) {
   return static_cast<uint8_t>(base_taggedness);

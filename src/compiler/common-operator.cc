@@ -5,7 +5,9 @@
 #include "src/compiler/common-operator.h"
 
 #include "src/base/lazy-instance.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/compiler/linkage.h"
 #include "src/compiler/node.h"
 #include "src/compiler/opcodes.h"
@@ -15,7 +17,9 @@
 
 namespace v8 {
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 std::ostream& operator<<(std::ostream& os, BranchHint hint) {
   switch (hint) {

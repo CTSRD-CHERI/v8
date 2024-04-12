@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <memory>
 
-#include "src/common/cheri.h"
 #include "src/common/globals.h"
 #include "src/diagnostics/disasm.h"
 #include "src/diagnostics/disassembler.h"
@@ -20,6 +19,9 @@
 #include "src/regexp/regexp.h"
 #include "src/snapshot/embedded/embedded-data.h"
 #include "src/utils/ostreams.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
+#include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 #if V8_ENABLE_WEBASSEMBLY
 #include "src/debug/debug-wasm-objects-inl.h"
@@ -30,7 +32,9 @@
 
 namespace v8 {
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 #ifdef OBJECT_PRINT
 

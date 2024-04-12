@@ -13,7 +13,9 @@
 #include "src/base/optional.h"
 #include "src/base/platform/platform.h"
 #include "src/codegen/code-factory.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/compiler/compilation-dependencies.h"
 #include "src/compiler/js-heap-broker.h"
 #include "src/execution/protectors-inl.h"
@@ -27,7 +29,9 @@
 
 namespace v8 {
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 namespace compiler {
 
 #define TRACE(broker, x) TRACE_BROKER(broker, x)

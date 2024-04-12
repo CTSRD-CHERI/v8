@@ -1,11 +1,13 @@
-#ifndef __CHERI_WORKAROUND__
-#define __CHERI_WORKAROUND__
+#ifndef __CHERI_H__
+#define __CHERI_H__
 
 #include <stdint.h>
 #include <ostream>
+#include <sys/param.h>
 
 namespace cheri 
 {
+#if __CheriBSD_version <= 20220828
   inline std::ostream &operator<<(std::ostream &out, uintptr_t val)
   {
     return out << static_cast<size_t>(val);
@@ -15,6 +17,7 @@ namespace cheri
   {
     return out << static_cast<ssize_t>(val);
   }
+#endif // __CheriBSD_version <= 20220828
 
   template<typename T>
   struct is_intcap {

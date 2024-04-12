@@ -10,7 +10,9 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/flags.h"
 #include "src/base/functional.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/globals.h"
 #include "src/handles/handles.h"
 #include "src/objects/feedback-cell.h"
@@ -19,7 +21,9 @@
 namespace v8 {
 namespace internal {
 namespace compiler {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 // An operator represents description of the "computation" of a node in the
 // compiler IR. A computation takes values (i.e. data) as input and produces

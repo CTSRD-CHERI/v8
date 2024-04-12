@@ -14,7 +14,9 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/immediate-crash.h"
 #include "src/base/template-utils.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 V8_BASE_EXPORT V8_NOINLINE void V8_Dcheck(const char* file, int line,
                                           const char* message);
@@ -136,7 +138,9 @@ V8_BASE_EXPORT void SetDcheckFunction(void (*dcheck_Function)(const char*, int,
 #endif
 
 namespace detail {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 template <typename... Ts>
 std::string PrintToString(Ts&&... ts) {
   CheckMessageStream oss;

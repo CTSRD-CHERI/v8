@@ -6,7 +6,9 @@
 #include <optional>
 
 #include "src/base/region-allocator.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/execution/isolate.h"
 #include "src/heap/heap-inl.h"
 #include "src/heap/memory-allocator.h"
@@ -17,7 +19,9 @@
 
 namespace v8 {
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 // This is a v8::PageAllocator implementation that decorates provided page
 // allocator object with page tracking functionality.

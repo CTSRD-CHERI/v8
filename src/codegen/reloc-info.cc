@@ -8,16 +8,20 @@
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/code-reference.h"
 #include "src/codegen/external-reference-encoder.h"
-#include "src/common/cheri.h"
 #include "src/deoptimizer/deoptimize-reason.h"
 #include "src/deoptimizer/deoptimizer.h"
 #include "src/heap/heap-write-barrier-inl.h"
 #include "src/objects/code-inl.h"
 #include "src/snapshot/embedded/embedded-data-inl.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
+#include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 namespace v8 {
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 const char* const RelocInfo::kFillerCommentString = "DEOPTIMIZATION PADDING";
 

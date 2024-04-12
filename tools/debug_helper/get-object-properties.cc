@@ -7,7 +7,9 @@
 #include "debug-helper-internal.h"
 #include "heap-constants.h"
 #include "include/v8-internal.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/execution/frame-constants.h"
 #include "src/execution/frames.h"
 #include "src/execution/isolate-utils.h"
@@ -35,7 +37,9 @@ constexpr char kObjectAsStoredInHeap[] = "v8::internal::Object";
 
 std::string AppendAddressAndType(const std::string& brief, uintptr_t address,
                                  const char* type) {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
   using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
   std::stringstream brief_stream;
   brief_stream << "0x" << std::hex << address << " <" << type << ">";
   return brief.empty() ? brief_stream.str()

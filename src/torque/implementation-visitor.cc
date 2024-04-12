@@ -4945,15 +4945,17 @@ void ImplementationVisitor::GeneratePrintDefinitions(
     IfDefScope object_print(impl, "OBJECT_PRINT");
 
     impl << "#include <iosfwd>\n\n";
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
     impl << "#include \"src/common/cheri.h\"\n\n";
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
     impl << "#include \"src/objects/all-objects-inl.h\"\n\n";
 
     NamespaceScope impl_namespaces(impl, {"v8", "internal"});
 
-#ifdef __CHERI_PURE_CAPABILITY__
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
     // Workaround for missing ostream insertion operator, operator<<(u/intptr_t)
     impl << "using cheri::operator<<;\n\n";
-#endif
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
     for (const ClassType* type : TypeOracle::GetClasses()) {
       if (!type->ShouldGeneratePrint()) continue;

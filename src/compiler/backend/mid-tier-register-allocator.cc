@@ -13,7 +13,9 @@
 #include "src/codegen/machine-type.h"
 #include "src/codegen/register-configuration.h"
 #include "src/codegen/tick-counter.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/compiler/backend/instruction.h"
 #include "src/compiler/linkage.h"
 #include "src/logging/counters.h"
@@ -21,7 +23,9 @@
 namespace v8 {
 namespace internal {
 namespace compiler {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 class RegisterState;
 class DeferredBlocksRegion;

@@ -15,7 +15,9 @@
 #include "src/base/optional.h"
 #include "src/base/platform/mutex.h"
 #include "src/common/assert-scope.h"
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 #include "src/flags/flags.h"
 #include "src/utils/allocation.h"
 #include "src/utils/ostreams.h"
@@ -28,7 +30,9 @@ class Vector;
 }  // namespace base
 
 namespace internal {
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 using cheri::operator<<;
+#endif // defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
 
 class V8FileLogger;
 
