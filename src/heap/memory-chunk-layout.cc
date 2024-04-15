@@ -32,21 +32,22 @@ intptr_t MemoryChunkLayout::ObjectStartOffsetInCodePage() {
 intptr_t MemoryChunkLayout::ObjectEndOffsetInCodePage() {
   // We are guarding code pages: the last OS page will be protected as
   // non-writable.
+  std::cout << std::dec << __func__
+            << ": MC::kPageSize = " << MemoryChunk::kPageSize
+            << ", MA::GetCommitPageSize = "
+            << static_cast<int>(MemoryAllocator::GetCommitPageSize()) << std::endl;
   return MemoryChunk::kPageSize -
          static_cast<int>(MemoryAllocator::GetCommitPageSize());
 }
 
 size_t MemoryChunkLayout::AllocatableMemoryInCodePage() {
   size_t memory = ObjectEndOffsetInCodePage() - ObjectStartOffsetInCodePage();
+  std::cout << "MCL::AllocatableMemoryInCodePage() = " << memory << std::endl;
   return memory;
 }
 
 intptr_t MemoryChunkLayout::ObjectStartOffsetInDataPage() {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  return RoundUp(MemoryChunk::kHeaderSize + Bitmap::kSize, kSystemPointerSize);
-#else
   return RoundUp(MemoryChunk::kHeaderSize + Bitmap::kSize, kDoubleSize);
-#endif
 }
 
 size_t MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(
