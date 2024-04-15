@@ -250,6 +250,7 @@ AllocationResult Heap::AllocateMap(AllocationType allocation_type,
   AllocationResult allocation = AllocateRaw(Map::kSize, allocation_type);
   if (!allocation.To(&result)) return allocation;
 
+  result.align_to_cap_size();
   result.set_map_after_allocation(ReadOnlyRoots(this).meta_map(),
                                   SKIP_WRITE_BARRIER);
   Map map = isolate()->factory()->InitializeMap(
@@ -267,6 +268,7 @@ AllocationResult Heap::AllocatePartialMap(InstanceType instance_type,
   if (!allocation.To(&result)) return allocation;
   // Map::cast cannot be used due to uninitialized map field.
   Map map = Map::unchecked_cast(result);
+  map.align_to_cap_size();
   map.set_map_after_allocation(
       Map::unchecked_cast(isolate()->root(RootIndex::kMetaMap)),
       SKIP_WRITE_BARRIER);
@@ -314,6 +316,7 @@ AllocationResult Heap::Allocate(Handle<Map> map,
   WriteBarrierMode write_barrier_mode =
       allocation_type == AllocationType::kYoung ? SKIP_WRITE_BARRIER
                                                 : UPDATE_WRITE_BARRIER;
+  result.align_to_cap_size();
   result.set_map_after_allocation(*map, write_barrier_mode);
   return AllocationResult::FromObject(result);
 }
@@ -369,6 +372,7 @@ bool Heap::CreateEarlyReadOnlyMaps() {
     AllocationResult alloc =
         AllocateRaw(FixedArray::SizeFor(0), AllocationType::kReadOnly);
     if (!alloc.To(&obj)) return false;
+    obj.align_to_cap_size();
     obj.set_map_after_allocation(roots.fixed_array_map(), SKIP_WRITE_BARRIER);
     FixedArray::cast(obj).set_length(0);
   }
@@ -378,6 +382,7 @@ bool Heap::CreateEarlyReadOnlyMaps() {
     AllocationResult alloc =
         AllocateRaw(WeakFixedArray::SizeFor(0), AllocationType::kReadOnly);
     if (!alloc.To(&obj)) return false;
+    obj.align_to_cap_size();
     obj.set_map_after_allocation(roots.weak_fixed_array_map(),
                                  SKIP_WRITE_BARRIER);
     WeakFixedArray::cast(obj).set_length(0);
@@ -388,6 +393,7 @@ bool Heap::CreateEarlyReadOnlyMaps() {
     AllocationResult allocation = AllocateRaw(WeakArrayList::SizeForCapacity(0),
                                               AllocationType::kReadOnly);
     if (!allocation.To(&obj)) return false;
+    obj.align_to_cap_size();
     obj.set_map_after_allocation(roots.weak_array_list_map(),
                                  SKIP_WRITE_BARRIER);
     WeakArrayList::cast(obj).set_capacity(0);
@@ -435,6 +441,7 @@ bool Heap::CreateEarlyReadOnlyMaps() {
   {
     int size = DescriptorArray::SizeFor(0);
     if (!AllocateRaw(size, AllocationType::kReadOnly).To(&obj)) return false;
+    obj.align_to_cap_size();
     obj.set_map_after_allocation(roots.descriptor_array_map(),
                                  SKIP_WRITE_BARRIER);
     DescriptorArray array = DescriptorArray::cast(obj);
