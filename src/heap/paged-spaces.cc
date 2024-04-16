@@ -6,6 +6,7 @@
 
 #include <atomic>
 
+#include "src/base/macros.h"
 #include "src/base/optional.h"
 #include "src/base/platform/mutex.h"
 #include "src/execution/isolate.h"
@@ -608,6 +609,9 @@ bool PagedSpaceBase::TryAllocationFromFreeListMain(size_t size_in_bytes,
   DCHECK_EQ(allocation_info_->start(), allocation_info_->top());
   Address start = new_node.address();
   Address end = new_node.address() + new_node_size;
+  if (Page::FromAddress(start) != Page::FromAddress(end))
+    end = reinterpret_cast<Address>(
+        AlignedAddress(reinterpret_cast<void*>(end), MemoryChunk::kAlignment));
   Address limit = ComputeLimit(start, end, size_in_bytes);
   DCHECK_LE(limit, end);
   DCHECK_LE(size_in_bytes, limit - start);
