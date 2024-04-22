@@ -292,6 +292,7 @@ MaybeHandle<Code> Factory::CodeBuilder::AllocateCode(
   DisallowGarbageCollection no_gc;
   result.set_map_after_allocation(*isolate_->factory()->code_map(),
                                   SKIP_WRITE_BARRIER);
+  result.align_to_code();
   Handle<Code> code = handle(Code::cast(result), isolate_);
   if (is_executable_) {
     DCHECK(IsAligned(code->address(), kCodeAlignment));
