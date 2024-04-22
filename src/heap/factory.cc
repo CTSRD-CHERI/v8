@@ -300,6 +300,7 @@ MaybeHandle<InstructionStream> Factory::CodeBuilder::AllocateInstructionStream(
         BasicMemoryChunk::FromHeapObject(result));
     result.set_map_after_allocation(
         *isolate_->factory()->instruction_stream_map(), SKIP_WRITE_BARRIER);
+    result.align_to_code();
   }
   Handle<InstructionStream> istream =
       handle(InstructionStream::cast(result), isolate_);

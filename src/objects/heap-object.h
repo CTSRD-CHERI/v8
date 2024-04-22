@@ -252,8 +252,15 @@ class HeapObject : public Object {
     this->Align(kTaggedSize);
     this->IncrementPtr(1);
   }
+
+  V8_INLINE void align_to_code(void) {
+    DCHECK(kCodeAlignment == 32);
+    this->Align(kCodeAlignment);
+    this->IncrementPtr(1);
+  }
 #else
   V8_INLINE void align_to_cap_size(void) {}
+  V8_INLINE void align_to_code(void) {}
 #endif
 
  protected:
