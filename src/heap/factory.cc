@@ -290,9 +290,9 @@ MaybeHandle<Code> Factory::CodeBuilder::AllocateCode(
   // The code object has not been fully initialized yet.  We rely on the
   // fact that no allocation will happen from this point on.
   DisallowGarbageCollection no_gc;
+  result.align_to_code();
   result.set_map_after_allocation(*isolate_->factory()->code_map(),
                                   SKIP_WRITE_BARRIER);
-  result.align_to_code();
   Handle<Code> code = handle(Code::cast(result), isolate_);
   if (is_executable_) {
     DCHECK(IsAligned(code->address(), kCodeAlignment));
