@@ -226,9 +226,17 @@ void TurboAssembler::Add(const Register& rd, const Register& rn,
   DCHECK(allow_macro_instructions());
   if (operand.IsImmediate() && (operand.ImmediateValue() < 0) &&
       IsImmAddSub(-operand.ImmediateValue())) {
+#if defined(__CHERI_PURE_CAPABILITY__)
     AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, SubOpFor(rd));
+#else
+    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, SUB);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   } else {
+#if defined(__CHERI_PURE_CAPABILITY__)
     AddSubMacro(rd, rn, operand, LeaveFlags, AddOpFor(rd));
+#else
+    AddSubMacro(rd, rn, operand, LeaveFlags, ADD);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   }
 }
 
@@ -290,9 +298,17 @@ void TurboAssembler::Sub(const Register& rd, const Register& rn,
   DCHECK(allow_macro_instructions());
   if (operand.IsImmediate() && (operand.ImmediateValue() < 0) &&
       IsImmAddSub(-operand.ImmediateValue())) {
+#if defined(__CHERI_PURE_CAPABILITY__)
     AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, AddOpFor(rd));
+#else
+    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, ADD);
+#endif // __CHERI_PURE_CAPABILITY__
   } else {
+#if defined(__CHERI_PURE_CAPABILITY__)
     AddSubMacro(rd, rn, operand, LeaveFlags, SubOpFor(rd));
+#else
+    AddSubMacro(rd, rn, operand, LeaveFlags, SUB);
+#endif // __CHERI_PURE_CAPABILITY__
   }
 }
 

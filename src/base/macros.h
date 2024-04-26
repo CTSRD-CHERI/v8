@@ -11,7 +11,9 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 #include "src/base/platform/wrappers.h"
+#if defined(__CHERI_PURE_CAPABILITY__)
 #include "src/common/cheri.h"
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.
 #define EXPAND(x) x

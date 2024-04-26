@@ -141,7 +141,11 @@ class StoreRepresentation final {
  public:
   StoreRepresentation(MachineRepresentation representation,
                       WriteBarrierKind write_barrier_kind)
+#if defined(__CHERI_PURE_CAPABILITY__)
       : machine_type_(MachineType(representation, MachineSemantic::kCapability)),
+#else
+      : machine_type_(MachineType(representation, MachineSemantic::kAny)),
+#endif // defined(__CHERI_PURE_CAPABILITY__)
         write_barrier_kind_(write_barrier_kind) {}
 
   StoreRepresentation(MachineType machine_type,

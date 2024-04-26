@@ -306,7 +306,7 @@ constexpr size_t kMaxWasmCodeMemory = kMaxWasmCodeMB * MB;
 #if defined(V8_HOST_CHERI_PURE_CAPABILITY)
 constexpr int kSystemPointerSizeLog2 = 4;
 #else
-constexpr int kPtrAddrSizeLog2 = 3;
+constexpr int kSystemPointerSizeLog2 = 3;
 #endif
 constexpr int kSystemPointerAddrSizeLog2 = 3;
 constexpr int kPtrAddrSizeLog2 = 3;

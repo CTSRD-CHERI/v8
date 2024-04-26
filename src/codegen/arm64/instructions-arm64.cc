@@ -54,7 +54,11 @@ bool Instruction::IsLoad() const {
 
 bool Instruction::IsStore() const {
   if (Mask(LoadStoreAnyFMask) == LoadStoreAnyFixed) {
+#if defined(__CHERI_PURE_CAPABILITY__)
     LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreCapMask));
+#else
+    LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreMask));
+#endif // __CHERI_PURE_CAPABILITY__
     switch (op) {
       case STRB_w:
       case STRH_w:

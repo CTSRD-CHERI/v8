@@ -154,13 +154,21 @@ class V8_EXPORT_PRIVATE ExternalPointerTable {
 
   // Atomically loads the value at the given index.
   inline Address load_atomic(uint32_t index) const {
+#if defined(__CHERI_PURE_CAPABILITY__)
     auto addr = reinterpret_cast<base::AtomicIntPtr*>(entry_address(index));
+#else
+    auto addr = reinterpret_cast<base::Atomic64*>(entry_address(index));
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     return base::Relaxed_Load(addr);
   }
 
   // Atomically stores the provided value at the given index.
   inline void store_atomic(uint32_t index, Address value) {
+#if defined(__CHERI_PURE_CAPABILITY__)
     auto addr = reinterpret_cast<base::AtomicIntPtr*>(entry_address(index));
+#else
+    auto addr = reinterpret_cast<base::Atomic64*>(entry_address(index));
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     base::Relaxed_Store(addr, value);
   }
 

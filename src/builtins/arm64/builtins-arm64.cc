@@ -2469,9 +2469,9 @@ static void Generate_InterpreterEnterBytecode(MacroAssembler* masm) {
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ Ldr(x1, MemOperand(fp, StandardFrameConstants::kFunctionOffset));
   __ LoadTaggedPointerField(
-      x1, FieldMemOperand(c1, JSFunction::kSharedFunctionInfoOffset));
+      x1, FieldMemOperand(x1, JSFunction::kSharedFunctionInfoOffset));
   __ LoadTaggedPointerField(
-      x1, FieldMemOperand(c1, SharedFunctionInfo::kFunctionDataOffset));
+      x1, FieldMemOperand(x1, SharedFunctionInfo::kFunctionDataOffset));
   __ CompareObjectType(x1, kInterpreterDispatchTableRegister,
                        kInterpreterDispatchTableRegister,
 #endif // defined(__CHERI_PURE_CAPABILITY__)
@@ -2828,7 +2828,7 @@ void OnStackReplacement(MacroAssembler* masm, OsrSourceTier source,
 #if defined(__CHERI_PURE_CAPABILITY__)
       c1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
 #else // defined(__CHERI_PURE_CAPABILITY__)
-      c1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
+      x1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
 #endif // defined(__CHERI_PURE_CAPABILITY__)
                                   DeoptimizationData::kOsrPcOffsetIndex)));
 

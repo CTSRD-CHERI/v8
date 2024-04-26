@@ -130,7 +130,11 @@ enum CategoryGroupEnabledFlags {
 
 // Defines atomic operations used internally by the tracing system.
 // Acquire/release barriers are important here: crbug.com/1330114#c8.
+#if defined(__CHERI_PURE_CAPABILITY__)
 #define TRACE_EVENT_API_ATOMIC_WORD v8::base::AtomicIntPtr
+#else
+#define TRACE_EVENT_API_ATOMIC_WORD v8::base::AtomicWord
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #define TRACE_EVENT_API_ATOMIC_LOAD(var) v8::base::Acquire_Load(&(var))
 #define TRACE_EVENT_API_ATOMIC_STORE(var, value) \
   v8::base::Release_Store(&(var), (value))
