@@ -50,7 +50,7 @@ asm(
     "  paciasp                                          \n"
 #endif
 #if defined(__CHERI_PURE_CAPABILITY__)
-    "  stp fp, lr,   [csp, #-32]!                       \n"
+    "  stp cfp, clr, [csp, #-32]!                       \n"
 #else // defined(__CHERI_PURE_CAPABILITY__)
     "  stp fp, lr,   [sp, #-16]!                        \n"
 #endif // defined(__CHERI_PURE_CAPABILITY__)
