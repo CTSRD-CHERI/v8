@@ -864,8 +864,6 @@ void TurboAssembler::AddSubMacro(const Register& rd, const Register& rn,
     // The Morello ISA doesn't possess an instruction for subtracting an
     // extended register from a capability register.
     if (op == SUB_c) {
-      // The Morello ISA doesn't possess an instruction for subtracting an
-      // extended register from a capability register.
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
       Gcvalue(rn, temp);
