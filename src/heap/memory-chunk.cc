@@ -100,7 +100,11 @@ void MemoryChunk::SetCodeModificationPermissions() {
         address() + MemoryChunkLayout::ObjectStartOffsetInCodePage();
     size_t page_size = MemoryAllocator::GetCommitPageSize();
     DCHECK(IsAligned(unprotect_start, page_size));
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    size_t unprotect_size = RoundUp(area_size(), page_size * 2);
+#else
     size_t unprotect_size = RoundUp(area_size(), page_size);
+#endif
     // We may use RWX pages to write code. Some CPUs have optimisations to push
     // updates to code to the icache through a fast path, and they may filter
     // updates based on the written memory being executable.
