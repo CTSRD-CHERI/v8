@@ -281,7 +281,12 @@ MaybeHandle<InstructionStream> Factory::CodeBuilder::AllocateInstructionStream(
   HeapAllocator* allocator = heap->allocator();
   HeapObject result;
   const AllocationType allocation_type = AllocationType::kCode;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  const int object_size =
+      InstructionStream::SizeFor(code_desc_.body_size()) + kCodeAlignment;
+#else
   const int object_size = InstructionStream::SizeFor(code_desc_.body_size());
+#endif
   if (retry_allocation_or_fail) {
     result = allocator->AllocateRawWith<HeapAllocator::kRetryOrFail>(
         object_size, allocation_type, AllocationOrigin::kRuntime);
