@@ -851,10 +851,33 @@ void TurboAssembler::AddSubMacro(const Register& rd, const Register& rn,
       } else if (rn == sp) {
         mode = kLimitShiftForSP;
       }
-
       Operand imm_operand =
           MoveImmediateForShiftedOp(temp, operand.ImmediateValue(), mode);
-      AddSub(rd, rn, imm_operand, S, op);
+      if (imm_operand.shift_amount() > 4 &&
+          IsImmAddSub(operand.ImmediateValue())) {
+        // Store the shift value to a temporary register and add the two
+        // registers together.
+        // XXX(ds815): Is this case also covered by the else case? Perhaps Mov
+        // is smart enough to actually generate this.
+        DCHECK(operand.shift() == LSL);
+        Gcvalue(rn, temp);
+        AddSub(temp, temp, operand, S, ADD);
+        Mov(rd, rn);
+        Scvalue(rd, rd, temp);
+      } else if (imm_operand.shift_amount() <= 4) {
+        // Use an extended arithmetic operation.
+        AddSub(rd, rn, imm_operand, S, op);
+      } else {
+        // Store the immediate in the temporary register and add them together.
+        // XXX(ds815): Is this the correct way to do it...? We want
+        // movz temp, ...
+        // movk temp, ..., lsl 16
+        // movk temp, ..., lsl 32
+        // movk temp, ..., lsl 48
+        // Need to verify that this does the right thing.
+        Mov(temp, operand);
+        AddSub(rd, rn, temp, S, op);
+      }
     } else {
       Mov(temp, operand);
       AddSub(rd, rn, temp, S, op);
@@ -871,8 +894,24 @@ void TurboAssembler::AddSubMacro(const Register& rd, const Register& rn,
       Mov(rd, rn);
       Scvalue(rd, rd, temp);
     } else {
-      DCHECK((operand.shift() == LSL) && (operand.shift_amount() <= 4));
-      AddSub(rd, rn, Operand(operand.reg(), SXTW, operand.shift_amount()), S, ADD_c);
+      if (operand.shift_amount() > 4) {
+        // We can only encode a shift of 4 in Morello. Generate a similar
+        // sequence to SUB if we're trying to shift by more.
+        // FIXME(ds815): This does not handle the case where the value we're
+        // trying to add can't be encoded as an immediate, but it doesn't seem
+        // to matter yet.
+        DCHECK(operand.shift() == LSL);
+        UseScratchRegisterScope temps(this);
+        Register temp = temps.AcquireX();
+        Gcvalue(rn, temp);
+        AddSub(temp, temp, operand, S, ADD);
+        Mov(rd, rn);
+        Scvalue(rd, rd, temp);
+      } else {
+        DCHECK((operand.shift() == LSL) && (operand.shift_amount() <= 4));
+        AddSub(rd, rn, Operand(operand.reg(), SXTW, operand.shift_amount()), S,
+               ADD_c);
+      }
     }
   } else if (rd.IsC() && operand.IsExtendedRegister()) {
     if (op == SUB_c) {
