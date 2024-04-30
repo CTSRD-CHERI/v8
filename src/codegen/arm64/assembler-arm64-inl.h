@@ -358,11 +358,7 @@ bool Operand::IsZero() const {
 
 Operand Operand::ToExtendedRegister() const {
   DCHECK(IsShiftedRegister());
-#if defined(__CHERI_PURE_CAPABILITY__)
-  DCHECK((shift_ == LSL) && (shift_amount_ <= 5));
-#else
   DCHECK((shift_ == LSL) && (shift_amount_ <= 4));
-#endif // __CHERI_PURE_CAPABILITY__
   return Operand(reg_, reg_.Is64Bits() ? UXTX : UXTW, shift_amount_);
 }
 
