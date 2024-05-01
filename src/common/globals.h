@@ -1372,17 +1372,31 @@ constexpr int kIeeeDoubleExponentWordOffset = 0;
 
 // Testers for test.
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+// Create special CHERI-specific macros that include a static_cast<size_t> to
+// the RHS operand of the & operator to avoid a compile-time provenance warning.
+#define HAS_SMI_TAG(value)            \
+  ((static_cast<i::Tagged_t>(value) & \
+    static_cast<size_t>(::i::kSmiTagMask)) == ::i::kSmiTag)
+#define HAS_STRONG_HEAP_OBJECT_TAG(value) \
+  (((static_cast<i::Tagged_t>(value) &    \
+     static_cast<size_t>(::i::kHeapObjectTagMask)) == ::i::kHeapObjectTag))
+#define HAS_WEAK_HEAP_OBJECT_TAG(value)               \
+  (((static_cast<i::Tagged_t>(value) &                \
+     static_cast<size_t>(::i::kHeapObjectTagMask)) == \
+    ::i::kWeakHeapObjectTag))
+#define OBJECT_POINTER_ALIGN(value)                \
+  (((value) + (size_t)::i::kObjectAlignmentMask) & \
+   (size_t) ~::i::kObjectAlignmentMask)
+#else
 #define HAS_SMI_TAG(value) \
   ((static_cast<i::Tagged_t>(value) & ::i::kSmiTagMask) == ::i::kSmiTag)
-
 #define HAS_STRONG_HEAP_OBJECT_TAG(value)                          \
   (((static_cast<i::Tagged_t>(value) & ::i::kHeapObjectTagMask) == \
     ::i::kHeapObjectTag))
-
 #define HAS_WEAK_HEAP_OBJECT_TAG(value)                            \
   (((static_cast<i::Tagged_t>(value) & ::i::kHeapObjectTagMask) == \
     ::i::kWeakHeapObjectTag))
-
 // OBJECT_POINTER_ALIGN returns the value aligned as a HeapObject pointer
 #define OBJECT_POINTER_ALIGN(value) \
   (((value) + ::i::kObjectAlignmentMask) & ~::i::kObjectAlignmentMask)
