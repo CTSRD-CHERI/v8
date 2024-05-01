@@ -72,7 +72,7 @@ asm(
 #endif // defined(__CHERI_PURE_CAPABILITY__)
     // Load return address and frame pointer.
 #if defined(__CHERI_PURE_CAPABILITY__)
-    "  ldp fp, lr, [csp], #32                           \n"
+    "  ldp cfp, clr, [csp], #32                         \n"
 #else // defined(__CHERI_PURE_CAPABILITY__)
     "  ldp fp, lr, [sp], #16                            \n"
 #endif // defined(__CHERI_PURE_CAPABILITY__)
