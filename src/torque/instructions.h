@@ -185,7 +185,10 @@ inline std::ostream& operator<<(std::ostream& stream,
 }
 
 struct InstructionBase {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
   InstructionBase() : pos(CurrentSourcePosition::Get()) {}
+#pragma clang diagnostic pop
   virtual std::unique_ptr<InstructionBase> Clone() const = 0;
   virtual void Assign(const InstructionBase& other) = 0;
   virtual ~InstructionBase() = default;
