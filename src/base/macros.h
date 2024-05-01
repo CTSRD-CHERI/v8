@@ -370,7 +370,12 @@ constexpr inline T RoundUp(T x) {
 
 template <typename T, typename U>
 constexpr inline bool IsAligned(T value, U alignment) {
+  // We can't cast this to size_t on CHERI because T and U probably have to be
+  // respected. Just disable the warning for now.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-provenance"
   return (value & (alignment - 1)) == 0;
+#pragma clang diagnostic pop
 }
 
 inline void* AlignedAddress(void* address, size_t alignment) {

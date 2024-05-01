@@ -63,7 +63,7 @@ const char* StringsStorage::AddOrDisposeString(char* str, int len) {
     DeleteArray(str);
   }
   entry->value =
-      reinterpret_cast<void*>(reinterpret_cast<size_t>(entry->value) + 1);
+      reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(entry->value) + 1);
   return reinterpret_cast<const char*>(entry->key);
 }
 
@@ -159,7 +159,7 @@ bool StringsStorage::Release(const char* str) {
 
   DCHECK(entry->value);
   entry->value =
-      reinterpret_cast<void*>(reinterpret_cast<size_t>(entry->value) - 1);
+      reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(entry->value) - 1);
 
   if (entry->value == 0) {
     string_size_ -= len;
