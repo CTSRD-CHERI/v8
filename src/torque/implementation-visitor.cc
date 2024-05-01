@@ -4479,7 +4479,11 @@ void CppClassGenerator::GenerateFieldAccessors(
     }
 
     getter.PrintDefinition(inl_, [&](auto& stream) {
-      stream << "  " << type_name << " value;\n";
+      stream << "  " << type_name << " value";
+      if (ImplementationVisitor::IsInternal(name))
+        stream << " = 0;\n";
+      else
+        stream << ";\n";
       EmitLoadFieldStatement(stream, class_field, struct_fields);
       stream << "  return value;\n";
     });
