@@ -415,7 +415,12 @@ constexpr inline RoundUp(intptr_t x) {
 
 template <typename T, typename U>
 constexpr inline bool IsAligned(T value, U alignment) {
+  // We can't cast this to size_t on CHERI because T and U probably have to be
+  // respected. Just disable the warning for now.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-provenance"
   return (value & (alignment - 1)) == 0;
+#pragma clang diagnostic pop
 }
 
 #ifdef __CHERI_PURE_CAPABILITY__

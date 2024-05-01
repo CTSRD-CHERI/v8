@@ -298,8 +298,13 @@ void* JSTypedArray::DataPtr() {
   // compensated offset value) will decompress the tagged value.
   // See JSTypedArray::ExternalPointerCompensationForOnHeapArray() for details.
   static_assert(kOffHeapDataPtrEqualsExternalPointer);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return reinterpret_cast<void*>(external_pointer() +
+                                 static_cast<size_t>(base_pointer().ptr()));
+#else
   return reinterpret_cast<void*>(external_pointer() +
                                  static_cast<Tagged_t>(base_pointer().ptr()));
+#endif
 }
 
 void JSTypedArray::SetOffHeapDataPtr(Isolate* isolate, void* base,

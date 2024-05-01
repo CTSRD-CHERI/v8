@@ -9050,8 +9050,11 @@ MaybeHandle<JSTemporalPlainDateTime> JSTemporalPlainDateTime::With(
   // result.[[Day]], result.[[Hour]], result.[[Minute]], result.[[Second]],
   // result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]],
   // calendar).
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
   return temporal::CreateTemporalDateTime(isolate, {result.date, result.time},
                                           calendar);
+#pragma clang diagnostic pop
 }
 
 // #sec-temporal.plaindatetime.prototype.withplaintime

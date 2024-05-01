@@ -72,15 +72,16 @@ class PointerWithPayload {
 
   V8_INLINE void Update(PointerType* new_pointer, PayloadType new_payload) {
     pointer_with_payload_ = reinterpret_cast<uintptr_t>(new_pointer) |
-                            static_cast<uintptr_t>(new_payload);
+                            static_cast<size_t>(new_payload);
     DCHECK_EQ(GetPayload(), new_payload);
     DCHECK_EQ(GetPointer(), new_pointer);
   }
 
   V8_INLINE void SetPointer(PointerType* newptr) {
     DCHECK_EQ(reinterpret_cast<uintptr_t>(newptr) & kPayloadMask, 0);
-    pointer_with_payload_ = reinterpret_cast<uintptr_t>(newptr) |
-                            (pointer_with_payload_ & kPayloadMask);
+    pointer_with_payload_ =
+        reinterpret_cast<uintptr_t>(newptr) |
+        static_cast<size_t>((pointer_with_payload_ & kPayloadMask));
     DCHECK_EQ(GetPointer(), newptr);
   }
 
