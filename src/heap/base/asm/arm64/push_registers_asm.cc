@@ -63,22 +63,6 @@ asm(
     // Sign return address.
     "  paciasp                                          \n"
 #endif
-#if defined(__CHERI_PURE_CAPABILITY__)
-    "  stp cfp, clr, [csp, #-32]!                       \n"
-    // Maintain frame pointer.
-    "  mov cfp, csp                                     \n"
-    // Pass 1st parameter (x0) unchanged (Stack*).
-    // Pass 2nd parameter (x1) unchanged (StackVisitor*).
-    // Save 3rd parameter (x2; IterateStackCallback)
-    "  mov c7, c2                                       \n"
-    // Pass 3rd parameter as sp (stack pointer).
-    "  mov c2, csp                                      \n"
-    "  blr c7                                           \n"
-    // Load return address and frame pointer.
-    "  ldp cfp, clr, [sp], #16                          \n"
-    // Drop all callee-saved registers.
-    "  add csp, csp, #80                                \n"
-#else // defined(__CHERI_PURE_CAPABILITY__)
     "  stp fp, lr,   [sp, #-16]!                        \n"
     // Maintain frame pointer.
     "  mov fp, sp                                       \n"
