@@ -32,20 +32,18 @@ template <typename V>
 static inline V ReadUnalignedValue(Address p) {
   ASSERT_TRIVIALLY_COPYABLE(V);
   V r;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcheri-inefficient"
+  CheriDiagnosticOff("-Wcheri-inefficient")
   memcpy(&r, reinterpret_cast<void*>(p), sizeof(V));
-#pragma clang diagnostic pop
+  CheriDiagnosticPop
   return r;
 }
 
 template <typename V>
 static inline void WriteUnalignedValue(Address p, V value) {
   ASSERT_TRIVIALLY_COPYABLE(V);
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcheri-inefficient"
+  CheriDiagnosticOff("-Wcheri-inefficient")
   memcpy(reinterpret_cast<void*>(p), &value, sizeof(V));
-#pragma clang diagnostic pop
+  CheriDiagnosticPop
 }
 
 template <typename V>

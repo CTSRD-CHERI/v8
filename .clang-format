@@ -3,3 +3,4 @@
 BasedOnStyle: Google
 DerivePointerAlignment: false
 MaxEmptyLinesToKeep: 1
+StatementMacros: ['CheriDiagnosticOff', 'CheriDiagnosticPop', '_Pragma', '_CHERI_DIAGNOSTIC_PRAGMA']

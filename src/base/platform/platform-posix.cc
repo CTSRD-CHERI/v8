@@ -417,7 +417,10 @@ void* OS::GetRandomMmapAddr() {
 #endif
 #endif
 #endif
+  // This will only ever go into mmap(), so silence the warning.
+  CheriDiagnosticOff("-Wcheri-capability-misuse")
   return reinterpret_cast<void*>(raw_addr);
+  CheriDiagnosticPop
 }
 
 // TODO(bbudge) Move Cygwin and Fuchsia stuff into platform-specific files.
