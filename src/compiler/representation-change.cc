@@ -211,6 +211,9 @@ Node* RepresentationChanger::GetRepresentationFor(
       return GetTaggedSignedRepresentationFor(node, output_rep, output_type,
                                               use_node, use_info);
     case MachineRepresentation::kTaggedPointer:
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case MachineRepresentation::kCapability:
+#endif
       DCHECK(use_info.type_check() == TypeCheckKind::kNone ||
              use_info.type_check() == TypeCheckKind::kHeapObject ||
              use_info.type_check() == TypeCheckKind::kBigInt);
