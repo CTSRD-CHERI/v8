@@ -216,7 +216,10 @@ const Item* RunEarleyAlgorithm(
       const Item& item = *insert_result.first;
       DCHECK_EQ(pos, item.pos());
       MatchedInput last_token = tokens.token_contents[pos];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
       CurrentSourcePosition::Get() = last_token.pos;
+#pragma clang diagnostic pop
       bool is_new = insert_result.second;
       if (!is_new) item.CheckAmbiguity(worklist.back(), tokens);
       worklist.pop_back();

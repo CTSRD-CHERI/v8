@@ -1888,6 +1888,11 @@ void Verifier::Visitor::Check(Node* node, const AllNodes& all) {
 
       // TODO(rossberg): Check.
       break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case IrOpcode::kCapAdd:
+      // TODO(ds815): Check if anything would be useful here.
+      break;
+#endif
   }
 }
 
