@@ -56,6 +56,19 @@ class SnapshotByteSource final {
   }
 
   void CopySlots(Address* dest, int number_of_slots) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    base::AtomicIntPtr* start = reinterpret_cast<base::AtomicIntPtr*>(dest);
+    base::AtomicIntPtr* end = start + number_of_slots;
+    for (base::AtomicIntPtr* p = start; p < end;
+      ++p, position_ += sizeof(base::AtomicIntPtr)) {
+      base::AtomicIntPtr val;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
+      memcpy(&val, data_ + position_, sizeof(base::AtomicIntPtr));
+#pragma clang diagnostic pop
+      base::Relaxed_Store(p, val);
+    }
+#else
     base::AtomicWord* start = reinterpret_cast<base::AtomicWord*>(dest);
     base::AtomicWord* end = start + number_of_slots;
     for (base::AtomicWord* p = start; p < end;
