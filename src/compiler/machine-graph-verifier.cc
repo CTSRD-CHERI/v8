@@ -1009,6 +1009,9 @@ class MachineRepresentationChecker {
       case MachineRepresentation::kWord8:
       case MachineRepresentation::kWord16:
       case MachineRepresentation::kWord64:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability:
+#endif
         return expected == actual;
       case MachineRepresentation::kWord32:
         return (actual == MachineRepresentation::kBit ||
