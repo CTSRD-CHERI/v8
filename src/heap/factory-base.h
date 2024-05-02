@@ -273,8 +273,10 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) FactoryBase
 
  protected:
   // Allocate memory for an uninitialized array (e.g., a FixedArray or similar).
-  HeapObject AllocateRawArray(int size, AllocationType allocation);
-  HeapObject AllocateRawFixedArray(int length, AllocationType allocation);
+  HeapObject AllocateRawArray(int size, AllocationType allocation,
+                              size_t align_to = 0);
+  HeapObject AllocateRawFixedArray(int length, AllocationType allocation,
+                                   size_t align_to = 0);
   HeapObject AllocateRawWeakArrayList(int length, AllocationType allocation);
 
   template <typename StructType>

@@ -130,11 +130,13 @@ template <typename Impl>
 Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithFiller(
     Handle<Map> map, int length, Handle<Oddball> filler,
     AllocationType allocation) {
-  HeapObject result = AllocateRawFixedArray(length, allocation);
+  // CHERI: Align to kSystemPointerSize because we are storing a capability at
+  // the start of this location.
+  HeapObject result =
+      AllocateRawFixedArray(length, allocation, kSystemPointerSize);
   DisallowGarbageCollection no_gc;
   DCHECK(ReadOnlyHeap::Contains(*map));
   DCHECK(ReadOnlyHeap::Contains(*filler));
-  result.align_to_cap_size();
   result.set_map_after_allocation(*map, SKIP_WRITE_BARRIER);
   FixedArray array = FixedArray::cast(result);
   array.set_length(length);
@@ -150,9 +152,11 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithZeroes(
   if (length > FixedArray::kMaxLength) {
     FATAL("Invalid FixedArray size %d", length);
   }
-  HeapObject result = AllocateRawFixedArray(length, allocation);
+  // CHERI: Align to kSystemPointerSize because we are storing a capability at
+  // the start of this location.
+  HeapObject result =
+      AllocateRawFixedArray(length, allocation, kSystemPointerSize);
   DisallowGarbageCollection no_gc;
-  result.align_to_cap_size();
   result.set_map_after_allocation(read_only_roots().fixed_array_map(),
                                   SKIP_WRITE_BARRIER);
   FixedArray array = FixedArray::cast(result);
@@ -186,9 +190,10 @@ Handle<WeakFixedArray> FactoryBase<Impl>::NewWeakFixedArrayWithMap(
   DCHECK_LT(0, length);
   DCHECK(ReadOnlyHeap::Contains(map));
 
-  HeapObject result =
-      AllocateRawArray(WeakFixedArray::SizeFor(length), allocation);
-  result.align_to_cap_size();
+  // CHERI: Align to kSystemPointerSize because we are storing a capability at
+  // the start of this location.
+  HeapObject result = AllocateRawArray(WeakFixedArray::SizeFor(length),
+                                       allocation, kSystemPointerSize);
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   DisallowGarbageCollection no_gc;
   WeakFixedArray array = WeakFixedArray::cast(result);
@@ -935,25 +940,29 @@ FactoryBase<Impl>::AllocateRawTwoByteInternalizedString(
 
 template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawArray(int size,
-                                               AllocationType allocation) {
-  HeapObject result = AllocateRaw(size, allocation);
+                                               AllocationType allocation,
+                                               size_t align_to) {
+  HeapObject result =
+      AllocateRaw(size + static_cast<int>(align_to), allocation);
   if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       (size >
        isolate()->heap()->AsHeap()->MaxRegularHeapObjectSize(allocation)) &&
       FLAG_use_marking_progress_bar) {
     LargePage::FromHeapObject(result)->ProgressBar().Enable();
   }
+  if (align_to != 0) result.align_to(align_to);
   return result;
 }
 
 template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawFixedArray(int length,
-                                                    AllocationType allocation) {
+                                                    AllocationType allocation,
+                                                    size_t align_to) {
   if (length < 0 || length > FixedArray::kMaxLength) {
     FATAL("Fatal JavaScript invalid size error %d", length);
     UNREACHABLE();
   }
-  return AllocateRawArray(FixedArray::SizeFor(length), allocation);
+  return AllocateRawArray(FixedArray::SizeFor(length), allocation, align_to);
 }
 
 template <typename Impl>
@@ -980,7 +989,10 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   // from MAP_SPACE here, like external_map or message_object_map, but currently
   // no one does so this check is sufficient.
   DCHECK(ReadOnlyHeap::Contains(map));
-  HeapObject result = AllocateRaw(size, allocation, alignment);
+  // CHERI: Align to kSystemPointerSize because we are storing a capability at
+  // the start of this location.
+  HeapObject result =
+      AllocateRaw(size + kSystemPointerSize, allocation, alignment);
   DisallowGarbageCollection no_gc;
   result.align_to_cap_size();
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
