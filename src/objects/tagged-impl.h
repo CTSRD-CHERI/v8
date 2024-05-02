@@ -156,6 +156,14 @@ class TaggedImpl {
 
   V8_INLINE void Align(size_t to) { ptr_ = (ptr_ + to - 1) & (~(to - 1)); }
   V8_INLINE void IncrementPtr(size_t howmuch) { ptr_ += howmuch; }
+  V8_INLINE StorageType align_to(size_t to) {
+    DCHECK(to % 2 == 0);
+    this->Align(to);
+    // Increment by 1 to account for the - 1 that happens because of the tag.
+    // This makes it easier to write code elsewhere.
+    this->IncrementPtr(1);
+    return ptr_;
+  }
 
   //
   // The following set of methods get HeapObject out of the tagged value
