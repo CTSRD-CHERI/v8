@@ -42,7 +42,10 @@ static inline V ReadUnalignedValue(Address p) {
 template <typename V>
 static inline void WriteUnalignedValue(Address p, V value) {
   ASSERT_TRIVIALLY_COPYABLE(V);
-  memcpy(reinterpret_cast<void*>(static_cast<uintptr_t>(p)), &value, sizeof(V));
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
+  memcpy(reinterpret_cast<void*>(p), &value, sizeof(V));
+#pragma clang diagnostic pop
 }
 
 template <typename V>

@@ -63,7 +63,10 @@ class SnapshotByteSource final {
     for (base::AtomicIntPtr* p = start; p < end;
       ++p, position_ += sizeof(base::AtomicIntPtr)) {
       base::AtomicIntPtr val;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcheri-inefficient"
       memcpy(&val, data_ + position_, sizeof(base::AtomicIntPtr));
+#pragma clang diagnostic pop
       base::Relaxed_Store(p, val);
     }
 #else
