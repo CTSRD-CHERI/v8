@@ -50,7 +50,11 @@ class V8_PLATFORM_EXPORT TraceObject {
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else    // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif   // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp, int64_t cpu_timestamp);
   void UpdateDuration(int64_t timestamp, int64_t cpu_timestamp);
@@ -58,7 +62,11 @@ class V8_PLATFORM_EXPORT TraceObject {
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else    // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif   // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
       uint64_t duration, uint64_t cpu_duration);
@@ -268,14 +276,22 @@ class V8_PLATFORM_EXPORT TracingController
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else    // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif   // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags) override;
   uint64_t AddTraceEventWithTimestamp(
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else    // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif   // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp) override;
   void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,

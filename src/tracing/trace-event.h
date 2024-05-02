@@ -384,7 +384,11 @@ static V8_INLINE uint64_t AddTraceEventImpl(
     char phase, const uint8_t* category_group_enabled, const char* name,
     const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
     const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+    const uintptr_t* arg_values, unsigned int flags) {
+#else   // !__CHERI_PURE_CAPABILITY__
     const uint64_t* arg_values, unsigned int flags) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   std::unique_ptr<ConvertableToTraceFormat> arg_convertables[2];
   if (num_args > 0 && arg_types[0] == TRACE_VALUE_TYPE_CONVERTABLE) {
     arg_convertables[0].reset(reinterpret_cast<ConvertableToTraceFormat*>(
@@ -406,7 +410,11 @@ static V8_INLINE uint64_t AddTraceEventWithTimestampImpl(
     char phase, const uint8_t* category_group_enabled, const char* name,
     const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
     const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+    const uintptr_t* arg_values, unsigned int flags, int64_t timestamp) {
+#else   // !__CHERI_PURE_CAPABILITY__
     const uint64_t* arg_values, unsigned int flags, int64_t timestamp) {
+#endif   // !__CHERI_PURE_CAPABILITY__
   std::unique_ptr<ConvertableToTraceFormat> arg_convertables[2];
   if (num_args > 0 && arg_types[0] == TRACE_VALUE_TYPE_CONVERTABLE) {
     arg_convertables[0].reset(reinterpret_cast<ConvertableToTraceFormat*>(
@@ -431,7 +439,11 @@ static V8_INLINE uint64_t AddTraceEventWithTimestampImpl(
 template <typename T>
 static V8_INLINE typename std::enable_if<
     std::is_integral<T>::value || std::is_enum<T>::value, void>::type
+#if defined(__CHERI_PURE_CAPABILITY__)
+SetTraceValue(T arg, unsigned char* type, uintptr_t* value) {
+#else   // !__CHERI_PURE_CAPABILITY__
 SetTraceValue(T arg, unsigned char* type, uint64_t* value) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   *type = std::is_same<T, bool>::value
               ? TRACE_VALUE_TYPE_BOOL
               : std::is_signed<T>::value ? TRACE_VALUE_TYPE_INT
@@ -439,6 +451,16 @@ SetTraceValue(T arg, unsigned char* type, uint64_t* value) {
   *value = static_cast<uint64_t>(arg);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define INTERNAL_DECLARE_SET_TRACE_VALUE(actual_type, value_type_id)        \
+  static V8_INLINE void SetTraceValue(actual_type arg, unsigned char* type, \
+                                      uintptr_t* value) {                   \
+    *type = value_type_id;                                                  \
+    *value = 0;                                                             \
+    static_assert(sizeof(arg) <= sizeof(*value));                           \
+    memcpy(value, &arg, sizeof(arg));                                       \
+  }
+#else   // !__CHERI_PURE_CAPABILITY__
 #define INTERNAL_DECLARE_SET_TRACE_VALUE(actual_type, value_type_id)        \
   static V8_INLINE void SetTraceValue(actual_type arg, unsigned char* type, \
                                       uint64_t* value) {                    \
@@ -447,6 +469,7 @@ SetTraceValue(T arg, unsigned char* type, uint64_t* value) {
     static_assert(sizeof(arg) <= sizeof(*value));                           \
     memcpy(value, &arg, sizeof(arg));                                       \
   }
+#endif  // !__CHERI_PURE_CAPABILITY__
 INTERNAL_DECLARE_SET_TRACE_VALUE(double, TRACE_VALUE_TYPE_DOUBLE)
 INTERNAL_DECLARE_SET_TRACE_VALUE(const void*, TRACE_VALUE_TYPE_POINTER)
 INTERNAL_DECLARE_SET_TRACE_VALUE(const char*, TRACE_VALUE_TYPE_STRING)
@@ -490,7 +513,11 @@ static V8_INLINE uint64_t AddTraceEvent(
     const char* arg1_name, ARG1_TYPE&& arg1_val) {
   const int num_args = 1;
   uint8_t arg_type;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t arg_value;
+#else   // !__CHERI_PURE_CAPABILITY__
   uint64_t arg_value;
+#endif  // !__CHERI_PURE_CAPABILITY__
   SetTraceValue(std::forward<ARG1_TYPE>(arg1_val), &arg_type, &arg_value);
   return TRACE_EVENT_API_ADD_TRACE_EVENT(
       phase, category_group_enabled, name, scope, id, bind_id, num_args,
@@ -506,7 +533,11 @@ static V8_INLINE uint64_t AddTraceEvent(
   const int num_args = 2;
   const char* arg_names[2] = {arg1_name, arg2_name};
   unsigned char arg_types[2];
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t arg_values[2];
+#else   // !__CHERI_PURE_CAPABILITY__
   uint64_t arg_values[2];
+#endif  // !__CHERI_PURE_CAPABILITY__
   SetTraceValue(std::forward<ARG1_TYPE>(arg1_val), &arg_types[0],
                 &arg_values[0]);
   SetTraceValue(std::forward<ARG2_TYPE>(arg2_val), &arg_types[1],
@@ -532,7 +563,11 @@ static V8_INLINE uint64_t AddTraceEventWithTimestamp(
     int64_t timestamp, const char* arg1_name, ARG1_TYPE&& arg1_val) {
   const int num_args = 1;
   uint8_t arg_type;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t arg_value;
+#else   // !__CHERI_PURE_CAPABILITY__
   uint64_t arg_value;
+#endif  // !__CHERI_PURE_CAPABILITY__
   SetTraceValue(std::forward<ARG1_TYPE>(arg1_val), &arg_type, &arg_value);
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_TIMESTAMP(
       phase, category_group_enabled, name, scope, id, bind_id, num_args,
@@ -548,7 +583,11 @@ static V8_INLINE uint64_t AddTraceEventWithTimestamp(
   const int num_args = 2;
   const char* arg_names[2] = {arg1_name, arg2_name};
   unsigned char arg_types[2];
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t arg_values[2];
+#else   // !__CHERI_PURE_CAPABILITY__
   uint64_t arg_values[2];
+#endif  // !__CHERI_PURE_CAPABILITY__
   SetTraceValue(std::forward<ARG1_TYPE>(arg1_val), &arg_types[0],
                 &arg_values[0]);
   SetTraceValue(std::forward<ARG2_TYPE>(arg2_val), &arg_types[1],
