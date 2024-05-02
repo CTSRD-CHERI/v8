@@ -159,7 +159,9 @@ class AsAtomicImpl {
     T new_value, old_value_before_cas;
     do {
       if ((old_value & mask) == bits) return false;
+      CheriDiagnosticOff("-Wcheri-provenance")
       new_value = (old_value & ~mask) | bits;
+      CheriDiagnosticPop
       old_value_before_cas = old_value;
       old_value = Release_CompareAndSwap(addr, old_value, new_value);
     } while (old_value != old_value_before_cas);

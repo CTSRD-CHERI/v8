@@ -11,6 +11,17 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define _CHERI_DIAGNOSTIC_PRAGMA(d) _Pragma(#d)
+#define CheriDiagnosticOff(d)      \
+  _Pragma("clang diagnostic push") \
+  _CHERI_DIAGNOSTIC_PRAGMA(clang diagnostic ignored d)
+#define CheriDiagnosticPop _Pragma("clang diagnostic pop")
+#else
+#define CheriDiagnosticOff(...)
+#define CheriDiagnosticPop
+#endif
+
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
 #define AlignToCapSize(x) ((x) + 15) & (~15)
 #else
@@ -372,10 +383,9 @@ template <typename T, typename U>
 constexpr inline bool IsAligned(T value, U alignment) {
   // We can't cast this to size_t on CHERI because T and U probably have to be
   // respected. Just disable the warning for now.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcheri-provenance"
+  CheriDiagnosticOff("-Wcheri-provenance")
   return (value & (alignment - 1)) == 0;
-#pragma clang diagnostic pop
+  CheriDiagnosticPop
 }
 
 inline void* AlignedAddress(void* address, size_t alignment) {
