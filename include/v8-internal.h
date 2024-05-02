@@ -49,8 +49,13 @@ const int kApiSizetSize = sizeof(size_t);
 const int kHeapObjectTag = 1;
 const int kWeakHeapObjectTag = 3;
 const int kHeapObjectTagSize = 2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+const ptraddr_t kHeapObjectTagMask = (1 << kHeapObjectTagSize) - 1;
+const ptraddr_t kHeapObjectReferenceTagMask = 1 << (kHeapObjectTagSize - 1);
+#else // !__CHERI_PURE_CAPABILITY__
 const intptr_t kHeapObjectTagMask = (1 << kHeapObjectTagSize) - 1;
 const intptr_t kHeapObjectReferenceTagMask = 1 << (kHeapObjectTagSize - 1);
+#endif // !__CHERI_PURE_CAPABILITY__
 
 // Tag information for fowarding pointers stored in object headers.
 // 0b00 at the lowest 2 bits in the header indicates that the map word is a
