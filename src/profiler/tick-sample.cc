@@ -23,7 +23,11 @@ namespace {
 
 bool IsSamePage(i::Address ptr1, i::Address ptr2) {
   const uint32_t kPageSize = 4096;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t mask = ~(kPageSize - 1);
+#else
   i::Address mask = ~static_cast<i::Address>(kPageSize - 1);
+#endif
   return (ptr1 & mask) == (ptr2 & mask);
 }
 
