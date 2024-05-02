@@ -155,6 +155,9 @@ class HeapObjectHeader {
 #else   // !defined(CPPGC_CAGED_HEAP)
   uint32_t padding_ = 0;
 #endif  // !defined(CPPGC_CAGED_HEAP)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uint8_t cheri_padding_[8];
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #endif  // defined(V8_TARGET_ARCH_64_BIT)
   uint16_t encoded_high_;
   uint16_t encoded_low_;
