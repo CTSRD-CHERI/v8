@@ -1419,8 +1419,14 @@ constexpr int kIeeeDoubleExponentWordOffset = 0;
 #define OBJECT_POINTER_PADDING(value) (OBJECT_POINTER_ALIGN(value) - (value))
 
 // POINTER_SIZE_ALIGN returns the value aligned as a system pointer.
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define POINTER_SIZE_ALIGN(value)           \
+  (((value) + ::i::kPointerAlignmentMask) & \
+   ~static_cast<size_t>(::i::kPointerAlignmentMask))
+#else
 #define POINTER_SIZE_ALIGN(value) \
   (((value) + ::i::kPointerAlignmentMask) & ~::i::kPointerAlignmentMask)
+#endif
 
 // POINTER_SIZE_PADDING returns the padding size required to align value
 // as a system pointer.

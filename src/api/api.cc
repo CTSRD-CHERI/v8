@@ -5772,12 +5772,13 @@ static const uintptr_t kOneByteMask = OneByteMask<sizeof(uintptr_t)>::value;
 static const uintptr_t kAlignmentMask = sizeof(uintptr_t) - 1;
 #endif  // !__CHERI_PURE_CAPABILITY__
 static inline bool Unaligned(const uint16_t* chars) {
-  return reinterpret_cast<const uintptr_t>(chars) & kAlignmentMask;
+  return reinterpret_cast<const uintptr_t>(chars) &
+         static_cast<size_t>(kAlignmentMask);
 }
 
 static inline const uint16_t* Align(const uint16_t* chars) {
   return reinterpret_cast<uint16_t*>(reinterpret_cast<uintptr_t>(chars) &
-                                     ~kAlignmentMask);
+                                     ~static_cast<size_t>(kAlignmentMask));
 }
 
 class ContainsOnlyOneByteHelper {
@@ -5813,7 +5814,7 @@ class ContainsOnlyOneByteHelper {
         chars += increment;
       }
       // Check for early return.
-      if ((acc & kOneByteMask) != 0) {
+      if ((acc & static_cast<size_t>(kOneByteMask)) != 0) {
         is_one_byte_ = false;
         return;
       }
@@ -5823,7 +5824,7 @@ class ContainsOnlyOneByteHelper {
       acc |= *chars++;
     }
     // Check result.
-    if ((acc & kOneByteMask) != 0) is_one_byte_ = false;
+    if ((acc & static_cast<size_t>(kOneByteMask)) != 0) is_one_byte_ = false;
   }
 
  private:

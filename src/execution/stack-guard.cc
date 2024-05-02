@@ -91,7 +91,8 @@ void StackGuard::PushInterruptsScope(InterruptsScope* scope) {
     uint32_t restored_flags = 0;
     for (InterruptsScope* current = thread_local_.interrupt_scopes_;
          current != nullptr; current = current->prev_) {
-      restored_flags |= (current->intercepted_flags_ & scope->intercept_mask_);
+      restored_flags |= (current->intercepted_flags_ &
+                         static_cast<size_t>(scope->intercept_mask_));
       current->intercepted_flags_ &= ~scope->intercept_mask_;
     }
     thread_local_.interrupt_flags_ |= restored_flags;
@@ -110,7 +111,9 @@ void StackGuard::PopInterruptsScope() {
   DCHECK_NE(top->mode_, InterruptsScope::kNoop);
   if (top->mode_ == InterruptsScope::kPostponeInterrupts) {
     // Make intercepted interrupts active.
-    DCHECK_EQ(thread_local_.interrupt_flags_ & top->intercept_mask_, 0);
+    DCHECK_EQ(thread_local_.interrupt_flags_ &
+                  static_cast<size_t>(top->intercept_mask_),
+              0);
     thread_local_.interrupt_flags_ |= top->intercepted_flags_;
   } else {
     DCHECK_EQ(top->mode_, InterruptsScope::kRunInterrupts);
