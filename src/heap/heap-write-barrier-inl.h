@@ -44,6 +44,16 @@ inline bool IsCodeSpaceObject(HeapObject object);
 namespace heap_internals {
 
 struct MemoryChunk {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr ptraddr_t kFlagsOffset = kSizetSize;
+  static constexpr ptraddr_t kHeapOffset = kSizetSize + kUIntptrSize;
+  static constexpr ptraddr_t kInWritableSharedSpaceBit = uintptr_t{1} << 0;
+  static constexpr ptraddr_t kFromPageBit = uintptr_t{1} << 3;
+  static constexpr ptraddr_t kToPageBit = uintptr_t{1} << 4;
+  static constexpr ptraddr_t kMarkingBit = uintptr_t{1} << 5;
+  static constexpr ptraddr_t kReadOnlySpaceBit = uintptr_t{1} << 6;
+  static constexpr ptraddr_t kIsExecutableBit = uintptr_t{1} << 19;
+#else    // !__CHERI_PURE_CAPABILITY__
   static constexpr uintptr_t kFlagsOffset = kSizetSize;
   static constexpr uintptr_t kHeapOffset = kSizetSize + kUIntptrSize;
   static constexpr uintptr_t kInWritableSharedSpaceBit = uintptr_t{1} << 0;
@@ -52,6 +62,7 @@ struct MemoryChunk {
   static constexpr uintptr_t kMarkingBit = uintptr_t{1} << 5;
   static constexpr uintptr_t kReadOnlySpaceBit = uintptr_t{1} << 6;
   static constexpr uintptr_t kIsExecutableBit = uintptr_t{1} << 19;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
   V8_INLINE static heap_internals::MemoryChunk* FromHeapObject(
       HeapObject object) {
