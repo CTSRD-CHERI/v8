@@ -3024,9 +3024,11 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
 // static
 int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
   if (V8_COMPRESS_POINTERS_8GB_BOOL) return 0;
-  if (alignment == kDoubleAligned && (address & kDoubleAlignmentMask) != 0)
+  if (alignment == kDoubleAligned &&
+      (address & static_cast<size_t>(kDoubleAlignmentMask)) != 0)
     return kTaggedSize;
-  if (alignment == kDoubleUnaligned && (address & kDoubleAlignmentMask) == 0) {
+  if (alignment == kDoubleUnaligned &&
+      (address & static_cast<size_t>(kDoubleAlignmentMask)) == 0)
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     return 0;
 #else
@@ -5345,7 +5347,7 @@ void Heap::SetUp(LocalHeap* main_thread_local_heap) {
 
   mmap_region_base_ =
       reinterpret_cast<uintptr_t>(v8::internal::GetRandomMmapAddr()) &
-      ~kMmapRegionMask;
+      ~static_cast<size_t>(kMmapRegionMask);
 
   v8::PageAllocator* code_page_allocator;
   if (isolate_->RequiresCodeRange() || code_range_size_ != 0) {
@@ -6157,14 +6159,16 @@ class UnreachableObjectsFilter : public HeapObjectsFilter {
 
   bool SkipObject(HeapObject object) override {
     if (object.IsFreeSpaceOrFiller()) return true;
-    Address chunk = object.ptr() & ~kLogicalChunkAlignmentMask;
+    Address chunk =
+        object.ptr() & ~static_cast<size_t>(kLogicalChunkAlignmentMask);
     if (reachable_.count(chunk) == 0) return true;
     return reachable_[chunk]->count(object) == 0;
   }
 
  private:
   bool MarkAsReachable(HeapObject object) {
-    Address chunk = object.ptr() & ~kLogicalChunkAlignmentMask;
+    Address chunk =
+        object.ptr() & static_cast<size_t>(~kLogicalChunkAlignmentMask);
     if (reachable_.count(chunk) == 0) {
       reachable_[chunk] = new std::unordered_set<HeapObject, Object::Hasher>();
     }
