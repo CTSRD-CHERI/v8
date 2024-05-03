@@ -851,7 +851,11 @@ constexpr int kCodeZapValue = 0xbadc0de;
 constexpr uint32_t kPhantomReferenceZap = 0xca11bac;
 
 // Page constants.
+#if defined(__CHERI_PURE_CAPABILITY__)
+static const ptraddr_t kPageAlignmentMask = (intptr_t{1} << kPageSizeBits) - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 static const intptr_t kPageAlignmentMask = (intptr_t{1} << kPageSizeBits) - 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 // On Intel architecture, cache line size is 64 bytes.
 // On ARM it may be less (32 bytes), but as far this constant is
