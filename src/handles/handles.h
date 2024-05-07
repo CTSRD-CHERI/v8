@@ -300,7 +300,11 @@ class V8_NODISCARD SealHandleScope final {
 
 struct HandleScopeData final {
   static constexpr uint32_t kSizeInBytes =
+#if defined(__CHERI_PURE_CAPABILITY__)
+      2 * kSystemPointerSize + std::max(2 * kInt32Size, kSystemPointerSize);
+#else    // !__CHERI_PURE_CAPABILITY__
       2 * kSystemPointerSize + 2 * kInt32Size;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
   Address* next;
   Address* limit;
