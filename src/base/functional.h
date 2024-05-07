@@ -209,7 +209,14 @@ V8_INLINE size_t hash_value(T (&v)[N]) {
 
 template <typename T>
 V8_INLINE size_t hash_value(T* const& v) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  const ptraddr_t first = static_cast<ptraddr_t>(base::bit_cast<uintptr_t>(v));
+  const ptraddr_t second = static_cast<ptraddr_t>(
+    base::bit_cast<uintptr_t>(v) >> sizeof(ptraddr_t) * CHAR_BIT);
+  return hash_combine(first, second);
+#else // !__CHERI_PURE_CAPABILITY__
   return hash_value(base::bit_cast<uintptr_t>(v));
+#endif // !__CHERI_PURE_CAPABILITY__
 }
 
 template <typename T1, typename T2>
