@@ -324,7 +324,11 @@ inline T RoundDown(T x, intptr_t m) {
   DCHECK(m != 0 && ((m & (m - 1)) == 0));
   return x & static_cast<T>(-m);
 }
+#if defined(__CHERI_PURE_CAPABILITY__)
+template <size_t m, typename T>
+#else   // !__CHERI_PURE_CAPABILITY__
 template <intptr_t m, typename T>
+#endif  // !__CHERI_PURE_CAPABILITY__
 constexpr inline T RoundDown(T x) {
   static_assert(std::is_integral<T>::value);
   // m must be a power of two.
@@ -345,7 +349,11 @@ inline T RoundUp(T x, intptr_t m) {
   return RoundDown<T>(static_cast<T>(x + (m - 1)), m);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+template <size_t m, typename T>
+#else   // !__CHERI_PURE_CAPABILITY__
 template <intptr_t m, typename T>
+#endif  // !__CHERI_PURE_CAPABILITY__
 constexpr inline T RoundUp(T x) {
   static_assert(std::is_integral<T>::value);
   DCHECK_GE(x, 0);
