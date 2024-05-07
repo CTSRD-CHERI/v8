@@ -417,7 +417,11 @@ constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 1024;
 #endif
 
 #if V8_HOST_ARCH_64_BIT
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr int kSystemPointerSizeLog2 = 4;
+#else // !__CHERI_PURE_CAPABILITY__
 constexpr int kSystemPointerSizeLog2 = 3;
+#endif // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kIntptrSignBit =
     static_cast<intptr_t>(uintptr_t{0x8000000000000000});
 constexpr bool kPlatformRequiresCodeRange = true;
