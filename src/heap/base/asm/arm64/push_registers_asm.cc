@@ -31,6 +31,28 @@ asm(
     ".p2align 2                                         \n"
     "PushAllRegistersAndIterateStack:                   \n"
 #endif  // !defined(__APPLE__)
+#if defined(__CHERI_PURE_CAPABILITY__)
+    // c19-c29 are callee-saved.
+    "  stp c19, c20, [csp, #-32]!                        \n"
+    "  stp c21, c22, [csp, #-32]!                        \n"
+    "  stp c23, c24, [csp, #-32]!                        \n"
+    "  stp c25, c26, [csp, #-32]!                        \n"
+    "  stp c27, c28, [csp, #-32]!                        \n"
+    "  stp cfp, clr, [csp, #-32]!                        \n"
+    // Maintain frame pointer.
+    "  mov cfp, csp                                      \n"
+    // Pass 1st parameter (x0) unchanged (Stack*).
+    // Pass 2nd parameter (x1) unchanged (StackVisitor*).
+    // Save 3rd parameter (x2; IterateStackCallback)
+    "  mov c7, c2                                       \n"
+    // Pass 3rd parameter as sp (stack pointer).
+    "  mov c2, csp                                       \n"
+    "  blr c7                                           \n"
+    // Load return address and frame pointer.
+    "  ldp cfp, clr, [csp], #32                        \n"
+    // Drop all callee-saved registers.
+    "  add csp, csp, #160                               \n"
+#else    // !__CHERI_PURE_CAPABILITY__
     // x19-x29 are callee-saved.
     "  stp x19, x20, [sp, #-16]!                        \n"
     "  stp x21, x22, [sp, #-16]!                        \n"
@@ -59,4 +81,5 @@ asm(
 #endif
     // Drop all callee-saved registers.
     "  add sp, sp, #80                                  \n"
+#endif    // !__CHERI_PURE_CAPABILITY__
     "  ret                                              \n");
