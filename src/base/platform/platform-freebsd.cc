@@ -82,8 +82,13 @@ std::vector<OS::SharedLibraryAddress> OS::GetSharedLibraryAddresses() {
             lib_name = std::string(path);
           }
           result.push_back(SharedLibraryAddress(
+#if defined(__CHERI_PURE_CAPABILITY__)
+              lib_name, static_cast<uintptr_t>(map->kve_start),
+              static_cast<uintptr_t>(map->kve_end)));
+#else    // !__CHERI_PURE_CAPABILITY__
               lib_name, reinterpret_cast<uintptr_t>(map->kve_start),
               reinterpret_cast<uintptr_t>(map->kve_end)));
+#endif   // !__CHERI_PURE_CAPABILITY__
         }
 
         start += ssize;
