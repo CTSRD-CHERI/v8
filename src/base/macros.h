@@ -314,7 +314,11 @@ inline uint64_t make_uint64(uint32_t high, uint32_t low) {
 
 // Return the largest multiple of m which is <= x.
 template <typename T>
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline T RoundDown(T x, size_t m) {
+#else   // !__CHERI_PURE_CAPABILITY__
 inline T RoundDown(T x, intptr_t m) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   static_assert(std::is_integral<T>::value);
   // m must be a power of two.
   DCHECK(m != 0 && ((m & (m - 1)) == 0));
@@ -330,7 +334,11 @@ constexpr inline T RoundDown(T x) {
 
 // Return the smallest multiple of m which is >= x.
 template <typename T>
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline T RoundUp(T x, size_t m) {
+#else   // !__CHERI_PURE_CAPABILITY__
 inline T RoundUp(T x, intptr_t m) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   static_assert(std::is_integral<T>::value);
   DCHECK_GE(x, 0);
   DCHECK_GE(std::numeric_limits<T>::max() - x, m - 1);  // Overflow check.
