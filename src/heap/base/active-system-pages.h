@@ -26,7 +26,7 @@ class ActiveSystemPages final {
 
   // Adds the pages for this memory range. Returns the number of freshly added
   // pages.
-  V8_EXPORT_PRIVATE size_t Add(size_t start, size_t end, size_t page_size_bits);
+  V8_EXPORT_PRIVATE size_t Add(uintptr_t start, uintptr_t end, size_t page_size_bits);
 
   // Replaces the current bitset with the given argument. The new bitset needs
   // to be a proper subset of the current pages, which means this operation
