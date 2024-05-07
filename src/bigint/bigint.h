@@ -31,15 +31,19 @@ extern bool kAdvancedAlgorithmsEnabledInLibrary;
 #endif
 
 // The type of a digit: a register-width unsigned integer.
-using digit_t = uintptr_t;
-using signed_digit_t = intptr_t;
+//using digit_t = uintptr_t;
+//using signed_digit_t = intptr_t;
 #if UINTPTR_MAX == 0xFFFFFFFF
 // 32-bit platform.
+using digit_t = uint32_t;
+using signed_digit_t = int32_t;
 using twodigit_t = uint64_t;
 #define HAVE_TWODIGIT_T 1
 static constexpr int kLog2DigitBits = 5;
 #elif UINTPTR_MAX == 0xFFFFFFFFFFFFFFFF
 // 64-bit platform.
+using digit_t = uint64_t;
+using signed_digit_t = int64_t;
 static constexpr int kLog2DigitBits = 6;
 #if defined(__SIZEOF_INT128__)
 using twodigit_t = __uint128_t;

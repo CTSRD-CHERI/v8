@@ -157,8 +157,15 @@ static inline digit_t digit_div(digit_t high, digit_t low, digit_t divisor,
   // {s} can be 0. {low >> kDigitBits} would be undefined behavior, so
   // we mask the shift amount with {kShiftMask}, and the result with
   // {s_zero_mask} which is 0 if s == 0 and all 1-bits otherwise.
-  static_assert(sizeof(intptr_t) == sizeof(digit_t),
-                "intptr_t and digit_t must have the same size");
+#if UINTPTR_MAX == 0xFFFFFFFF
+  static_assert(sizeof(uint32_t) == sizeof(digit_t),
+                "uint32_t and digit_t must have the same size");
+#elif UINTPTR_MAX == 0xFFFFFFFFFFFFFFFF
+  static_assert(sizeof(uint64_t) == sizeof(digit_t),
+                "uint64_t and digit_t must have the same size");
+#else
+#error Unsupported platform.
+#endif
   const int kShiftMask = kDigitBits - 1;
   digit_t s_zero_mask =
       static_cast<digit_t>(static_cast<intptr_t>(-s) >> (kDigitBits - 1));
