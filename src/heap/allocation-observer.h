@@ -17,7 +17,11 @@ namespace internal {
 // Observer for allocations that is aware of LAB-based allocation.
 class AllocationObserver {
  public:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr size_t kNotUsingFixedStepSize = -1;
+#else    // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kNotUsingFixedStepSize = -1;
+#endif   // !__CHERI_PURE_CAPABILITY__
   explicit AllocationObserver(intptr_t step_size) : step_size_(step_size) {}
   virtual ~AllocationObserver() = default;
   AllocationObserver(const AllocationObserver&) = delete;

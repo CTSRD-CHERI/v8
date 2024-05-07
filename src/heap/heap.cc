@@ -6161,10 +6161,19 @@ class UnreachableObjectsFilter : public HeapObjectsFilter {
     return true;
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr size_t kLogicalChunkAlignment =
+      (static_cast<size_t>(1) << kPageSizeBits);
+#else    // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kLogicalChunkAlignment =
       (static_cast<uintptr_t>(1) << kPageSizeBits);
+#endif    // !__CHERI_PURE_CAPABILITY__
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr size_t kLogicalChunkAlignmentMask =
+#else    // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kLogicalChunkAlignmentMask =
+#endif    // !__CHERI_PURE_CAPABILITY__
       kLogicalChunkAlignment - 1;
 
   class MarkingVisitor : public ObjectVisitorWithCageBases, public RootVisitor {

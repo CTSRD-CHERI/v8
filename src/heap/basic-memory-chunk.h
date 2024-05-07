@@ -126,6 +126,20 @@ class BasicMemoryChunk {
       MainThreadFlags(kEvacuationCandidateMask) |
       MainThreadFlags(kIsInYoungGenerationMask);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+ static constexpr size_t kAlignment =
+      (static_cast<size_t>(1) << kPageSizeBits);
+  static constexpr size_t kAlignmentMask = kAlignment - 1;
+
+  static constexpr size_t kSizeOffset = MemoryChunkLayout::kSizeOffset;
+  static constexpr size_t kFlagsOffset = MemoryChunkLayout::kFlagsOffset;
+  static constexpr size_t kHeapOffset = MemoryChunkLayout::kHeapOffset;
+  static constexpr size_t kAreaStartOffset =
+      MemoryChunkLayout::kAreaStartOffset;
+  static constexpr size_t kAreaEndOffset = MemoryChunkLayout::kAreaEndOffset;
+  static constexpr size_t kMarkingBitmapOffset =
+      MemoryChunkLayout::kMarkingBitmapOffset;
+#else    // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kAlignment =
       (static_cast<uintptr_t>(1) << kPageSizeBits);
   static constexpr intptr_t kAlignmentMask = kAlignment - 1;
@@ -138,6 +152,7 @@ class BasicMemoryChunk {
   static constexpr intptr_t kAreaEndOffset = MemoryChunkLayout::kAreaEndOffset;
   static constexpr intptr_t kMarkingBitmapOffset =
       MemoryChunkLayout::kMarkingBitmapOffset;
+#endif   // !__CHERI_PURE_CAPABILITY__
   static constexpr size_t kHeaderSize =
       MemoryChunkLayout::kBasicMemoryChunkHeaderSize;
 
