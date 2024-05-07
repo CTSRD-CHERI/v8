@@ -267,7 +267,11 @@ static const size_t kExternalPointerTableReservationSize = 512 * MB;
 static const uint32_t kExternalPointerIndexShift = 6;
 #else
 static const size_t kExternalPointerTableReservationSize = 1024 * MB;
+#if defined(__CHERI_PURE_CAPABILITY__)
+static const uint32_t kExternalPointerIndexShift = 6;
+#else    // __CHERI_PURE_CAPABILITY__)
 static const uint32_t kExternalPointerIndexShift = 5;
+#endif   // !__CHERI_PURE_CAPABILITY__
 #endif  // V8_TARGET_OS_ANDROID
 
 // The maximum number of entries in an external pointer table.
