@@ -40,6 +40,9 @@ constexpr size_t TB = size_t{GB} * 1024;
  * Configuration of tagging scheme.
  */
 const int kApiSystemPointerSize = sizeof(void*);
+#if defined(__CHERI_PURE_CAPABILITY__)
+const int kApiSystemPointerAddrSize = sizeof(ptraddr_t);
+#endif   // __CHERI_PURE_CAPABILITY__
 const int kApiDoubleSize = sizeof(double);
 const int kApiInt32Size = sizeof(int32_t);
 const int kApiInt64Size = sizeof(int64_t);
@@ -128,7 +131,11 @@ constexpr size_t kPtrComprCageReservationSize = size_t{1} << 32;
 constexpr size_t kPtrComprCageBaseAlignment = size_t{1} << 32;
 
 static_assert(
+#if defined(__CHERI_PURE_CAPABILITY__)
+    kApiSystemPointerAddrSize == kApiInt64Size,
+#else    // !__CHERI_PURE_CAPABILITY__
     kApiSystemPointerSize == kApiInt64Size,
+#endif   // !__CHERI_PURE_CAPABILITY__
     "Pointer compression can be enabled only for 64-bit architectures");
 const int kApiTaggedSize = kApiInt32Size;
 #else

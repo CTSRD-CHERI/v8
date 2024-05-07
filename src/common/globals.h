@@ -373,6 +373,9 @@ constexpr int kIntptrSize = sizeof(intptr_t);
 constexpr int kUIntptrSize = sizeof(uintptr_t);
 constexpr int kSystemPointerSize = sizeof(void*);
 constexpr int kSystemPointerHexDigits = kSystemPointerSize == 4 ? 8 : 12;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr int kSystemPointerAddrSize = sizeof(ptraddr_t);
+#endif   // !__CHERI_PURE_CAPABILITY__
 constexpr int kPCOnStackSize = kSystemPointerSize;
 constexpr int kFPOnStackSize = kSystemPointerSize;
 
@@ -489,7 +492,11 @@ static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 
 #ifdef V8_COMPRESS_POINTERS
 static_assert(
+#if defined(__CHERI_PURE_CAPABILITY__)
+    kSystemPointerAddrSize == kInt64Size,
+#else    // !__CHERI_PURE_CAPABILITY__
     kSystemPointerSize == kInt64Size,
+#endif   // !__CHERI_PURE_CAPABILITY__
     "Pointer compression can be enabled only for 64-bit architectures");
 
 constexpr int kTaggedSize = kInt32Size;
