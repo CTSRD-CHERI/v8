@@ -170,6 +170,8 @@ struct ExternalPointerTableEntry {
 #if defined(LEAK_SANITIZER)
 //  When LSan is active, we need "fat" entries, see above.
 static_assert(sizeof(ExternalPointerTableEntry) == 16);
+#elif defined(__CHERI_PURE_CAPABILITY__)
+static_assert(sizeof(ExternalPointerTableEntry) == sizeof(void *));
 #else
 //  We expect ExternalPointerTable entries to consist of a single 64-bit word.
 static_assert(sizeof(ExternalPointerTableEntry) == 8);
