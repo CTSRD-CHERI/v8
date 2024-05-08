@@ -113,11 +113,11 @@ template <AccessMode mode>
 HeapObjectHeader* ObjectStartBitmap::FindHeader(
     ConstAddress address_maybe_pointing_to_the_middle_of_object) const {
   DCHECK(fully_populated_);
-  const size_t page_base = reinterpret_cast<uintptr_t>(
+  const uintptr_t page_base = reinterpret_cast<uintptr_t>(
                                address_maybe_pointing_to_the_middle_of_object) &
                            kPageBaseMask;
   DCHECK_EQ(page_base, reinterpret_cast<uintptr_t>(this) & kPageBaseMask);
-  size_t object_offset = reinterpret_cast<uintptr_t>(
+  size_t object_offset = reinterpret_cast<size_t>(
                              address_maybe_pointing_to_the_middle_of_object) &
                          kPageOffsetMask;
   size_t object_start_number = object_offset / kAllocationGranularity;
