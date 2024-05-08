@@ -48,24 +48,42 @@ class V8_EXPORT_PRIVATE MemoryChunkLayout {
   enum Header {
     // BasicMemoryChunk fields:
     FIELD(size_t, Size),
+#if defined(__CHERI_PURE_CAPABILITY__)
+    FIELD(size_t, Flags),
+#else   // !__CHERI_PURE_CAPABILITY__
     FIELD(uintptr_t, Flags),
+#endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(Heap*, Heap),
     FIELD(Address, AreaStart),
     FIELD(Address, AreaEnd),
     FIELD(size_t, AllocatedBytes),
     FIELD(size_t, WastedMemory),
+#if defined(__CHERI_PURE_CAPABILITY__)
+    FIELD(std::atomic<ptrdiff_t>, HighWaterMark),
+    FIELD(size_t, Padding0),
+#else   // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<intptr_t>, HighWaterMark),
+#endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(Address, Owner),
     FIELD(VirtualMemory, Reservation),
     // MemoryChunk fields:
     FIELD(SlotSet* [kNumSets], SlotSet),
     FIELD(TypedSlotsSet* [kNumSets], TypedSlotSet),
     FIELD(ProgressBar, ProgressBar),
+#if defined(__CHERI_PURE_CAPABILITY__)
+    FIELD(std::atomic<size_t>, LiveByteCount),
+    FIELD(size_t, Padding1),
+#else   // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<intptr_t>, LiveByteCount),
+#endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(base::Mutex*, Mutex),
     FIELD(base::SharedMutex*, SharedMutex),
     FIELD(base::Mutex*, PageProtectionChangeMutex),
+#if defined(__CHERI_PURE_CAPABILITY__)
+    FIELD(std::atomic<uint64_t>, ConcurrentSweeping),
+#else   // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<intptr_t>, ConcurrentSweeping),
+#endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<size_t>[kNumTypes], ExternalBackingStoreBytes),
     FIELD(heap::ListNode<MemoryChunk>, ListNode),
     FIELD(FreeListCategory**, Categories),

@@ -35,7 +35,11 @@ class MemoryChunk : public BasicMemoryChunk {
   //   will set this value and not touch the page anymore.
   // |kPending|: This page is ready for parallel sweeping.
   // |kInProgress|: This page is currently swept by a sweeper thread.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  enum class ConcurrentSweepingState : uint64_t {
+#else   // !__CHERI_PURE_CAPABILITY__
   enum class ConcurrentSweepingState : intptr_t {
+#endif  // !__CHERI_PURE_CAPABILITY__
     kDone,
     kPending,
     kInProgress,
@@ -260,7 +264,11 @@ class MemoryChunk : public BasicMemoryChunk {
   class ProgressBar progress_bar_;
 
   // Count of bytes marked black on page.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  std::atomic<size_t> live_byte_count_{0};
+#else   // !__CHERI_PURE_CAPABILITY__
   std::atomic<intptr_t> live_byte_count_{0};
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   base::Mutex* mutex_;
   base::SharedMutex* shared_mutex_;

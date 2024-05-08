@@ -108,7 +108,11 @@ class BasicMemoryChunk {
     IS_EXECUTABLE = 1u << 19,
   };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  using MainThreadFlags = base::Flags<Flag, size_t>;
+#else    // !__CHERI_PURE_CAPABILITY__
   using MainThreadFlags = base::Flags<Flag, uintptr_t>;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
   static constexpr MainThreadFlags kAllFlagsMask = ~MainThreadFlags(NO_FLAGS);
   static constexpr MainThreadFlags kPointersToHereAreInterestingMask =
@@ -178,8 +182,13 @@ class BasicMemoryChunk {
     // top points to the next address after the chunk, which effectively belongs
     // to another chunk. See the comment to Page::FromAllocationAreaAddress.
     BasicMemoryChunk* chunk = BasicMemoryChunk::FromAddress(mark - 1);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    ptrdiff_t new_mark = static_cast<ptrdiff_t>(mark - chunk->address());
+    ptrdiff_t old_mark = chunk->high_water_mark_.load(std::memory_order_relaxed);
+#else   // !__CHERI_PURE_CAPABILITY__
     intptr_t new_mark = static_cast<intptr_t>(mark - chunk->address());
     intptr_t old_mark = chunk->high_water_mark_.load(std::memory_order_relaxed);
+#endif  // !__CHERI_PURE_CAPABILITY__
     while ((new_mark > old_mark) &&
            !chunk->high_water_mark_.compare_exchange_weak(
                old_mark, new_mark, std::memory_order_acq_rel)) {
@@ -356,7 +365,11 @@ class BasicMemoryChunk {
 
   // Assuming the initial allocation on a page is sequential, count highest
   // number of bytes ever allocated on the page.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  std::atomic<ptrdiff_t> high_water_mark_;
+#else    // !__CHERI_PURE_CAPABILITY__
   std::atomic<intptr_t> high_water_mark_;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
   // The space owning this memory chunk.
   std::atomic<BaseSpace*> owner_;
