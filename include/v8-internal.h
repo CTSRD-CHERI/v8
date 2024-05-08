@@ -65,12 +65,20 @@ const intptr_t kHeapObjectReferenceTagMask = 1 << (kHeapObjectTagSize - 1);
 // forwarding pointer.
 const int kForwardingTag = 0;
 const int kForwardingTagSize = 2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+const size_t kForwardingTagMask = (1 << kForwardingTagSize) - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 const intptr_t kForwardingTagMask = (1 << kForwardingTagSize) - 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 // Tag information for Smi.
 const int kSmiTag = 0;
 const int kSmiTagSize = 1;
+#if defined(__CHERI_PURE_CAPABILITY__)
+const size_t kSmiTagMask = (1 << kSmiTagSize) - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 const intptr_t kSmiTagMask = (1 << kSmiTagSize) - 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 template <size_t tagged_ptr_size>
 struct SmiTagging;
