@@ -165,7 +165,11 @@ AllocationResult LocalAllocationBuffer::AllocateRawUnaligned(
 
 LocalAllocationBuffer LocalAllocationBuffer::FromResult(Heap* heap,
                                                         AllocationResult result,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                                        size_t size) {
+#else   // !__CHERI_PURE_CAPABILITY__
                                                         intptr_t size) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (result.IsFailure()) return InvalidBuffer();
   HeapObject obj;
   bool ok = result.To(&obj);
