@@ -820,7 +820,11 @@ constexpr int kCodeAlignmentBits = 5;
 constexpr intptr_t kCodeAlignment = 1 << kCodeAlignmentBits;
 constexpr intptr_t kCodeAlignmentMask = kCodeAlignment - 1;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+const ptraddr_t kWeakHeapObjectMask = 1 << 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 const Address kWeakHeapObjectMask = 1 << 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 // The lower 32 bits of the cleared weak reference value is always equal to
 // the |kClearedWeakHeapObjectLower32| constant but on 64-bit architectures
