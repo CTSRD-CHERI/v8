@@ -38,7 +38,11 @@ class V8_EXPORT_PRIVATE MemoryChunkLayout {
  public:
   static constexpr int kNumSets = NUMBER_OF_REMEMBERED_SET_TYPES;
   static constexpr int kNumTypes = ExternalBackingStoreType::kNumTypes;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr int kMemoryChunkAlignment = alignof(max_align_t);
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr int kMemoryChunkAlignment = sizeof(size_t);
+#endif  // !__CHERI_PURE_CAPABILITY__
 #define FIELD(Type, Name) \
   k##Name##Offset, k##Name##End = k##Name##Offset + sizeof(Type) - 1
   enum Header {
