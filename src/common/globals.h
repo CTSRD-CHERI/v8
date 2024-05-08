@@ -787,8 +787,13 @@ constexpr intptr_t kObjectAlignment = 1 << kObjectAlignmentBits;
 constexpr intptr_t kObjectAlignmentMask = kObjectAlignment - 1;
 
 // Object alignment for 8GB pointer compressed heap.
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kObjectAlignment8GbHeap = 8;
+constexpr size_t kObjectAlignment8GbHeapMask = kObjectAlignment8GbHeap - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kObjectAlignment8GbHeap = 8;
 constexpr intptr_t kObjectAlignment8GbHeapMask = kObjectAlignment8GbHeap - 1;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
 #ifdef V8_COMPRESS_POINTERS_8GB
 static_assert(
