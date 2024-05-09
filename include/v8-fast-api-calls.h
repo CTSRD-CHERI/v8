@@ -460,10 +460,20 @@ struct AnyCType {
   };
 };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+// TODO(gcjenkinson): AnyCType is assumed to be 64-bits in the arm64 simulator,
+// however it is currently unclear where the assumption is in the
+// EffectControlLinearizer.
+static_assert(
+    (sizeof(AnyCType) == 8 || sizeof(AnyCType) == 16),
+    "The AnyCType struct should have size == 64 bits, or 128 bits "
+    "as this is assumed by EffectControlLinearizer.");
+#else   // !__CHERI_PURE_CAPABILITY__
 static_assert(
     sizeof(AnyCType) == 8,
     "The AnyCType struct should have size == 64 bits, as this is assumed "
     "by EffectControlLinearizer.");
+#endif // !__CHERI_PURE_CAPABILITY__
 
 class V8_EXPORT CFunction {
  public:
