@@ -27,8 +27,14 @@ class IntegerLiteral {
   template <typename T>
   bool IsRepresentableAs() const {
     static_assert(std::is_integral<T>::value, "Integral type required");
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(sizeof(T) <= sizeof(uintptr_t),
+                  "Until torque is heavily reworked conversions of "
+		  "IntegerLiterals to u/intptr_t must be supported");
+#else   // !__CHERI_PURE_CAPABILITY__
     static_assert(sizeof(T) <= sizeof(uint64_t),
                   "Types with more than 64 bits are not supported");
+#endif  // !__CHERI_PURE_CAPABILITY__
     return Compare(IntegerLiteral(std::numeric_limits<T>::min(), false)) >= 0 &&
            Compare(IntegerLiteral(std::numeric_limits<T>::max(), false)) <= 0;
   }
