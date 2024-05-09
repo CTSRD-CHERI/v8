@@ -425,6 +425,7 @@ constexpr int kSystemPointerSizeLog2 = 4;
 #else // !__CHERI_PURE_CAPABILITY__
 constexpr int kSystemPointerSizeLog2 = 3;
 #endif // !__CHERI_PURE_CAPABILITY__
+constexpr int kSystemPointerAddrSizeLog2 = 3;
 constexpr intptr_t kIntptrSignBit =
     static_cast<intptr_t>(uintptr_t{0x8000000000000000});
 constexpr bool kPlatformRequiresCodeRange = true;
