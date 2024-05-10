@@ -166,9 +166,21 @@ void CPURegList::Align() {
   // Use padreg, if necessary, to maintain stack alignment.
   if (Count() % 2 != 0) {
     if (IncludesAliasOf(padreg)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      // The padding here is not required to align to 16 bytes as capability
+      // registers are already 16 bytes wide. However, the processing of
+      // CPURegLists, for example in CopyRegListToFrame, assumes that registers
+      // can be popped in pairs.
+      Remove(padregc);
+#else
       Remove(padreg);
+#endif // __CHERI_PURE_CAPABILITY
     } else {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      Combine(padregc);
+#else
       Combine(padreg);
+#endif // __CHERI_PURE_CAPABILITY
     }
   }
 
@@ -210,7 +222,11 @@ bool RelocInfo::IsCodedSpecially() {
   // The deserializer needs to know whether a pointer is specially coded. Being
   // specially coded on ARM64 means that it is an immediate branch.
   Instruction* instr = reinterpret_cast<Instruction*>(pc_);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (instr->IsLdrLiteralC()) {
+#else
   if (instr->IsLdrLiteralX()) {
+#endif // __CHERI_PURE_CAPABILITY__
     return false;
   } else {
     DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
@@ -221,14 +237,22 @@ bool RelocInfo::IsCodedSpecially() {
 bool RelocInfo::IsInConstantPool() {
   Instruction* instr = reinterpret_cast<Instruction*>(pc_);
   DCHECK_IMPLIES(instr->IsLdrLiteralW(), COMPRESS_POINTERS_BOOL);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  return instr->IsLdrLiteralC() ||
+#else
   return instr->IsLdrLiteralX() ||
+#endif // __CHERI_PURE_CAPABILITY__
          (COMPRESS_POINTERS_BOOL && instr->IsLdrLiteralW());
 }
 
 uint32_t RelocInfo::wasm_call_tag() const {
   DCHECK(rmode_ == WASM_CALL || rmode_ == WASM_STUB_CALL);
   Instruction* instr = reinterpret_cast<Instruction*>(pc_);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (instr->IsLdrLiteralC()) {
+#else
   if (instr->IsLdrLiteralX()) {
+#endif // __CHERI_PURE_CAPABILITY__
     return static_cast<uint32_t>(
         Memory<Address>(Assembler::target_pointer_address_at(pc_)));
   } else {
@@ -730,7 +754,11 @@ bool Assembler::IsConstantPoolAt(Instruction* instr) {
   // The constant pool marker is made of two instructions. These instructions
   // will never be emitted by the JIT, so checking for the first one is enough:
   // 0: ldr xzr, #<size of pool>
+#if defined(__CHERI_PURE_CAPABILITY__)
+  bool result = instr->IsLdrLiteralC() && (instr->Rt() == kZeroRegCode);
+#else
   bool result = instr->IsLdrLiteralX() && (instr->Rt() == kZeroRegCode);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // It is still worth asserting the marker is complete.
   // 4: blr xzr
@@ -781,22 +809,37 @@ void Assembler::EndBlockVeneerPool() {
   }
 }
 
-void Assembler::br(const Register& xn) {
-  DCHECK(xn.Is64Bits());
-  Emit(BR | Rn(xn));
+void Assembler::br(const Register& rn) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(rn.Is128Bits());
+#else
+  DCHECK(rn.Is64Bits());
+#endif // __CHERI_PURE_CAPABILITY__
+  Emit(BR | Rn(rn));
 }
 
-void Assembler::blr(const Register& xn) {
-  DCHECK(xn.Is64Bits());
+void Assembler::blr(const Register& rn) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(rn.Is128Bits());
+  // The pattern 'blr czr' is used as a guard to detect when execution falls
+  // through the constant pool. It should not be emitted.
+  DCHECK_NE(rn, czr);
+#else
+  DCHECK(rn.Is64Bits());
   // The pattern 'blr xzr' is used as a guard to detect when execution falls
   // through the constant pool. It should not be emitted.
-  DCHECK_NE(xn, xzr);
-  Emit(BLR | Rn(xn));
+  DCHECK_NE(rn, xzr);
+#endif // __CHERI_PURE_CAPABILITY__
+  Emit(BLR | Rn(rn));
 }
 
-void Assembler::ret(const Register& xn) {
-  DCHECK(xn.Is64Bits());
-  Emit(RET | Rn(xn));
+void Assembler::ret(const Register& rn) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(rn.Is128Bits());
+#else
+  DCHECK(rn.Is64Bits());
+#endif // __CHERI_PURE_CAPABILITY__
+  Emit(RET | Rn(rn));
 }
 
 void Assembler::b(int imm26) { Emit(B | ImmUncondBranch(imm26)); }
@@ -850,7 +893,11 @@ void Assembler::tbnz(const Register& rt, unsigned bit_pos, Label* label) {
 }
 
 void Assembler::adr(const Register& rd, int imm21) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(rd.Is64Bits() || rd.Is128Bits());
+#else
   DCHECK(rd.Is64Bits());
+#endif // __CHERI_PURE_CAPABILITY__
   Emit(ADR | ImmPCRelAddress(imm21) | Rd(rd));
 }
 
@@ -1042,6 +1089,14 @@ void Assembler::extr(const Register& rd, const Register& rn, const Register& rm,
 
 void Assembler::csel(const Register& rd, const Register& rn, const Register& rm,
                      Condition cond) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rd.IsC()) {
+    DCHECK(rn.IsC());
+    DCHECK(rm.IsC());
+    Emit(CSEL_c | Cm(rm) | Cond(cond) | Cn(rn) | Cd(rd));
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   ConditionalSelect(rd, rn, rm, cond, CSEL);
 }
 
@@ -1291,21 +1346,90 @@ void Assembler::LoadStorePair(const CPURegister& rt, const CPURegister& rt2,
 
   Instr addrmodeop;
   if (addr.IsImmediateOffset()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (rt.IsC()) {
+       DCHECK(rt2.IsC());
+       addrmodeop = LoadStorePairCapOffsetFixed;
+    } else {
+      addrmodeop = LoadStorePairOffsetFixed;
+    }
+#else
     addrmodeop = LoadStorePairOffsetFixed;
+#endif // __CHERI_PURE_CAPABILITY__
   } else {
     // Pre-index and post-index modes.
     DCHECK_NE(rt, addr.base());
     DCHECK_NE(rt2, addr.base());
     DCHECK_NE(addr.offset(), 0);
     if (addr.IsPreIndex()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      if (rt.IsC()) {
+        DCHECK(rt2.IsC());
+        addrmodeop = LoadStorePairCapPreIndexFixed;
+      } else {
+        addrmodeop = LoadStorePairPreIndexFixed;
+      }
+#else
       addrmodeop = LoadStorePairPreIndexFixed;
+#endif // __CHERI_PURE_CAPABILITY__
     } else {
       DCHECK(addr.IsPostIndex());
+#if defined(__CHERI_PURE_CAPABILITY__)
+      if (rt.IsC()) {
+        DCHECK(rt2.IsC());
+        addrmodeop = LoadStorePairCapPostIndexFixed;
+      } else {
+        addrmodeop = LoadStorePairPostIndexFixed;
+      }
+#else
       addrmodeop = LoadStorePairPostIndexFixed;
+#endif // __CHERI_PURE_CAPABILITY__
     }
   }
   Emit(addrmodeop | memop);
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+void Assembler::ldpc(const Register& ct, const Register& ct2,
+                    const MemOperand& src) {
+  LoadStorePairCap(ct, ct2, src, LDP_c);
+}
+
+void Assembler::stpc(const Register& ct, const Register& ct2,
+                    const MemOperand& dst) {
+  LoadStorePairCap(ct, ct2, dst, STP_c);
+}
+
+void Assembler::LoadStorePairCap(const Register& ct, const Register& ct2,
+                                 const MemOperand& addr, LoadStorePairOp op) {
+  // 'ct' and 'ct2' can only be aliased for stores.
+  DCHECK(((op & LoadStorePairCapLBit) == 0) || ct != ct2);
+  DCHECK(AreSameSizeAndType(ct, ct2));
+  DCHECK(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op)));
+  DCHECK_EQ(STP_c | LoadStorePairLBit, LDP_c);
+  int offset = static_cast<int>(addr.offset());
+
+  Instr memop = op | Ct(ct) | Ct2(ct2) | CnCSP(addr.base()) |
+                ImmLSPair(offset, CalcLSPairDataSize(op));
+
+  Instr addrmodeop;
+  if (addr.IsImmediateOffset()) {
+    addrmodeop = LoadStorePairCapOffsetFixed;
+  } else {
+    // Pre-index and post-index modes.
+    DCHECK_NE(ct, addr.base());
+    DCHECK_NE(ct2, addr.base());
+    DCHECK_NE(addr.offset(), 0);
+    if (addr.IsPreIndex()) {
+      addrmodeop = LoadStorePairCapPreIndexFixed;
+    } else {
+      DCHECK(addr.IsPostIndex());
+      addrmodeop = LoadStorePairCapPostIndexFixed;
+    }
+  }
+  Emit(addrmodeop | memop);
+}
+#endif // __CHERI_PURE_CAPABILITY__
 
 // Memory instructions.
 void Assembler::ldrb(const Register& rt, const MemOperand& src) {
@@ -1339,6 +1463,48 @@ void Assembler::ldr(const CPURegister& rt, const MemOperand& src) {
 void Assembler::str(const CPURegister& rt, const MemOperand& src) {
   LoadStore(rt, src, StoreOpFor(rt));
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+void Assembler::cpy(const Register& cd, const Register& cn) {
+  Emit(CPY | CdCSP(cd) | CnCSP(cn));
+}
+
+void Assembler::cselc(const Register& cd, const Register& cn,
+		      const Register& cm, Condition cond) {
+  DCHECK(cd.SizeInBits() == cn.SizeInBits());
+  DCHECK(cd.SizeInBits() == cm.SizeInBits());
+  Emit(CSEL_c | Cm(cm) | Cond(cond) | Cn(cn) | Cd(cd));
+}
+
+void Assembler::gcvalue(const Register& cn, const Register& rd)
+{
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  Emit(GCVALUE | CnCSP(cn) | Rd(rd));
+}
+
+void Assembler::subsc(const Register& rd, const Register& cn,
+                      const Operand& operand)
+{
+  DCHECK(rd.Is64Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(operand.reg().IsC());
+  Emit(SUBS_c | Cm(operand.reg()) | Cn(cn) | Rd(rd));
+}
+
+bool Assembler::IsImmAddSubCapability(int64_t immediate) {
+  return is_uint12(immediate) ||
+         (is_uint12(immediate >> 12) && ((immediate & 0xFFF) == 0));
+}
+
+void Assembler::scvalue(const Register& cd, const Register& cn,
+			const Register& rm)
+{
+  DCHECK(cn.Is128Bits() && cd.Is128Bits());
+  DCHECK(rm.Is64Bits());
+  Emit(SCVALUE | Rm(rm) | CdCSP(cd) | CnCSP(cn));
+}
+#endif // __CHERI_PURE_CAPABILITY__
 
 void Assembler::ldrsw(const Register& rt, const MemOperand& src) {
   DCHECK(rt.Is64Bits());
@@ -3800,11 +3966,25 @@ void Assembler::AddSub(const Register& rd, const Register& rn,
   if (operand.IsImmediate()) {
     int64_t immediate = operand.ImmediateValue();
     DCHECK(IsImmAddSub(immediate));
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (rd.IsC()) {
+      DCHECK(rn.IsC());
+      Emit(AddSubCapImmediateFixed | op |
+           ImmAddSub(static_cast<int>(immediate)) | CdCSP(rd) | CnCSP(rn));
+      return;
+    }
+#endif // __CHERI_PURE_CAPABILITY__
     Instr dest_reg = (S == SetFlags) ? Rd(rd) : RdSP(rd);
     Emit(SF(rd) | AddSubImmediateFixed | op | Flags(S) |
          ImmAddSub(static_cast<int>(immediate)) | dest_reg | RnSP(rn));
   } else if (operand.IsShiftedRegister()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    DCHECK((operand.reg().SizeInBits(), rd.SizeInBits()) ||
+	   (operand.reg().SizeInBits() == kXRegSizeInBits &&
+	   rd.SizeInBits() == kCRegSizeInBits));
+#else
     DCHECK_EQ(operand.reg().SizeInBits(), rd.SizeInBits());
+#endif // __CHERI_PURE_CAPABILITY__
     DCHECK_NE(operand.shift(), ROR);
 
     // For instructions of the form:
@@ -3815,14 +3995,42 @@ void Assembler::AddSub(const Register& rd, const Register& rn,
     // or their 64-bit register equivalents, convert the operand from shifted to
     // extended register mode, and emit an add/sub extended instruction.
     if (rn.IsSP() || rd.IsSP()) {
+ #if defined(__CHERI_PURE_CAPABILITY__)
+      if (rn.IsC()) {
+        DCHECK(rd.IsC());
+        Instr dest_reg = (S == SetFlags) ? Cd(rd) : CdCSP(rd);
+        Emit(ADD_c_ext | Rm(operand.ToExtendedRegister().reg()) |
+             ExtendMode(operand.ToExtendedRegister().extend()) |
+	     ImmExtendShift(operand.shift_amount()) |
+             dest_reg | CnCSP(rn));
+        return;
+      }
+#endif // __CHERI_PURE_CAPABILITY__
       DCHECK(!(rd.IsSP() && (S == SetFlags)));
       DataProcExtendedRegister(rd, rn, operand.ToExtendedRegister(), S,
                                AddSubExtendedFixed | op);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    } else if (rn.IsC()) {
+      DCHECK(rd.IsC());
+      Emit(ADD_c_ext | Rm(operand.ToExtendedRegister().reg()) |
+           ExtendMode(operand.ToExtendedRegister().extend()) |
+           ImmExtendShift(operand.shift_amount()) |
+           Cd(rd) | Cn(rn));
+#endif // __CHERI_PURE_CAPABILITY__
     } else {
       DataProcShiftedRegister(rd, rn, operand, S, AddSubShiftedFixed | op);
     }
   } else {
     DCHECK(operand.IsExtendedRegister());
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (rn.IsC() && rd.IsC()) {
+      Instr dest_reg = (S == SetFlags) ? Cd(rd) : CdCSP(rd);
+      Emit(ADD_c_ext | Rm(operand.reg()) |
+           ExtendMode(operand.extend()) | ImmExtendShift(operand.shift_amount()) |
+           dest_reg | CnCSP(rn));
+      return;
+    }
+#endif // __CHERI_PURE_CAPABILITY__
     DataProcExtendedRegister(rd, rn, operand, S, AddSubExtendedFixed | op);
   }
 }
@@ -4090,7 +4298,11 @@ void Assembler::DataProcShiftedRegister(const Register& rd, const Register& rn,
                                         const Operand& operand, FlagsUpdate S,
                                         Instr op) {
   DCHECK(operand.IsShiftedRegister());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(rn.Is128Bits() || rn.Is64Bits() || (rn.Is32Bits() && is_uint5(operand.shift_amount())));
+#else
   DCHECK(rn.Is64Bits() || (rn.Is32Bits() && is_uint5(operand.shift_amount())));
+#endif // __CHERI_PURE_CAPABILITY__
   DCHECK(!operand.NeedsRelocation(this));
   Emit(SF(rd) | op | Flags(S) | ShiftDP(operand.shift()) |
        ImmDPShift(operand.shift_amount()) | Rm(operand.reg()) | Rn(rn) |
@@ -4121,11 +4333,25 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     if (IsImmLSScaled(addr.offset(), size)) {
       int offset = static_cast<int>(addr.offset());
       // Use the scaled addressing mode.
+#if defined(__CHERI_PURE_CAPABILITY__)
+      if (rt.IsC()) {
+        Emit(LoadStoreCapUnsignedOffsetCapNormalFixed |
+	     memop | ImmLSUnsigned(offset >> size));
+	return;
+      }
+#endif // __CHERI_PURE_CAPABILITY__
       Emit(LoadStoreUnsignedOffsetFixed | memop |
            ImmLSUnsigned(offset >> size));
     } else if (IsImmLSUnscaled(addr.offset())) {
       int offset = static_cast<int>(addr.offset());
       // Use the unscaled addressing mode.
+#if defined(__CHERI_PURE_CAPABILITY__)
+      if (rt.IsC()) {
+        Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop |
+	     ImmLS(offset));
+	return;
+      }
+#endif // __CHERI_PURE_CAPABILITY__
       Emit(LoadStoreUnscaledOffsetFixed | memop | ImmLS(offset));
     } else {
       // This case is handled in the macro assembler.
@@ -4145,6 +4371,14 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     // access size.
     DCHECK((shift_amount == 0) ||
            (shift_amount == static_cast<unsigned>(CalcLSDataSize(op))));
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (rt.IsC()) {
+      Emit(LoadStoreCapRegisterOffsetNormalFixed | memop |
+           Cm(addr.regoffset()) | ExtendMode(ext) |
+	   ImmShiftLS((shift_amount > 0) ? 1 : 0));
+      return;
+    }
+#endif // __CHERI_PURE_CAPABILITY__
     Emit(LoadStoreRegisterOffsetFixed | memop | Rm(addr.regoffset()) |
          ExtendMode(ext) | ImmShiftLS((shift_amount > 0) ? 1 : 0));
   } else {
@@ -4153,9 +4387,23 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     if (IsImmLSUnscaled(addr.offset())) {
       int offset = static_cast<int>(addr.offset());
       if (addr.IsPreIndex()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+        if (rt.IsC()) {
+          unsigned size = CalcLSDataSize(op);
+          Emit(LoadStorePreCapIndexFixed | memop | ImmLS(offset >>size));
+          return;
+	}
+#endif // __CHERI_PURE_CAPABILITY__
         Emit(LoadStorePreIndexFixed | memop | ImmLS(offset));
       } else {
         DCHECK(addr.IsPostIndex());
+#if defined(__CHERI_PURE_CAPABILITY__)
+        if (rt.IsC()) {
+          unsigned size = CalcLSDataSize(op);
+          Emit(LoadStorePostCapIndexFixed | memop | ImmLS(offset >> size));
+          return;
+	}
+#endif // __CHERI_PURE_CAPABILITY__
         Emit(LoadStorePostIndexFixed | memop | ImmLS(offset));
       }
     } else {
@@ -4568,7 +4816,11 @@ void ConstantPool::EmitPrologue(Alignment require_alignment) {
   const int marker_size = 1;
   int word_count =
       ComputeSize(Jump::kOmitted, require_alignment) / kInt32Size - marker_size;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  assm_->Emit(LDR_c_lit | Assembler::ImmLLiteral(word_count) |
+#else
   assm_->Emit(LDR_x_lit | Assembler::ImmLLiteral(word_count) |
+#endif // __CHERI_PURE_CAPABILITY__
               Assembler::Rt(xzr));
   assm_->EmitPoolGuard();
 }
@@ -4820,6 +5072,7 @@ void PatchingAssembler::PatchAdrFar(int64_t target_offset) {
   int scratch_code = expected_movz->Rd();
 
   // Patch to load the correct address.
+  // TODO(gcjenkinson): rd should be a C register
   Register rd = Register::XRegFromCode(rd_code);
   Register scratch = Register::XRegFromCode(scratch_code);
   // Addresses are only 48 bits.
@@ -4837,7 +5090,11 @@ void PatchingAssembler::PatchSubSp(uint32_t immediate) {
   // Verify the expected code.
   Instruction* expected_adr = InstructionAt(0);
   CHECK(expected_adr->IsAddSubImmediate());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  sub(csp, csp, immediate);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   sub(sp, sp, immediate);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 }
 
 #undef NEON_3DIFF_LONG_LIST

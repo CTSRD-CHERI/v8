@@ -25,6 +25,22 @@ void MacroAssembler::And(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    {
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      Gcvalue(rn, temp);
+      if (rd.IsC()) {
+        LogicalMacro(temp, temp, operand, AND);
+        Scvalue(rd, rd, temp);
+      } else {
+        LogicalMacro(rd, temp, operand, AND);
+      }
+    }
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, AND);
 }
 
@@ -32,11 +48,39 @@ void MacroAssembler::Ands(const Register& rd, const Register& rn,
                           const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, ANDS);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, ANDS);
 }
 
 void MacroAssembler::Tst(const Register& rn, const Operand& operand) {
   DCHECK(allow_macro_instructions());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC() && !operand.IsImmediate() && operand.reg().IsC()) {
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Register temp2 = temps.AcquireX();
+    Gcvalue(rn, temp);
+    Gcvalue(operand.reg(), temp2);
+    LogicalMacro(AppropriateZeroRegFor(temp), temp, Operand(temp2), ANDS);
+    return;
+ } else if (rn.IsC()) {
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(AppropriateZeroRegFor(temp), temp, operand, ANDS);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(AppropriateZeroRegFor(rn), rn, operand, ANDS);
 }
 
@@ -44,6 +88,17 @@ void MacroAssembler::Bic(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, BIC);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, BIC);
 }
 
@@ -51,6 +106,17 @@ void MacroAssembler::Bics(const Register& rd, const Register& rn,
                           const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, BICS);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, BICS);
 }
 
@@ -58,6 +124,17 @@ void MacroAssembler::Orr(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, ORR);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, ORR);
 }
 
@@ -65,6 +142,17 @@ void MacroAssembler::Orn(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, ORN);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, ORN);
 }
 
@@ -72,6 +160,17 @@ void MacroAssembler::Eor(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(temp, temp, operand, EOR);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, EOR);
 }
 
@@ -79,6 +178,17 @@ void MacroAssembler::Eon(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    LogicalMacro(AppropriateZeroRegFor(temp), temp, operand, EON);
+    Scvalue(rd, rd, temp);
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, EON);
 }
 
@@ -116,9 +226,9 @@ void MacroAssembler::Add(const Register& rd, const Register& rn,
   DCHECK(allow_macro_instructions());
   if (operand.IsImmediate() && (operand.ImmediateValue() < 0) &&
       IsImmAddSub(-operand.ImmediateValue())) {
-    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, SUB);
+    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, SubOpFor(rd));
   } else {
-    AddSubMacro(rd, rn, operand, LeaveFlags, ADD);
+    AddSubMacro(rd, rn, operand, LeaveFlags, AddOpFor(rd));
   }
 }
 
@@ -133,14 +243,56 @@ void MacroAssembler::Adds(const Register& rd, const Register& rn,
   }
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+void MacroAssembler::Cpy(const Register& cd, const Register& cn) {
+  DCHECK(allow_macro_instructions());
+  cpy(cd, cn);
+}
+
+// Conditionally zero the destination capability register.
+void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(!cd.IsSP() && cd.Is128Bits());
+  DCHECK((cond != al) && (cond != nv));
+  cselc(cd, czr, cd, cond);
+}
+
+void MacroAssembler::Gcvalue(const Register& cd, const Register& rd) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  gcvalue(cd, rd);
+}
+
+void MacroAssembler::Scvalue(const Register& cd, const Register& cn,
+                             const Register& rm) {
+  DCHECK(allow_macro_instructions());
+  scvalue(cd, cn, rm);
+}
+
+void MacroAssembler::Subsc(const Register& rd, const Register& cn,
+                           const Operand& operand) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(operand.reg().IsC());
+  if (cn.code() == kSPRegInternalCode) {
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireC();
+    Cpy(temp, cn);
+    subsc(rd, temp, operand);
+  } else {
+    subsc(rd, cn, operand);
+  }
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 void MacroAssembler::Sub(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   if (operand.IsImmediate() && (operand.ImmediateValue() < 0) &&
       IsImmAddSub(-operand.ImmediateValue())) {
-    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, ADD);
+    AddSubMacro(rd, rn, -operand.ImmediateValue(), LeaveFlags, AddOpFor(rd));
   } else {
-    AddSubMacro(rd, rn, operand, LeaveFlags, SUB);
+    AddSubMacro(rd, rn, operand, LeaveFlags, SubOpFor(rd));
   }
 }
 
@@ -162,8 +314,30 @@ void MacroAssembler::Cmn(const Register& rn, const Operand& operand) {
 
 void MacroAssembler::Cmp(const Register& rn, const Operand& operand) {
   DCHECK(allow_macro_instructions());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    if (operand.IsImmediate() || !operand.reg().IsC()) {
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      Gcvalue(rn, temp);
+      Subs(AppropriateZeroRegFor(temp), temp, operand);
+      return;
+    } else {
+      Subsc(xzr, rn, operand);
+    }
+    return;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
   Subs(AppropriateZeroRegFor(rn), rn, operand);
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+void MacroAssembler::Cmpc(const Register& cn, const Operand& operand) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cn.IsC());
+  Subsc(xzr, cn, operand);
+}
+#endif // __CHERI_PURE_CAPABILITY__
 
 void MacroAssembler::CmpTagged(const Register& rn, const Operand& operand) {
   if (COMPRESS_POINTERS_BOOL) {
@@ -426,16 +600,16 @@ void MacroAssembler::Bl(Label* label) {
   bl(label);
 }
 
-void MacroAssembler::Blr(const Register& xn) {
+void MacroAssembler::Blr(const Register& rn) {
   DCHECK(allow_macro_instructions());
-  DCHECK(!xn.IsZero());
-  blr(xn);
+  DCHECK(!rn.IsZero());
+  blr(rn);
 }
 
-void MacroAssembler::Br(const Register& xn) {
+void MacroAssembler::Br(const Register& rn) {
   DCHECK(allow_macro_instructions());
-  DCHECK(!xn.IsZero());
-  br(xn);
+  DCHECK(!rn.IsZero());
+  br(rn);
 }
 
 void MacroAssembler::Brk(int code) {
@@ -836,6 +1010,17 @@ void MacroAssembler::Lsl(const Register& rd, const Register& rn,
                          unsigned shift) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    // TODO(gcjenkinson): Does this case actually make sense
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    lsl(rd, temp, shift);
+    Scvalue(rn, rn, temp);
+    return;
+  }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   lsl(rd, rn, shift);
 }
 
@@ -843,6 +1028,17 @@ void MacroAssembler::Lsl(const Register& rd, const Register& rn,
                          const Register& rm) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    // TODO(gcjenkinson): Does this case actually make sense
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    lslv(rd, temp, rm);
+    Scvalue(rn, rn, temp);
+    return;
+  }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   lslv(rd, rn, rm);
 }
 
@@ -850,6 +1046,17 @@ void MacroAssembler::Lsr(const Register& rd, const Register& rn,
                          unsigned shift) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    // TODO(gcjenkinson): Does this case actually make sense
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    lsr(rd, temp, shift);
+    Scvalue(rn, rn, temp);
+    return;
+  }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   lsr(rd, rn, shift);
 }
 
@@ -857,6 +1064,17 @@ void MacroAssembler::Lsr(const Register& rd, const Register& rn,
                          const Register& rm) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (rn.IsC()) {
+    // TODO(gcjenkinson): Does this case actually make sense
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rn, temp);
+    lsrv(rd, temp, rm);
+    Scvalue(rn, rn, temp);
+    return;
+  }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   lsrv(rd, rn, rm);
 }
 
@@ -911,10 +1129,10 @@ void MacroAssembler::Rbit(const Register& rd, const Register& rn) {
   rbit(rd, rn);
 }
 
-void MacroAssembler::Ret(const Register& xn) {
+void MacroAssembler::Ret(const Register& rn) {
   DCHECK(allow_macro_instructions());
-  DCHECK(!xn.IsZero());
-  ret(xn);
+  DCHECK(!rn.IsZero());
+  ret(rn);
   CheckVeneerPool(false, false);
 }
 
@@ -1239,9 +1457,17 @@ void MacroAssembler::Push(const Register& src0, const VRegister& src1) {
   DCHECK_EQ(0, size % 16);
 
   // Reserve room for src0 and push src1.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  str(src1, MemOperand(csp, -size, PreIndex));
+#else
   str(src1, MemOperand(sp, -size, PreIndex));
+#endif // __CHERI_PURE_CAPABILITY__
   // Fill the gap with src0.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  str(src0, MemOperand(csp, src1.SizeInBytes()));
+#else
   str(src0, MemOperand(sp, src1.SizeInBytes()));
+#endif // __CHERI_PURE_CAPABILITY__
 }
 
 template <MacroAssembler::LoadLRMode lr_mode>
@@ -1326,7 +1552,11 @@ void MacroAssembler::Claim(int64_t count, uint64_t unit_size) {
     size -= kStackPageSize;
   }
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Sub(csp, csp, size);
+#else
   Sub(sp, sp, size);
+#endif // __CHERI_PURE_CAPABILITY__
 }
 
 void MacroAssembler::Claim(const Register& count, uint64_t unit_size,
@@ -1373,7 +1603,11 @@ void MacroAssembler::Claim(const Register& count, uint64_t unit_size,
 
   Sub(sp, sp, bytes_scratch);
 #else
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Sub(csp, csp, size);
+#else
   Sub(sp, sp, size);
+#endif // __CHERI_PURE_CAPABILITY__
 #endif
 }
 
@@ -1385,7 +1619,11 @@ void MacroAssembler::Drop(int64_t count, uint64_t unit_size) {
     return;
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Add(csp, csp, size);
+#else
   Add(sp, sp, size);
+#endif // __CHERI_PURE_CAPABILITY__
   DCHECK_EQ(size % 16, 0);
 }
 
@@ -1401,7 +1639,11 @@ void MacroAssembler::Drop(const Register& count, uint64_t unit_size) {
   }
 
   AssertPositiveOrZero(count);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Add(csp, csp, size);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Add(sp, sp, size);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 }
 
 void MacroAssembler::DropArguments(const Register& count,
@@ -1415,7 +1657,11 @@ void MacroAssembler::DropArguments(const Register& count,
   Register tmp = temps.AcquireX();
   Add(tmp, count, extra_slots);
   Bic(tmp, tmp, 1);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Drop(tmp, kCRegSize);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Drop(tmp, kXRegSize);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 }
 
 void MacroAssembler::DropArguments(int64_t count, ArgumentsCountMode mode) {
@@ -1423,14 +1669,28 @@ void MacroAssembler::DropArguments(int64_t count, ArgumentsCountMode mode) {
     // Add a slot for the receiver.
     ++count;
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Drop(RoundUp(count, 2), kCRegSize);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Drop(RoundUp(count, 2), kXRegSize);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 }
 
 void MacroAssembler::DropSlots(int64_t count) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Drop(RoundUp(count, 2), kCRegSize);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Drop(RoundUp(count, 2), kXRegSize);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+void MacroAssembler::PushArgument(const Register& arg) {
+   Push(padregc, arg.C());
+}
+#else // defined(__CHERI_PURE_CAPABILITY__)
 void MacroAssembler::PushArgument(const Register& arg) { Push(padreg, arg); }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 void MacroAssembler::CompareAndBranch(const Register& lhs, const Operand& rhs,
                                       Condition cond, Label* label) {

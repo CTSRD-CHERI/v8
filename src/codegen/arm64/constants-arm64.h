@@ -16,7 +16,11 @@ static_assert(sizeof(1L) == sizeof(int32_t));
 static_assert(sizeof(long) == sizeof(int64_t));  // NOLINT(runtime/int)
 static_assert(sizeof(1L) == sizeof(int64_t));
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+static_assert(sizeof(ptraddr_t) == sizeof(int64_t));
+#else   // !__CHERI_PURE_CAPABILITY__
 static_assert(sizeof(void*) == sizeof(int64_t));
+#endif  // !__CHERI_PURE_CAPABILITY__
 static_assert(sizeof(1) == sizeof(int32_t));
 
 // Get the standard printf format macros for C99 stdint types.
@@ -52,6 +56,12 @@ constexpr int kXRegSizeInBits = 64;
 constexpr int kXRegSizeInBitsLog2 = 6;
 constexpr int kXRegSize = kXRegSizeInBits >> 3;
 constexpr int kXRegSizeLog2 = kXRegSizeInBitsLog2 - 3;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr int kCRegSizeInBits = 128;
+constexpr int kCRegSizeInBitsLog2 = 7;
+constexpr int kCRegSize = kCRegSizeInBits >> 3;
+constexpr int kCRegSizeLog2 = kCRegSizeInBitsLog2 - 3;
+#endif // __CHERI_PURE_CAPABILITY__
 constexpr int kSRegSizeInBits = 32;
 constexpr int kSRegSizeInBitsLog2 = 5;
 constexpr int kSRegSize = kSRegSizeInBits >> 3;
@@ -267,6 +277,19 @@ using float16 = uint16_t;
   V_(ImmNEONImmh, 22, 19, Bits)                         \
   V_(ImmNEONImmb, 18, 16, Bits)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define AARCH64C_INSTRUCTION_FIELDS_LIST(V_)                            \
+  V_(Cd, 4, 0, Bits)    /* Destination capability register.     */      \
+  V_(Cn, 9, 5, Bits)    /* First source capability register.    */      \
+  V_(Cm, 20, 16, Bits)  /* Second source register.   */                 \
+  V_(Ct, 4, 0, Bits)    /* Load dest / store source. */                 \
+  V_(Ct2, 14, 10, Bits) /* Load second dest /        */                 \
+                                                                        \
+  /* Morello add/subtract capability immediate */                       \
+  V_(ImmAddSubCapability, 21, 10, Bits)                                 \
+  V_(ShiftAddSubCapability, 23, 22, Bits)
+#endif   // __CHERI_PURE_CAPABILITY__
+
 #define SYSTEM_REGISTER_FIELDS_LIST(V_, M_) \
   /* NZCV */                                \
   V_(Flags, 31, 28, Bits, uint32_t)         \
@@ -292,6 +315,9 @@ using float16 = uint16_t;
   DECLARE_FIELDS_OFFSETS(Name, HighBit, LowBit, unused_1, unused_2)
 INSTRUCTION_FIELDS_LIST(DECLARE_INSTRUCTION_FIELDS_OFFSETS)
 SYSTEM_REGISTER_FIELDS_LIST(DECLARE_FIELDS_OFFSETS, NOTHING)
+#if defined(__CHERI_PURE_CAPABILITY__)
+AARCH64C_INSTRUCTION_FIELDS_LIST(DECLARE_INSTRUCTION_FIELDS_OFFSETS)
+#endif   // __CHERI_PURE_CAPABILITY__
 #undef DECLARE_FIELDS_OFFSETS
 #undef DECLARE_INSTRUCTION_FIELDS_OFFSETS
 
@@ -538,6 +564,16 @@ constexpr PCRelAddressingOp ADRP = PCRelAddressingFixed | 0x80000000;
 // Add/sub (immediate, shifted and extended.)
 constexpr int kSFOffset = 31;
 using AddSubOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr AddSubOp ADD_c = 0x00000000;
+// Bit 23 is fixed for Add (extended register) and is used in
+// Add (immediate) to identify add and subtract operations.
+constexpr AddSubOp SUB_c = 0x00800000;
+constexpr AddSubOp CompareCapabilitiesFixed = 0xC2E09800;
+constexpr AddSubOp CompareCapabilitiesFMask = 0xC2E09800;
+constexpr AddSubOp CompareCapabilitiesMask = 0xC2E09800;
+constexpr AddSubOp SUBS_c = CompareCapabilitiesFixed;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr AddSubOp AddSubOpMask = 0x60000000;
 constexpr AddSubOp AddSubSetFlagsBit = 0x20000000;
 constexpr AddSubOp ADD = 0x00000000;
@@ -551,7 +587,26 @@ constexpr AddSubOp SUBS = SUB | AddSubSetFlagsBit;
   V(SUB);                  \
   V(SUBS)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define ADD_SUB_CAP_OP_LIST(V) \
+  V(ADD_c);                    \
+  V(SUB_c)
+#endif   // __CHERI_PURE_CAPABILITY__
+
 using AddSubImmediateOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr AddSubImmediateOp AddSubCapImmediateFixed = 0x02000000;
+constexpr AddSubImmediateOp AddSubCapImmediateFMask = 0xFF000000;
+constexpr AddSubImmediateOp AddSubCapImmediateMask = 0xFFC00000;
+// 4.4.2 ADD (Immediate)
+// Add (immediate_ copies a capability from the source Capability register
+// to the destination Capability register with an optionally shifted
+// immediate value added to the value field.
+#define ADD_SUB_CAP_IMMEDIATE(A)            \
+  constexpr AddSubImmediateOp A##_imm = AddSubCapImmediateFixed | A
+ADD_SUB_CAP_OP_LIST(ADD_SUB_CAP_IMMEDIATE);
+#undef ADD_SUB_CAP_IMMEDIATE
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr AddSubImmediateOp AddSubImmediateFixed = 0x11000000;
 constexpr AddSubImmediateOp AddSubImmediateFMask = 0x1F000000;
 constexpr AddSubImmediateOp AddSubImmediateMask = 0xFF000000;
@@ -573,6 +628,16 @@ ADD_SUB_OP_LIST(ADD_SUB_SHIFTED);
 #undef ADD_SUB_SHIFTED
 
 using AddSubExtendedOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr AddSubExtendedOp AddSubCapExtendedFixed = 0xC2A00000;
+constexpr AddSubExtendedOp AddSubCapExtendedFMask = 0xFFE00000;
+constexpr AddSubExtendedOp AddSubCapExtendedMask = 0xFFE00000;
+// 4.1.1 Add (extended register)
+// Add (extend register) adds a Capability register value field and a sign
+// or zero-extened register value, followed by an optional left shift amount,
+// and writes the result to the destination Cpability register value field.
+constexpr AddSubExtendedOp ADD_c_ext = AddSubCapExtendedFixed;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr AddSubExtendedOp AddSubExtendedFixed = 0x0B200000;
 constexpr AddSubExtendedOp AddSubExtendedFMask = 0x1F200000;
 constexpr AddSubExtendedOp AddSubExtendedMask = 0xFFE00000;
@@ -715,6 +780,30 @@ constexpr UnconditionalBranchOp BL = UnconditionalBranchFixed | 0x80000000;
 
 // Unconditional branch to register.
 using UnconditionalBranchToRegisterOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr UnconditionalBranchToRegisterOp UnconditionalBranchToRegisterFixed =
+    0xC2C21000;
+constexpr UnconditionalBranchToRegisterOp UnconditionalBranchToRegisterFMask = 
+    0xFFFF9C1F;
+constexpr UnconditionalBranchToRegisterOp UnconditionalBranchToRegisterMask =
+    0xFFFFFC1F;
+// 4.4.14 BR (indirect)
+// Branch to capability Regsiter branches unconditionally to an address in a
+// Capability register, with a hint that this is not a subroutine return.
+constexpr UnconditionalBranchToRegisterOp BR =
+    UnconditionalBranchToRegisterFixed;
+// 4.4.9 BLR (indirect)
+// Branch with Link to capability Register calls a subroutine at an
+// address in the source register, setting C30 tp PCC+4.
+constexpr UnconditionalBranchToRegisterOp BLR =
+    UnconditionalBranchToRegisterFixed | 0x00002000;
+// 4.4.108 RET
+// Return from subroutine branches unconditionally to an address in the
+// source Capability register, with a hint that this is a subroutine
+// return.
+constexpr UnconditionalBranchToRegisterOp RET =
+    UnconditionalBranchToRegisterFixed | 0x00004000;
+#else    // __CHERI_PURE_CAPABILITY__
 constexpr UnconditionalBranchToRegisterOp UnconditionalBranchToRegisterFixed =
     0xD6000000;
 constexpr UnconditionalBranchToRegisterOp UnconditionalBranchToRegisterFMask =
@@ -727,6 +816,7 @@ constexpr UnconditionalBranchToRegisterOp BLR =
     UnconditionalBranchToRegisterFixed | 0x003F0000;
 constexpr UnconditionalBranchToRegisterOp RET =
     UnconditionalBranchToRegisterFixed | 0x005F0000;
+#endif   // __CHERI_PURE_CAPABILITY__
 
 // Compare and branch.
 using CompareBranchOp = uint32_t;
@@ -812,11 +902,19 @@ constexpr SystemPAuthOp AUTIBSP = SystemPAuthFixed | 0x000003E0;
 
 // Any load or store (including pair).
 using LoadStoreAnyOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStoreAnyOp LoadStoreCapAnyFMask = 0x82000000;
+constexpr LoadStoreAnyOp LoadStoreCapAnyFixed = 0xFF000000;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreAnyOp LoadStoreAnyFMask = 0x0A000000;
 constexpr LoadStoreAnyOp LoadStoreAnyFixed = 0x08000000;
 
 // Any load pair or store pair.
 using LoadStorePairAnyOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePairAnyOp LoadStorePairCapAnyFMask = 0xFF800000;
+constexpr LoadStorePairAnyOp LoadStorePairCapAnyFixed = 0x02800000;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePairAnyOp LoadStorePairAnyFMask = 0x3A000000;
 constexpr LoadStorePairAnyOp LoadStorePairAnyFixed = 0x28000000;
 
@@ -833,8 +931,21 @@ constexpr LoadStorePairAnyOp LoadStorePairAnyFixed = 0x28000000;
   V(STP, q, 0x84000000);           \
   V(LDP, q, 0x84400000)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LOAD_STORE_PAIR_CAP_OP_LIST(V)    \
+  V(LDP, c, 0x00400000);                  \
+  V(STP, c, 0x00000000)
+#endif   // __CHERI_PURE_CAPABILITY__
+
 // Load/store pair (post, pre and offset.)
 using LoadStorePairOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePairOp LoadStorePairCapMask = 0xFFC00000;
+constexpr LoadStorePairOp LoadStorePairCapLBit = 1 << 22;
+#define LOAD_STORE_PAIR_CAP(A, B, C) constexpr LoadStorePairOp A##_##B = C
+LOAD_STORE_PAIR_CAP_OP_LIST(LOAD_STORE_PAIR_CAP);
+#undef LOAD_STORE_PAIR
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePairOp LoadStorePairMask = 0xC4400000;
 constexpr LoadStorePairOp LoadStorePairLBit = 1 << 22;
 #define LOAD_STORE_PAIR(A, B, C) constexpr LoadStorePairOp A##_##B = C
@@ -842,6 +953,16 @@ LOAD_STORE_PAIR_OP_LIST(LOAD_STORE_PAIR);
 #undef LOAD_STORE_PAIR
 
 using LoadStorePairPostIndexOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePairPostIndexOp LoadStorePairCapPostIndexFixed = 0x22800000;
+constexpr LoadStorePairPostIndexOp LoadStorePairCapPostIndexFMask = 0xFF800000;
+constexpr LoadStorePairPostIndexOp LoadStorePairCapPostIndexMask = 0xFFC00000;
+#define LOAD_STORE_PAIR_CAP_POST_INDEX(A, B, C)       \
+  constexpr LoadStorePairPostIndexOp A##_##B##_post = \
+      LoadStorePairCapPostIndexFixed | A##_##B
+LOAD_STORE_PAIR_CAP_OP_LIST(LOAD_STORE_PAIR_CAP_POST_INDEX);
+#undef LOAD_STORE_PAIR_POST_INDEX
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePairPostIndexOp LoadStorePairPostIndexFixed = 0x28800000;
 constexpr LoadStorePairPostIndexOp LoadStorePairPostIndexFMask = 0x3B800000;
 constexpr LoadStorePairPostIndexOp LoadStorePairPostIndexMask = 0xFFC00000;
@@ -852,6 +973,16 @@ LOAD_STORE_PAIR_OP_LIST(LOAD_STORE_PAIR_POST_INDEX);
 #undef LOAD_STORE_PAIR_POST_INDEX
 
 using LoadStorePairPreIndexOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePairPreIndexOp LoadStorePairCapPreIndexFixed = 0x62800000;
+constexpr LoadStorePairPreIndexOp LoadStorePairCapPreIndexFMask = 0xFF800000;
+constexpr LoadStorePairPreIndexOp LoadStorePairCapPreIndexMask = 0xFFC00000;
+#define LOAD_STORE_PAIR_CAP_PRE_INDEX(A, B, C)         \
+  constexpr LoadStorePairPreIndexOp A##_##B##_pre = \
+      LoadStorePairCapPreIndexFixed | A##_##B
+LOAD_STORE_PAIR_CAP_OP_LIST(LOAD_STORE_PAIR_CAP_PRE_INDEX);
+#undef LOAD_STORE_PAIR_CAP_PRE_INDEX
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePairPreIndexOp LoadStorePairPreIndexFixed = 0x29800000;
 constexpr LoadStorePairPreIndexOp LoadStorePairPreIndexFMask = 0x3B800000;
 constexpr LoadStorePairPreIndexOp LoadStorePairPreIndexMask = 0xFFC00000;
@@ -862,6 +993,16 @@ LOAD_STORE_PAIR_OP_LIST(LOAD_STORE_PAIR_PRE_INDEX);
 #undef LOAD_STORE_PAIR_PRE_INDEX
 
 using LoadStorePairOffsetOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePairOffsetOp LoadStorePairCapOffsetFixed = 0x42800000;
+constexpr LoadStorePairOffsetOp LoadStorePairCapOffsetFMask = 0xFF800000;
+constexpr LoadStorePairOffsetOp LoadStorePairCapOffsetMask = 0xFFC00000;
+#define LOAD_STORE_PAIR_CAP_OFFSET(A, B, C)       \
+  constexpr LoadStorePairOffsetOp A##_##B##_off = \
+      LoadStorePairCapOffsetFixed | A##_##B
+LOAD_STORE_PAIR_CAP_OP_LIST(LOAD_STORE_PAIR_CAP_OFFSET);
+#undef LOAD_STORE_PAIR_CAP_OFFSET
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePairOffsetOp LoadStorePairOffsetFixed = 0x29000000;
 constexpr LoadStorePairOffsetOp LoadStorePairOffsetFMask = 0x3B800000;
 constexpr LoadStorePairOffsetOp LoadStorePairOffsetMask = 0xFFC00000;
@@ -873,6 +1014,16 @@ LOAD_STORE_PAIR_OP_LIST(LOAD_STORE_PAIR_OFFSET);
 
 // Load literal.
 using LoadLiteralOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadLiteralOp LoadLiteralCapFixed = 0x82000000;
+constexpr LoadLiteralOp LoadLiteralCapFMask = 0xFFC00000;
+constexpr LoadLiteralOp LoadLiteralCapMask = 0xFFC00000;
+// 4.2.39 LDR (literal)
+// Load capability (literal) calculates an address from the PCC and an
+// immediate offset, loads a capability from memory and writes it to a
+// Capability register.
+constexpr LoadLiteralOp LDR_c_lit = 0x82000000;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadLiteralOp LoadLiteralFixed = 0x18000000;
 constexpr LoadLiteralOp LoadLiteralFMask = 0x3B000000;
 constexpr LoadLiteralOp LoadLiteralMask = 0xFF000000;
@@ -908,8 +1059,77 @@ constexpr LoadLiteralOp LDR_d_lit = LoadLiteralFixed | 0x44000000;
   V(LD, R, d, 0xC4400000);    \
   V(LD, R, q, 0x04C00000)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LOAD_STORE_CAP_OP_LIST(V)    \
+  V(LD, R, c, 0x00400000);           \
+  V(ST, R, c, 0x00000000)
+#endif   // __CHERI_PURE_CAPABILITY__
+
 // Load/store unscaled offset.
 using LoadStoreUnscaledOffsetOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetAlternativeFixed = 0xE2000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetAlternativeFMask = 0xFF000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetAlternativeMask = 0xFFC00600;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadCapUnscaledOffsetAlternative = 0x00C00C00;
+constexpr LoadStoreUnscaledOffsetOp
+    StoreCapUnscaledOffsetAlternative = 0x00800C00;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetNormalFixed = 0xA2000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetNormalFMask = 0xFF200C00;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetNormalMask = 0xFFE00C00;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadCapUnscaledOffsetNormal = 0x00400000;
+constexpr LoadStoreUnscaledOffsetOp
+    StoreCapUnscaledOffsetNormal = 0x00000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetIntegerFixed = 0xA2000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetIntegerFMask = 0xFF000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetIntegerMask = 0xFFC00600;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadCapUnscaledOffsetInteger = 0x00000400;
+constexpr LoadStoreUnscaledOffsetOp
+    StoreCapUnscaledOffsetInteger = 0x00000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetIntegerDoubleword = 0x00C00000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetIntegerWord = 0x00800000;
+
+// 4.4.92 LDUR (capability, alternative base)
+constexpr LoadStoreUnscaledOffsetOp LDRU_c_capability_alternative =
+  LoadStoreCapUnscaledOffsetAlternativeFixed | LoadCapUnscaledOffsetAlternative;
+// 4.4.93 LDUR (capability, normal base)
+constexpr LoadStoreUnscaledOffsetOp LDRU_c_normal =
+  LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetNormal;
+// 4.4.148 STUR (capability, normal base)
+constexpr LoadStoreUnscaledOffsetOp STRU_c_normal =
+  LoadStoreCapUnscaledOffsetNormalFixed | StoreCapUnscaledOffsetNormal;
+// 4.4.94 LDUR (integer)
+constexpr LoadStoreUnscaledOffsetOp LDRU_c_integer_w =
+  LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetInteger |
+  LoadStoreCapUnscaledOffsetIntegerWord;
+constexpr LoadStoreUnscaledOffsetOp LDRU_c_integer_d =
+  LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetInteger |
+  LoadStoreCapUnscaledOffsetIntegerDoubleword;
+// 4.4.147 STUR (capability, alternative base)
+constexpr LoadStoreUnscaledOffsetOp STRU_c_capability_alternative =
+  LoadStoreCapUnscaledOffsetAlternativeFixed | StoreCapUnscaledOffsetAlternative;
+// 4.4.149 STUR (integer)
+constexpr LoadStoreUnscaledOffsetOp STRU_c_integer_w = LoadStoreCapUnscaledOffsetNormalFixed |
+                                                       StoreCapUnscaledOffsetInteger |
+						       LoadStoreCapUnscaledOffsetIntegerWord;
+constexpr LoadStoreUnscaledOffsetOp STRU_c_integer_d = LoadStoreCapUnscaledOffsetNormalFixed |
+                                                       StoreCapUnscaledOffsetInteger |
+						       LoadStoreCapUnscaledOffsetIntegerWord;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFixed = 0x38000000;
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFMask = 0x3B200C00;
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetMask = 0xFFE00C00;
@@ -921,6 +1141,12 @@ LOAD_STORE_OP_LIST(LOAD_STORE_UNSCALED);
 
 // Load/store (post, pre, offset and unsigned.)
 using LoadStoreOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStoreOp LoadStoreCapMask = 0x00400000;
+#define LOAD_STORE(A, B, C, D) constexpr LoadStoreOp A##B##_##C = D
+LOAD_STORE_CAP_OP_LIST(LOAD_STORE);
+#undef LOAD_STORE
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreOp LoadStoreMask = 0xC4C00000;
 #define LOAD_STORE(A, B, C, D) constexpr LoadStoreOp A##B##_##C = D
 LOAD_STORE_OP_LIST(LOAD_STORE);
@@ -929,6 +1155,24 @@ constexpr LoadStoreOp PRFM = 0xC0800000;
 
 // Load/store post index.
 using LoadStorePostIndex = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePostIndex LoadStorePostCapIndexFixed = 0xA2000400;
+constexpr LoadStorePostIndex LoadStorePostCapIndexFMask = 0xFF200400;
+constexpr LoadStorePostIndex LoadStorePostCapIndexMask = 0xFFE00400;
+constexpr LoadStorePostIndex LoadPostCapIndex = 0x00400000;
+constexpr LoadStorePostIndex StorePostCapIndex = 0x00000000;
+// 4.4.77 LDR (post-indexed)
+// Load capability (immediate post-indexed) loads a capability from memory
+// and writes it to a Capability Register.
+constexpr LoadStorePostIndex LDR_c_post = LoadStorePostCapIndexFixed |
+                                          LoadPostCapIndex;
+// 4.4.134 STR (post-indexed)
+// Store capability (immediate post-indexed_ determines the base register
+// to be used, derives and address from the base register, and stores a
+// capability to memory from a Capability register.
+constexpr LoadStorePostIndex STR_c_post = LoadStorePostCapIndexFixed |
+                                          StorePostCapIndex;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePostIndex LoadStorePostIndexFixed = 0x38000400;
 constexpr LoadStorePostIndex LoadStorePostIndexFMask = 0x3B200C00;
 constexpr LoadStorePostIndex LoadStorePostIndexMask = 0xFFE00C00;
@@ -939,6 +1183,24 @@ LOAD_STORE_OP_LIST(LOAD_STORE_POST_INDEX);
 
 // Load/store pre index.
 using LoadStorePreIndex = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStorePreIndex LoadStorePreCapIndexFixed = 0xA2000C00;
+constexpr LoadStorePreIndex LoadStorePreCapIndexFMask = 0xFF200C00;
+constexpr LoadStorePreIndex LoadStorePreCapIndexMask = 0xFFE00C00;
+constexpr LoadStorePreIndex LoadPreCapIndex = 0x00400000;
+constexpr LoadStorePreIndex StorePreCapIndex = 0x00000000;
+// 4.4.78 (pre-indexed)
+// Load capability (immediate pre-indexed) loads a capability from memory
+// and writes it to a Capability register.
+constexpr LoadStorePreIndex LDR_c_pre = LoadStorePreCapIndexFixed |
+                                        LoadPreCapIndex;
+// 4.4.132 (pre-indexed)
+// Store capability (immediate pre-index_ determines the base register to be
+// used, derives an address from the base register, ansd stores to memory
+// from a Capability regsiter.
+constexpr LoadStorePreIndex STR_c_pre = LoadStorePreCapIndexFixed |
+                                        StorePreCapIndex;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStorePreIndex LoadStorePreIndexFixed = 0x38000C00;
 constexpr LoadStorePreIndex LoadStorePreIndexFMask = 0x3B200C00;
 constexpr LoadStorePreIndex LoadStorePreIndexMask = 0xFFE00C00;
@@ -949,6 +1211,91 @@ LOAD_STORE_OP_LIST(LOAD_STORE_PRE_INDEX);
 
 // Load/store unsigned offset.
 using LoadStoreUnsignedOffset = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapAlternativeFixed = 0x82400000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapAlternativeFMask = 0xFFC00000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapAlternativeMask = 0xFFE00C00;
+constexpr LoadStoreUnsignedOffset
+    LoadCapUnsignedOffsetCapAlternative = 0x00200000;
+constexpr LoadStoreUnsignedOffset
+    StoreCapUnsignedOffsetCapAlternative = 0x00000000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapNormalFixed = 0xC2000000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapNormalFMask = 0xFF800000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetCapNormalMask = 0xFFC00000;
+constexpr LoadStoreUnsignedOffset
+    LoadCapUnsignedOffsetCapNormal = 0x00400000;
+constexpr LoadStoreUnsignedOffset
+    StoreCapUnsignedOffsetCapNormal = 0x00000000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetIntegerFixed = 0x82400000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetIntegerFMask = 0xFFC00000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetIntegerMask = 0xFFE00C00;
+constexpr LoadStoreUnsignedOffset
+    LoadCapUnsignedOffsetInteger = 0x00200000;
+constexpr LoadStoreUnsignedOffset
+    StoreCapUnsignedOffsetInteger = 0x00000000;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetIntegerWord = 0x00000800;
+constexpr LoadStoreUnsignedOffset
+    LoadStoreCapUnsignedOffsetIntegerDoubleword = 0x00000C00;
+// 4.4.83 LDR (unsigned offset, capability, alternate base)
+// Load capability (unsigned offset) via alternate base determines the base
+// register to be used, derives an address from the base register, loads a
+// capability from memory, and writes the result to the destination
+// Capability register.
+constexpr LoadStoreUnsignedOffset LDR_c_unsigned_cap_alternate =
+    LoadStoreCapUnsignedOffsetCapAlternativeFixed |
+    LoadCapUnsignedOffsetCapAlternative;
+// 4.4.84 LDR (unsigned offset, capability, normal base)
+// Load capability (unsigned offset) determeines the base register to be
+// used, derives an address from the base register and an immediate
+// offset, loads a capability from memory and writes the result to the
+// destination Capability register.
+constexpr LoadStoreUnsignedOffset LDR_c_unsigned_cap_normal =
+    LoadStoreCapUnsignedOffsetCapNormalFixed | LoadCapUnsignedOffsetCapNormal;
+// 4.4.85 LDR (unsiged offset, integer)
+// Load Register (unsigned offset) via an alternative base determines the
+// base register to be used, derives an address from the base register
+// and an immediate offset, loads a 32-bit word or 64-bit doubleword
+// from memory, zero-extends it, and writes the result to the destination
+// register.
+constexpr LoadStoreUnsignedOffset LDR_c_unsigned_d =
+    LoadStoreCapUnsignedOffsetIntegerFixed | LoadCapUnsignedOffsetInteger |
+    LoadStoreCapUnsignedOffsetIntegerDoubleword;
+constexpr LoadStoreUnsignedOffset LDR_c_unsigned_w =
+    LoadStoreCapUnsignedOffsetIntegerFixed | LoadCapUnsignedOffsetInteger |
+    LoadStoreCapUnsignedOffsetIntegerWord;
+// 4.4.141 STR (unsigned offset, capability, normal base)
+// Store capability (unsigned offset) stores a capability to memory from a
+// Capability register.
+constexpr LoadStoreUnsignedOffset STR_c_unsigned_cap_alternate =
+    LoadStoreCapUnsignedOffsetCapAlternativeFixed |
+    StoreCapUnsignedOffsetCapAlternative;
+// 4.4.141 STR (unsigned offset, capability, normal base)
+// Store capability (unsigned offset) stores a capability to memory from
+// a Capability register.
+constexpr LoadStoreUnsignedOffset STR_c_unsigned_cap_normal =
+    LoadStoreCapUnsignedOffsetCapNormalFixed | StoreCapUnsignedOffsetCapNormal;
+// 4.4.142 STR (unsigned offset, integer)
+// Store Register (unsigned offset) via alternate base determines the base
+// register to be used, derives an address from the base register and an
+// immeditae offset, and stores a 32-bit word or 64-bit doubleword to the
+// calcluated address in memory.
+constexpr LoadStoreUnsignedOffset STR_c_unsigned_d =
+    LoadStoreCapUnsignedOffsetIntegerFixed | StoreCapUnsignedOffsetInteger |
+    LoadStoreCapUnsignedOffsetIntegerDoubleword;
+constexpr LoadStoreUnsignedOffset STR_c_unsigned_w =
+    LoadStoreCapUnsignedOffsetIntegerFixed | StoreCapUnsignedOffsetInteger |
+    LoadStoreCapUnsignedOffsetIntegerWord;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreUnsignedOffset LoadStoreUnsignedOffsetFixed = 0x39000000;
 constexpr LoadStoreUnsignedOffset LoadStoreUnsignedOffsetFMask = 0x3B000000;
 constexpr LoadStoreUnsignedOffset LoadStoreUnsignedOffsetMask = 0xFFC00000;
@@ -962,6 +1309,72 @@ LOAD_STORE_OP_LIST(LOAD_STORE_UNSIGNED_OFFSET);
 
 // Load/store register offset.
 using LoadStoreRegisterOffset = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetAlternativeFixed = 0xC2E04400;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetAlternativeFMask = 0xFFE04400;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetAlternativeMask = 0xFFE04C00;
+// 4.4.79 LDR (register offset, capability, alternative base)
+// Load capability (register) via alternative base determins the base
+// register to be used, derives an address from the base register and
+// an offset register, loads a capability from memory, and writes it
+// to the destination Capability register.
+constexpr LoadStoreRegisterOffset LDR_c_reg_alt =
+    LoadStoreCapRegisterOffsetAlternativeFixed | 0x00000800;
+// 4.4.136 STR (register offset, capability, alternative base)
+// Store capability (register) via alternative base determines the base
+// register to be used, derives an address from the base register and an
+// offset register, and stores a capability to the calculated address
+// in memory.
+constexpr LoadStoreRegisterOffset STR_c_reg_alt =
+    LoadStoreCapRegisterOffsetAlternativeFixed;
+
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetNormalFixed = 0xA2204800;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetNormalFMask= 0xFF204C00;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetNormalMask = 0xFFE04C00;
+// 4.4.80 LDR (register offset, capability, normal base)
+// Load capability (register) determins the base register to be used,
+// derives an address from thoe base register and an offset register,
+// loads a capabiltiy from memory, and writes in to the destination
+// Capability register
+constexpr LoadStoreRegisterOffset LDR_c_reg_normal =
+    LoadStoreCapRegisterOffsetNormalFixed | 0x00400000;
+// 4.4.137 STR (register offset, capability, normal base)
+// Store capability (register) determines the base rgsiter to be used,
+// derives an address from the base register and an offset regsiter, and
+// stores a capability to the calculated addess in memory
+constexpr LoadStoreRegisterOffset STR_c_reg_normal =
+    LoadStoreCapRegisterOffsetNormalFixed;
+
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetIntegerFixed = 0x82A04000;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetIntegerFMask = 0xFFA04000;
+constexpr LoadStoreRegisterOffset
+    LoadStoreCapRegisterOffsetIntegerMask = 0xFFE04C00;
+// 4.4.81 LDR (register offset, integer)
+// Load Register (register) via an alternate base determines the base
+// register to be used, dereived an addrrsss from teh base register and an
+// offset register, loads a word from memory, and writes the result to the
+// destination register
+constexpr LoadStoreRegisterOffset LDR_c_reg_d =
+    LoadStoreCapRegisterOffsetIntegerFixed | 0x00400400;
+constexpr LoadStoreRegisterOffset LDR_c_reg_w =
+    LoadStoreCapRegisterOffsetIntegerFixed | 0x00400000;
+// 4.4.138 STR (register offset, integer)
+// Store capability (register) determines the base regsiter to be used,
+// derives an address from the base register and an offset register, and
+// stores a capability to the calculated address in memory
+constexpr LoadStoreRegisterOffset STR_c_reg_d =
+    LoadStoreCapRegisterOffsetIntegerFixed | 0x00000400;
+constexpr LoadStoreRegisterOffset STR_c_reg_w =
+    LoadStoreCapRegisterOffsetIntegerFixed | 0x00000000;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreRegisterOffset LoadStoreRegisterOffsetFixed = 0x38200800;
 constexpr LoadStoreRegisterOffset LoadStoreRegisterOffsetFMask = 0x3B200C00;
 constexpr LoadStoreRegisterOffset LoadStoreRegisterOffsetMask = 0xFFE00C00;
@@ -1148,6 +1561,16 @@ constexpr ConditionalCompareImmediateOp CCMP_x_imm =
 
 // Conditional select.
 using ConditionalSelectOp = uint32_t;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr ConditionalSelectOp ConditionalSelectCapFixed = 0xC2C00C00;
+constexpr ConditionalSelectOp ConditionalSelectCapFMask = 0xFFE00C00;
+constexpr ConditionalSelectOp ConditionalSelectCapMask = 0xFFE00C00;
+// 4.4.39 CSEL
+// Conditional Select writes, in the destination capabiltiy register, the
+// value of the first source register if the condition is TRUE, and
+// otherwise writes the value of the second source capability register.
+constexpr ConditionalSelectOp CSEL_c = ConditionalSelectCapFixed;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr ConditionalSelectOp ConditionalSelectFixed = 0x1A800000;
 constexpr ConditionalSelectOp ConditionalSelectFMask = 0x1FE00000;
 constexpr ConditionalSelectOp ConditionalSelectMask = 0xFFE00C00;
@@ -2573,6 +2996,36 @@ constexpr UnimplementedOp UnimplementedFMask = 0x00000000;
 using UnallocatedOp = uint32_t;
 constexpr UnallocatedOp UnallocatedFixed = 0x00000000;
 constexpr UnallocatedOp UnallocatedFMask = 0x00000000;
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+using CopyCapabilityOp = uint32_t;
+constexpr CopyCapabilityOp CopyCapabilityFixed = 0xC2C19000;
+constexpr CopyCapabilityOp CopyCapabilityFMask = 0xFFFF9C00;
+constexpr CopyCapabilityOp CopyCapabilityMask = 0xFFFFFC00;
+// 4.4.35 CPY
+// Copy Capability register copies a capability from the source Capability
+// register to the destination Capability register.
+constexpr CopyCapabilityOp CPY = CopyCapabilityFixed | 0x00004000;
+
+using GetField1Op = uint32_t;
+constexpr GetField1Op GetField1Fixed = 0xC2C01000;
+constexpr GetField1Op GetField1FMask = 0xFFFF1C00;
+constexpr GetField1Op GetField1Mask = 0xFFFFFC00;
+// 4.4.61 GCVALUE
+// Get the Value field of a capability gets the range of the Value field of
+// a capability and writes the result to the destination register.
+constexpr GetField1Op GCVALUE = GetField1Fixed | 0x00004000;
+
+using SetField1Op = uint32_t;
+constexpr SetField1Op SetField1Fixed = 0xC2C00000;
+constexpr SetField1Op SetField1FMask = 0xFFE09C00;
+constexpr SetField1Op SetField1Mask = 0xFFE0FC00;
+// 4.4.120 SCVALUE
+// Set value field of a capability, writes the source Capability register
+// to the destination Capability register with the Value field set to a
+// value based on a 64-bit general-purpose register.
+constexpr SetField1Op SCVALUE = SetField1Fixed | 0x00004000;
+#endif   // __CHERI_PURE_CAPABILITY__
 
 }  // namespace internal
 }  // namespace v8

@@ -49,11 +49,19 @@ class Immediate {
   template <typename T>
   inline Immediate(T value, RelocInfo::Mode rmode);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  intptr_t value() const { return value_; }
+#else
   int64_t value() const { return value_; }
+#endif // __CHERI_PURE_CAPABILITY__
   RelocInfo::Mode rmode() const { return rmode_; }
 
  private:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  intptr_t value_;
+#else
   int64_t value_;
+#endif // __CHERI_PURE_CAPABILITY__
   RelocInfo::Mode rmode_;
 };
 
@@ -108,7 +116,11 @@ class Operand {
   inline Operand ToW() const;
 
   inline Immediate immediate() const;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline intptr_t ImmediateValue() const;
+#else
   inline int64_t ImmediateValue() const;
+#endif // __CHERI_PURE_CAPABILITY__
   inline RelocInfo::Mode ImmediateRMode() const;
   inline Register reg() const;
   inline Shift shift() const;
@@ -803,6 +815,27 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
 
   // Store integer or FP register.
   void str(const CPURegister& rt, const MemOperand& dst);
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // Conditional select: cd = cond ? cn : cm.
+  void cselc(const Register& cd, const Register& cn, const Register& cm,
+            Condition cond);
+  // Subtract capability and update status flags.
+  void subsc(const Register& rd, const Register& cn, const Operand& operand);
+  // Copies a capability register
+  void cpy(const Register& cd, const Register& cn);
+  // Store a pair of capabilities
+  void stpc(const Register& ct, const Register& ct2,
+            const MemOperand& src);
+  // Load a pair of capabilities
+  void ldpc(const Register& ct, const Register& ct2,
+            const MemOperand& src);
+  // Load a capability value field
+  void gcvalue(const Register& cd, const Register& rd);
+  // Store a capability value field
+  void scvalue(const Register& cd, const Register& cn,
+	       const Register& rm);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Load word with sign extension.
   void ldrsw(const Register& rt, const MemOperand& src);
@@ -2770,6 +2803,44 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
     return (rn.code() & kRegCodeMask) << Rn_offset;
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static Instr CdCSP(Register cd) {
+    DCHECK(!cd.IsZero());
+    return (cd.code() & kRegCodeMask) << Cd_offset;
+  }
+
+  static Instr CnCSP(Register cn) {
+    DCHECK(!cn.IsZero());
+    return (cn.code() & kRegCodeMask) << Cn_offset;
+  }
+
+  // Capability register encoding.
+  static Instr Cd(CPURegister cd) {
+    DCHECK_NE(cd.code(), kSPRegInternalCode);
+    return cd.code() << Cd_offset;
+  }
+
+  static Instr Cn(CPURegister cn) {
+    DCHECK_NE(cn.code(), kSPRegInternalCode);
+    return cn.code() << Cn_offset;
+  }
+
+  static Instr Cm(CPURegister cm) {
+    DCHECK_NE(cm.code(), kSPRegInternalCode);
+    return cm.code() << Cm_offset;
+  }
+
+  static Instr Ct(CPURegister ct) {
+    DCHECK_NE(ct.code(), kSPRegInternalCode);
+    return ct.code() << Ct_offset;
+  }
+
+  static Instr Ct2(CPURegister ct) {
+    DCHECK_NE(ct.code(), kSPRegInternalCode);
+    return ct.code() << Ct2_offset;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   // Flags encoding.
   inline static Instr Flags(FlagsUpdate S);
   inline static Instr Cond(Condition cond);
@@ -2815,6 +2886,12 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline static Instr ImmBarrierDomain(int imm2);
   inline static Instr ImmBarrierType(int imm2);
   inline static unsigned CalcLSDataSize(LoadStoreOp op);
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static bool IsImmAddSubCapability(int64_t immediate);
+
+  inline static Instr ImmAddSubCapability(int imm);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Instruction bits for vector format in data processing operations.
   static Instr VFormat(VRegister vd) {
@@ -3070,6 +3147,10 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline const Register& AppropriateZeroRegFor(const CPURegister& reg) const;
 
   void LoadStore(const CPURegister& rt, const MemOperand& addr, LoadStoreOp op);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  void LoadStorePairCap(const Register& rt, const Register& rt2,
+                        const MemOperand& addr, LoadStorePairOp op);
+#endif // __CHERI_PURE_CAPABILITY__
   void LoadStorePair(const CPURegister& rt, const CPURegister& rt2,
                      const MemOperand& addr, LoadStorePairOp op);
   void LoadStoreStruct(const VRegister& vt, const MemOperand& addr,
@@ -3124,6 +3205,10 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   static inline LoadStorePairOp StorePairOpFor(const CPURegister& rt,
                                                const CPURegister& rt2);
   static inline LoadLiteralOp LoadLiteralOpFor(const CPURegister& rt);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static inline AddSubOp AddOpFor(const CPURegister& rt);
+  static inline AddSubOp SubOpFor(const CPURegister& rt);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Remove the specified branch from the unbound label link chain.
   // If available, a veneer for this label can be used for other branches in the

@@ -49,6 +49,12 @@ namespace internal {
   V(Stp, CPURegister&, rt, rt2, StorePairOpFor(rt, rt2)) \
   V(Ldpsw, CPURegister&, rt, rt2, LDPSW_x)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LSPAIR_CAP_MACRO_LIST(V)                         \
+  V(Stpc, Register&, ct, ct2, LoadPairOpFor(ct, ct2))    \
+  V(Ldpc, Register&, ct, ct2, StorePairOpFor(ct, ct2))
+#endif // __CHERI_PURE_CAPABILITY__
+
 #define LDA_STL_MACRO_LIST(V) \
   V(Ldarb, ldarb)             \
   V(Ldarh, ldarh)             \
@@ -796,6 +802,15 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   };
   void CopyDoubleWords(Register dst, Register src, Register count,
                        CopyDoubleWordsMode mode = kDstLessThanSrc);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  enum CopyCapabilitiesMode {
+    kCapDstLessThanSrc,
+    kCapSrcLessThanDst,
+    kCapDstLessThanSrcAndReverse
+  };
+  void CopyCapabilities(Register dst, Register src, Register count,
+                        CopyCapabilitiesMode mode = kCapDstLessThanSrc);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Calculate the address of a double word-sized slot at slot_offset from the
   // stack pointer, and write it to dst. Positive slot_offsets are at addresses
@@ -816,11 +831,19 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   //
   // Note that unit_size must be specified in bytes. For variants which take a
   // Register count, the unit size must be a power of two.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline void Claim(int64_t count, uint64_t unit_size = kCRegSize);
+  inline void Claim(const Register& count, uint64_t unit_size = kCRegSize,
+                    bool assume_sp_aligned = true);
+  inline void Drop(int64_t count, uint64_t unit_size = kCRegSize);
+  inline void Drop(const Register& count, uint64_t unit_size = kCRegSize);
+#else
   inline void Claim(int64_t count, uint64_t unit_size = kXRegSize);
   inline void Claim(const Register& count, uint64_t unit_size = kXRegSize,
                     bool assume_sp_aligned = true);
   inline void Drop(int64_t count, uint64_t unit_size = kXRegSize);
   inline void Drop(const Register& count, uint64_t unit_size = kXRegSize);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Drop 'count' arguments from the stack, rounded up to a multiple of two,
   // without actually accessing memory.
@@ -861,6 +884,14 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // to 64-bit before calling this function.
   void Switch(Register scratch, Register value, int case_value_base,
               Label** labels, int num_labels);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline void Cmpc(const Register& cn, const Operand& operand);
+  inline void Cpy(const Register& cd, const Register& cn);
+  inline void Gcvalue(const Register& cn, const Register& rd);
+  inline void Scvalue(const Register& cd, const Register& cn, const Register& rm);
+  inline void Subsc(const Register& cd, const Register& cn,
+                    const Operand& operand);
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Push or pop up to 4 registers of the same width to or from the stack.
   //
@@ -1045,6 +1076,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
   // Load the builtin given by the Smi in |builtin| into |target|.
   void LoadEntryFromBuiltinIndex(Register builtin, Register target);
+  // Load the builtin given by the Smi in |builtin_| into the same
+  // register.
   void LoadEntryFromBuiltin(Builtin builtin, Register destination);
   MemOperand EntryFromBuiltinAsOperand(Builtin builtin);
   void CallBuiltinByIndex(Register builtin, Register target);
@@ -1272,6 +1305,13 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void FN(const REGTYPE REG, const REGTYPE REG2, const MemOperand& addr);
   LSPAIR_MACRO_LIST(DECLARE_FUNCTION)
 #undef DECLARE_FUNCTION
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define DECLARE_FUNCTION(FN, REGTYPE, REG, REG2, OP) \
+  inline void FN(const REGTYPE REG, const REGTYPE REG2, const MemOperand& addr);
+  LSPAIR_CAP_MACRO_LIST(DECLARE_FUNCTION)
+#undef DECLARE_FUNCTION
+#endif // __CHERI_PURE_CAPABILITY__
 
   void St1(const VRegister& vt, const MemOperand& dst) {
     DCHECK(allow_macro_instructions());
@@ -1595,6 +1635,9 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Cinc(const Register& rd, const Register& rn, Condition cond);
   inline void Cinv(const Register& rd, const Register& rn, Condition cond);
   inline void CzeroX(const Register& rd, Condition cond);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline void CzeroC(const Register& cd, Condition cond);
+#endif // __CHERI_PURE_CAPABILITY__
   inline void Csinv(const Register& rd, const Register& rn, const Register& rm,
                     Condition cond);
   inline void Csneg(const Register& rd, const Register& rn, const Register& rm,
@@ -1787,6 +1830,14 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void PopXRegList(RegList regs) {
     PopSizeRegList(regs, kXRegSizeInBits);
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline void PushCRegList(RegList regs) {
+    PushSizeRegList(regs, kCRegSizeInBits);
+  }
+  inline void PopCRegList(RegList regs) {
+    PopSizeRegList(regs, kCRegSizeInBits);
+  }
+#endif
   inline void PushWRegList(RegList regs) {
     PushSizeRegList(regs, kWRegSizeInBits);
   }
@@ -2298,6 +2349,9 @@ class V8_NODISCARD UseScratchRegisterScope {
   // automatically when the scope ends.
   Register AcquireW() { return AcquireNextAvailable(available_).W(); }
   Register AcquireX() { return AcquireNextAvailable(available_).X(); }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register AcquireC() { return AcquireNextAvailable(available_).C(); }
+#endif // __CHERI_PURE_CAPABILITY__
   VRegister AcquireS() { return AcquireNextAvailable(availablefp_).S(); }
   VRegister AcquireD() { return AcquireNextAvailable(availablefp_).D(); }
   VRegister AcquireQ() { return AcquireNextAvailable(availablefp_).Q(); }

@@ -14,8 +14,30 @@ namespace v8 {
 namespace internal {
 
 // List macro containing all visitors needed by the decoder class.
-
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define VISITOR_LIST(V)                  \
+  ARM64_VISITOR_LIST(V)                  \
+  V(AddSubCapExtended)                   \
+  V(AddSubCapImmediate)                  \
+  V(CompareCapabilities)                 \
+  V(CopyCapability)                      \
+  V(ConditionalSelectCap)                \
+  V(GetField1)                           \
+  V(LoadStoreCapUnscaledOffsetNormal)    \
+  V(LoadStoreCapUnsignedOffsetCapNormal) \
+  V(LoadStoreCapRegisterOffsetNormal)    \
+  V(LoadStorePostCapIndex)               \
+  V(LoadStorePreCapIndex)                \
+  V(LoadStorePairCapPostIndex)           \
+  V(LoadStorePairCapPreIndex)            \
+  V(LoadStorePairCapOffset)              \
+  V(SetField1)
+#else
 #define VISITOR_LIST(V)                 \
+    ARM64_VISITOR_LIST(V)
+#endif
+
+#define ARM64_VISITOR_LIST(V)           \
   V(PCRelAddressing)                    \
   V(AddSubImmediate)                    \
   V(LogicalImmediate)                   \
@@ -206,6 +228,69 @@ class Decoder : public V {
   // instruction tree, and call the corresponding visitors.
   // On entry, instruction bits 28:25 = 0xF.
   void DecodeNEONScalarDataProcessing(Instruction* instr);
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // Decode the Morello add/subtract immediate instruction, and call the
+  // corresponding  visitors.
+  // On entry, instruction bits 27:24 = 0x2.
+  void DecodeMorello(Instruction* instr);
+
+  // Decode the Morello add/subtract capability instruction,
+  // and call the corresponding visitors.
+  void DecodeMorelloAddSubCapability(Instruction* instr);
+
+  // Decode the Morello add extended register instruction,
+  // and call the corresponding visitors.
+  void DecodeMorelloAddExtendedRegister(Instruction* instr);
+
+  // Decode the Morello branch immediate instruction,
+  // and call the corresponding visitors.
+  void DecodeMorelloBranch(Instruction* instr);
+
+  // Decode the Morello get/set system register instruction,
+  // and call the corresponding visitors.
+  void DecodeMorelloGetSetSystemRegister(Instruction* instr);
+
+  // Decode the Morello LDR literal instruction,
+  // and call the corresponding visitors.
+  void DecodeMorelloLdrLiteral(Instruction* instr);
+
+  // Decode the Morello load_store_misc1 instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreMisc1(Instruction* instr);
+
+  // Decode the Morello load_store_misc2 instructions,
+  // and call the // corresponding visitors.
+  void DecodeMorelloLoadStoreMisc2(Instruction* instr);
+
+  // Decode the Morello load_store_misc3 instructions,
+  // and call the // corresponding visitors.
+  void DecodeMorelloLoadStoreMisc3(Instruction* instr);
+
+  // Decode the Morello load_store_misc4 instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreMisc4(Instruction* instr);
+
+  // Decode the Morello load/store register via laternative base instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreRegisterViaAlternativeBase(Instruction* instr);
+
+  // Decode the Morello load/store unsigned offset instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreUnsignedOffset(Instruction* instr);
+
+  // Decode the Morello load/store unsigned offset voa alternative base instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(Instruction* instr);
+
+  // Decode the Morello load/store unscaled immediate via altenative base instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloLoadStoreUnscaledImmediateViaAlternateBase(Instruction* instr);
+
+  // Decode the Morello misc instructions,
+  // and call the corresponding visitors.
+  void DecodeMorelloMisc(Instruction* instr);
+#endif
 };
 
 }  // namespace internal

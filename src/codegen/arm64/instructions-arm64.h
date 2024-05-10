@@ -52,6 +52,9 @@ extern const float16 kFP16DefaultNaN;
 
 unsigned CalcLSDataSize(LoadStoreOp op);
 unsigned CalcLSPairDataSize(LoadStorePairOp op);
+#if defined(__CHERI_PURE_CAPABILITY__)
+unsigned CalcLSPairCapDataSize(LoadStorePairOp op);
+#endif // __CHERI_PURE_CAPABILITY__
 
 enum ImmBranchType {
   UnknownBranchType = 0,
@@ -124,6 +127,9 @@ class Instruction {
 #define DEFINE_GETTER(Name, HighBit, LowBit, Func) \
   int32_t Name() const { return Func(HighBit, LowBit); }
   INSTRUCTION_FIELDS_LIST(DEFINE_GETTER)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  AARCH64C_INSTRUCTION_FIELDS_LIST(DEFINE_GETTER)
+#endif
 #undef DEFINE_GETTER
 
   // ImmPCRel is a compound field (not present in INSTRUCTION_FIELDS_LIST),
@@ -205,10 +211,18 @@ class Instruction {
   }
 
   bool IsLdrLiteral() const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return Mask(LoadLiteralFMask) == LoadLiteralFixed ||
+        Mask(LoadLiteralCapFMask) == LoadLiteralCapFixed;
+#else
     return Mask(LoadLiteralFMask) == LoadLiteralFixed;
+#endif // __CHERI_PURE_CAPABILITY__
   }
 
   bool IsLdrLiteralX() const { return Mask(LoadLiteralMask) == LDR_x_lit; }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  bool IsLdrLiteralC() const { return Mask(LoadLiteralCapMask) == LDR_c_lit; }
+#endif // __CHERI_PURE_CAPABILITY__
   bool IsLdrLiteralW() const { return Mask(LoadLiteralMask) == LDR_w_lit; }
 
   bool IsPCRelAddressing() const {
@@ -241,6 +255,16 @@ class Instruction {
     return Mask(AddSubExtendedFMask) == AddSubExtendedFixed;
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  bool IsAddSubCapImmediate() const {
+    return Mask(AddSubCapImmediateFMask) == AddSubCapImmediateFixed;
+  }
+
+  bool IsAddSubCapExtended() const {
+    return Mask(AddSubCapExtendedFMask) == AddSubCapExtendedFixed;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   // Match any loads or stores, including pairs.
   bool IsLoadOrStore() const {
     return Mask(LoadStoreAnyFMask) == LoadStoreAnyFixed;
@@ -259,7 +283,12 @@ class Instruction {
     //  Add/sub (extended) when not setting the flags.
     //  Logical (immediate) when not setting the flags.
     // Otherwise, r31 is the zero register.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (IsAddSubImmediate() || IsAddSubExtended() ||
+        IsAddSubCapImmediate() || IsAddSubCapExtended()) {
+#else
     if (IsAddSubImmediate() || IsAddSubExtended()) {
+#endif // __CHERI_PURE_CAPABILITY__
       if (Mask(AddSubSetFlagsBit)) {
         return Reg31IsZeroRegister;
       } else {
@@ -288,7 +317,12 @@ class Instruction {
     //  Add/sub (immediate).
     //  Add/sub (extended).
     // Otherwise, r31 is the zero register.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (IsLoadOrStore() || IsAddSubImmediate() || IsAddSubExtended() ||
+	IsAddSubCapImmediate() || IsAddSubCapExtended()) {
+#else
     if (IsLoadOrStore() || IsAddSubImmediate() || IsAddSubExtended()) {
+#endif // __CHERI_PURE_CAPABILITY__
       return Reg31IsStackPointer;
     }
     return Reg31IsZeroRegister;
@@ -454,7 +488,15 @@ class Instruction {
   }
 
   V8_INLINE ptrdiff_t DistanceTo(Instruction* target) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    // If PSTATE.C64 = 1: The current instruction set if C64
+    // PSTATE.C64 = Capability Value[0]
+    const ptraddr_t c64_bitmask = 0x1;
+    return (reinterpret_cast<Address>(target) & ~c64_bitmask) -
+      reinterpret_cast<Address>(this);
+#else
     return reinterpret_cast<Address>(target) - reinterpret_cast<Address>(this);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   }
 
   static const int ImmPCRelRangeBitwidth = 21;
@@ -505,6 +547,9 @@ const unsigned kPrintfMaxArgCount = 4;
 enum PrintfArgPattern {
   kPrintfArgW = 1,
   kPrintfArgX = 2,
+#if defined(__CHERI_PURE_CAPABILITY__)
+  kPrintfArgC = 2,
+#endif // __CHERI_PURE_CAPABILITY__
   // There is no kPrintfArgS because floats are always converted to doubles in C
   // varargs calls.
   kPrintfArgD = 3

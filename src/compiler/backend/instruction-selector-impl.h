@@ -366,7 +366,11 @@ class OperandGenerator {
         // We cannot use {intptr_t} here, since the Constant constructor would
         // be ambiguous on some architectures.
         using ptrsize_int_t =
+#if defined(__CHERI_PURE_CAPABILITY__)
+            intptr_t;
+#else   // !__CHERI_PURE_CAPABILITY__
             std::conditional<kSystemPointerSize == 8, int64_t, int32_t>::type;
+#endif  // !__CHERI_PURE_CAPABILITY__
         return Constant(reinterpret_cast<ptrsize_int_t>(
             OpParameter<const char*>(node->op())));
       }

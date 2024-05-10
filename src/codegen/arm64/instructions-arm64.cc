@@ -11,13 +11,9 @@ namespace v8 {
 namespace internal {
 
 bool Instruction::IsLoad() const {
-  if (Mask(LoadStoreAnyFMask) != LoadStoreAnyFixed) {
-    return false;
-  }
-
   if (Mask(LoadStorePairAnyFMask) == LoadStorePairAnyFixed) {
     return Mask(LoadStorePairLBit) != 0;
-  } else {
+  } else if (Mask(LoadStoreAnyFMask) == LoadStoreAnyFixed) {
     LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreMask));
     switch (op) {
       case LDRB_w:
@@ -38,18 +34,27 @@ bool Instruction::IsLoad() const {
       default:
         return false;
     }
+   return false;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  } else if (Mask(LoadStoreCapAnyFMask) == LoadStoreCapAnyFixed) {
+    LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreCapMask));
+    switch (op) {
+      case LDR_c:
+        return true;
+      default:
+        return false;
+    }
+  } else if (Mask(LoadStorePairCapAnyFMask) == LoadStorePairCapAnyFixed) {
+    return Mask(LoadStorePairCapLBit) != 0;
+#endif // __CHERI_PURE_CAPABILITY__
+  } else {
+    return false;
   }
 }
 
 bool Instruction::IsStore() const {
-  if (Mask(LoadStoreAnyFMask) != LoadStoreAnyFixed) {
-    return false;
-  }
-
-  if (Mask(LoadStorePairAnyFMask) == LoadStorePairAnyFixed) {
-    return Mask(LoadStorePairLBit) == 0;
-  } else {
-    LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreMask));
+  if (Mask(LoadStoreAnyFMask) == LoadStoreAnyFixed) {
+    LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreCapMask));
     switch (op) {
       case STRB_w:
       case STRH_w:
@@ -64,6 +69,22 @@ bool Instruction::IsStore() const {
       default:
         return false;
     }
+  } else if (Mask(LoadStorePairAnyFMask) == LoadStorePairAnyFixed) {
+    return Mask(LoadStorePairLBit) == 0;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  } else if (Mask(LoadStoreCapAnyFMask) == LoadStoreCapAnyFixed) {
+    LoadStoreOp op = static_cast<LoadStoreOp>(Mask(LoadStoreMask));
+    switch (op) {
+      case STR_c:
+        return true;
+      default:
+        return false;
+    }
+ } else if (Mask(LoadStorePairCapAnyFMask) == LoadStorePairCapAnyFixed) {
+    return Mask(LoadStorePairCapLBit) == 0;
+#endif // __CHERI_PURE_CAPABILITY__
+  } else {
+    return false;
   }
 }
 
@@ -156,6 +177,11 @@ double Instruction::ImmNEONFP64() const {
 unsigned CalcLSDataSize(LoadStoreOp op) {
   DCHECK_EQ(static_cast<unsigned>(LSSize_offset + LSSize_width),
             kInstrSize * 8);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (op == STR_c || op == LDR_c) {
+    return kCRegSizeLog2;
+  }
+#endif // __CHERI_PURE_CAPABILITY_
   unsigned size = static_cast<Instr>(op) >> LSSize_offset;
   if ((op & LSVector_mask) != 0) {
     // Vector register memory operations encode the access size in the "size"
@@ -179,6 +205,12 @@ unsigned CalcLSPairDataSize(LoadStorePairOp op) {
     case STP_d:
     case LDP_d:
       return kXRegSizeLog2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case STP_c:
+      [[fallthrough]];
+    case LDP_c:
+      return kCRegSizeLog2;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     default:
       return kWRegSizeLog2;
   }

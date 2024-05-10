@@ -94,13 +94,21 @@ class V8_EXPORT_PRIVATE CPURegList {
   CPURegister PopHighestIndex();
 
   // AAPCS64 callee-saved registers.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static CPURegList GetCalleeSaved(int size = kCRegSizeInBits);
+#else
   static CPURegList GetCalleeSaved(int size = kXRegSizeInBits);
+#endif // __CHERI_PURE_CAPABILITY__
   static CPURegList GetCalleeSavedV(int size = kDRegSizeInBits);
 
   // AAPCS64 caller-saved registers. Note that this includes lr.
   // TODO(all): Determine how we handle d8-d15 being callee-saved, but the top
   // 64-bits being caller-saved.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static CPURegList GetCallerSaved(int size = kCRegSizeInBits);
+#else
   static CPURegList GetCallerSaved(int size = kXRegSizeInBits);
+#endif // __CHERI_PURE_CAPABILITY__
   static CPURegList GetCallerSavedV(int size = kDRegSizeInBits);
 
   bool IsEmpty() const { return list_ == 0; }
