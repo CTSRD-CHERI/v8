@@ -1973,13 +1973,14 @@ class PtrComprCageBase {
 #else
 class PtrComprCageBase {
  public:
+  // NOLINTNEXTLINE
+  explicit constexpr PtrComprCageBase(Address address) {}
+  // NOLINTNEXTLINE
   PtrComprCageBase() = default;
   // NOLINTNEXTLINE
   PtrComprCageBase(const Isolate* isolate) {}
   // NOLINTNEXTLINE
   PtrComprCageBase(const LocalIsolate* isolate) {}
-  // NOLINTNEXTLINE
-  explicit constexpr PtrComprCageBase(Address address) {}
 };
 #endif
 
