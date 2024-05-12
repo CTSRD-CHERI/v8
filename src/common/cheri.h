@@ -7,7 +7,7 @@
 
 namespace cheri 
 {
-#if __CheriBSD_version <= 20220828
+#if defined(__CHERI_PURE_CAPABILITY__) && __CheriBSD_version <= 20220828
   inline std::ostream &operator<<(std::ostream &out, uintptr_t val)
   {
     return out << static_cast<size_t>(val);
@@ -17,7 +17,7 @@ namespace cheri
   {
     return out << static_cast<ssize_t>(val);
   }
-#endif // __CheriBSD_version <= 20220828
+#endif // __CHERI_PURE_CAPABILITY__ && __CheriBSD_version <= 20220828
 
   template<typename T>
   struct is_intcap {
