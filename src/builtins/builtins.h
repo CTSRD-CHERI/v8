@@ -269,7 +269,7 @@ class Builtins {
   // Returns given builtin's slot in the tier0 builtin table.
   FullObjectSlot builtin_tier0_slot(Builtin builtin);
 
-  Isolate * isolate() { return isolate_; };
+  Isolate * isolate() { return isolate_; }
  private:
   static void Generate_CallFunction(MacroAssembler* masm,
                                     ConvertReceiverMode mode);
