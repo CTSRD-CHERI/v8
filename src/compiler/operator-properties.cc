@@ -127,6 +127,7 @@ bool OperatorProperties::NeedsExactContext(const Operator* op) {
       MACHINE_OP_LIST(CASE)
       MACHINE_SIMD_OP_LIST(CASE)
       SIMPLIFIED_OP_LIST(CASE)
+      PURECAP_OP_LIST(CASE)
       break;
 #undef CASE
   }
