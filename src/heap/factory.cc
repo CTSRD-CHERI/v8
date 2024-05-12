@@ -394,8 +394,13 @@ void Factory::InitializeAllocationMemento(AllocationMemento memento,
 HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   DCHECK(map->instance_type() != MAP_TYPE);
   int size = map->instance_size();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
+      size + kSystemPointerSize, allocation);
+#else
   HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
       size, allocation);
+#endif
   // New space objects are allocated white.
   WriteBarrierMode write_barrier_mode = allocation == AllocationType::kYoung
                                             ? SKIP_WRITE_BARRIER
