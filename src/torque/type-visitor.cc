@@ -126,6 +126,7 @@ void DeclareMethods(AggregateType* container_type,
 }
 
 bool IsCapability(const Type* field_type) {
+#if defined(__CHERI_PURE_CAPABILITY__)
   if (field_type->IsSubtypeOf(TypeOracle::GetRawPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetIntPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetUIntPtrType()) ||
@@ -141,10 +142,12 @@ bool IsCapability(const Type* field_type) {
     const Field& first_field = fields[0];
     return IsCapability(first_field.name_and_type.type);
   }
+#endif
   return false;
 }
 
 uint8_t AlignToCapabilitySize(ResidueClass& offset) {
+#if defined(__CHERI_PURE_CAPABILITY__)
   auto offset_opt = offset.SingleValue();
   if (!offset_opt.has_value()) return 0;
   auto maybe_unaligned_offset = offset_opt.value();
@@ -154,6 +157,9 @@ uint8_t AlignToCapabilitySize(ResidueClass& offset) {
   auto offset_to_add = aligned_offset - maybe_unaligned_offset;
   offset += offset_to_add;
   return offset_to_add;
+#else
+  return 0;
+#endif
 }
 
 const BitFieldStructType* TypeVisitor::ComputeType(
