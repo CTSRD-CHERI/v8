@@ -303,7 +303,6 @@ MaybeHandle<InstructionStream> Factory::CodeBuilder::AllocateInstructionStream(
   {
     CodePageMemoryModificationScope memory_modification_scope(
         BasicMemoryChunk::FromHeapObject(result));
-    result.align_to_code();
     result.set_map_after_allocation(
         *isolate_->factory()->instruction_stream_map(), SKIP_WRITE_BARRIER);
   }
