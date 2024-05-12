@@ -425,6 +425,8 @@ constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 32;
 // big reservations, and to ensure that distances within a code space fit
 // within a 32-bit signed integer.
 constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 1024;
+constexpr int kPtrAddrSizeLog2 = 3;
+constexpr int kSystemPointerSizeLog2 = 3;
 #endif
 
 #if V8_HOST_ARCH_64_BIT
