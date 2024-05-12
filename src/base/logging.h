@@ -69,6 +69,8 @@ constexpr const char* kUnreachableCodeMessage = "unreachable code";
 #define CONSTEXPR_UNREACHABLE() UNREACHABLE()
 #endif
 
+void V8_BackTrace();
+
 namespace v8 {
 namespace base {
 
