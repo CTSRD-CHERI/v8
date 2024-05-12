@@ -314,9 +314,9 @@ constexpr size_t kMaxWasmCodeMemory = kMaxWasmCodeMB * MB;
 constexpr int kSystemPointerSizeLog2 = 4;
 #else
 constexpr int kPtrAddrSizeLog2 = 3;
+constexpr int kSystemPointerSizeLog2 = 3;
 #endif
 constexpr int kSystemPointerAddrSizeLog2 = 3;
-constexpr int kPtrAddrSizeLog2 = 3;
 constexpr intptr_t kIntptrSignBit =
     static_cast<intptr_t>(uintptr_t{0x8000000000000000});
 constexpr bool kPlatformRequiresCodeRange = true;

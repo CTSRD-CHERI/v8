@@ -37,6 +37,10 @@ constexpr int GB = MB * 1024;
 constexpr size_t TB = size_t{GB} * 1024;
 #endif
 
+#if !defined(__CHERI_PURE_CAPABILITY__)
+typedef uintptr_t ptraddr_t;
+#endif
+
 /**
  * Configuration of tagging scheme.
  */
