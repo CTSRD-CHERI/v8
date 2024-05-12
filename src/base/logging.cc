@@ -167,6 +167,10 @@ void V8_Fatal(const char* format, ...) {
   v8::base::OS::Abort();
 }
 
+void V8_BackTrace() {
+  if (v8::base::g_print_stack_trace) v8::base::g_print_stack_trace();
+}
+
 void V8_Dcheck(const char* file, int line, const char* message) {
   v8::base::g_dcheck_function(file, line, message);
 }

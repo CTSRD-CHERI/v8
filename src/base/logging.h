@@ -48,6 +48,8 @@ V8_BASE_EXPORT V8_NOINLINE void V8_Dcheck(const char* file, int line,
 #endif  // !defined(OFFICIAL_BUILD)
 #endif  // DEBUG
 
+void V8_BackTrace();
+
 #define UNIMPLEMENTED() FATAL("unimplemented code")
 #define UNREACHABLE() FATAL("unreachable code")
 
