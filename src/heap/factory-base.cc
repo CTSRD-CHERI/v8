@@ -991,8 +991,12 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   DCHECK(ReadOnlyHeap::Contains(map));
   // CHERI: Align to kSystemPointerSize because we are storing a capability at
   // the start of this location.
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   HeapObject result =
       AllocateRaw(size + kSystemPointerSize, allocation, alignment);
+#else
+  HeapObject result = AllocateRaw(size, allocation, alignment);
+#endif
   DisallowGarbageCollection no_gc;
   result.align_to_cap_size();
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
