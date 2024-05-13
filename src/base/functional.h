@@ -197,6 +197,25 @@ V8_INLINE size_t hash_value(double v) {
   return v != 0.0 ? hash_value(base::bit_cast<uint64_t>(v)) : 0;
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+// CHERI C/C++ Programming Guide
+//
+// Computing hash values
+//
+// The compiler will also warn when operators such as modulus or shifts are
+// used on uintptr_t. This usually indicates that the pointer is being used as
+// the input to a hash function or similar computations. In this case, the
+// programmer should not be using uintptr_t but instead cast the pointer to
+// ptraddr_t and perform the arithmetic on this type instead.
+V8_INLINE size_t hash_value(intptr_t v) {
+  return hash_value(static_cast<ptraddr_t>(v));
+}
+
+V8_INLINE size_t hash_value(uintptr_t v) {
+  return hash_value(static_cast<ptraddr_t>(v));
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 template <typename T, size_t N>
 V8_INLINE size_t hash_value(const T (&v)[N]) {
   return hash_range(v, v + N);
@@ -210,10 +229,16 @@ V8_INLINE size_t hash_value(T (&v)[N]) {
 template <typename T>
 V8_INLINE size_t hash_value(T* const& v) {
 #if defined(__CHERI_PURE_CAPABILITY__)
-  const ptraddr_t first = static_cast<ptraddr_t>(base::bit_cast<uintptr_t>(v));
-  const ptraddr_t second = static_cast<ptraddr_t>(
-    base::bit_cast<uintptr_t>(v) >> sizeof(ptraddr_t) * CHAR_BIT);
-  return hash_combine(first, second);
+  // CHERI C/C++ Programming Guide
+  //
+  // Computing hash values
+  //
+  // The compiler will also warn when operators such as modulus or shifts are
+  // used on uintptr_t. This usually indicates that the pointer is being used
+  // as the input to a hash function or similar computations. In this case, the
+  // programmer should not be using uintptr_t but instead cast the pointer to
+  // ptraddr_t and perform the arithmetic on this type instead.
+  return hash_value(static_cast<ptraddr_t>(base::bit_cast<uintptr_t>(v)));
 #else // !__CHERI_PURE_CAPABILITY__
   return hash_value(base::bit_cast<uintptr_t>(v));
 #endif // !__CHERI_PURE_CAPABILITY__
