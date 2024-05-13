@@ -33,7 +33,12 @@ namespace internal {
 //       use. Because a Variable holding a handle with the same location exists
 //       this is ensured.
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+static_assert(sizeof(VariableMap) == (RoundUp<kSystemPointerSize>(
+				     sizeof(void*) + 2 * sizeof(uint32_t)) +
+#else   // !__CHERI_PURE_CAPABILITY__
 static_assert(sizeof(VariableMap) == (sizeof(void*) + 2 * sizeof(uint32_t) +
+#endif  // !__CHERI_PURE_CAPABILITY__
                                       sizeof(ZoneAllocationPolicy)),
               "Empty base optimization didn't kick in for VariableMap");
 
