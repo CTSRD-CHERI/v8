@@ -61,7 +61,12 @@ int FlexibleWeakBodyDescriptor<start_offset>::SizeOf(Map map,
 bool BodyDescriptorBase::IsValidJSObjectSlotImpl(Map map, HeapObject obj,
                                                  int offset) {
 #ifdef V8_COMPRESS_POINTERS
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(ptraddr_t) == 2 * kTaggedSize);
+  static_assert(kEmbedderDataSlotSize == 2 * sizeof(ptraddr_t));
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
   int embedder_fields_offset = JSObject::GetEmbedderFieldsStartOffset(map);
   int inobject_fields_offset = map.GetInObjectPropertyOffset(0);
   // |embedder_fields_offset| may be greater than |inobject_fields_offset| if
@@ -88,7 +93,12 @@ void BodyDescriptorBase::IterateJSObjectBodyImpl(Map map, HeapObject obj,
                                                  int end_offset,
                                                  ObjectVisitor* v) {
 #ifdef V8_COMPRESS_POINTERS
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(ptraddr_t) == 2 * kTaggedSize);
+  static_assert(kEmbedderDataSlotSize == 2 * sizeof(ptraddr_t));
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
   int header_end_offset = JSObject::GetHeaderSize(map);
   int inobject_fields_start_offset = map.GetInObjectPropertyOffset(0);
   // We are always requested to process header and embedder fields.
@@ -1103,7 +1113,12 @@ class EmbedderDataArray::BodyDescriptor final : public BodyDescriptorBase {
  public:
   static bool IsValidSlot(Map map, HeapObject obj, int offset) {
 #ifdef V8_COMPRESS_POINTERS
-    static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(ptraddr_t) == 2 * kTaggedSize);
+  static_assert(kEmbedderDataSlotSize == 2 * sizeof(ptraddr_t));
+#else   // !__CHERI_PURE_CAPABILITY__
+  static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
     static_assert(base::bits::IsPowerOfTwo(kEmbedderDataSlotSize));
     return (offset < EmbedderDataArray::kHeaderSize) ||
            (((offset - EmbedderDataArray::kHeaderSize) &
@@ -1121,7 +1136,12 @@ class EmbedderDataArray::BodyDescriptor final : public BodyDescriptorBase {
   static inline void IterateBody(Map map, HeapObject obj, int object_size,
                                  ObjectVisitor* v) {
 #ifdef V8_COMPRESS_POINTERS
-    static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(ptraddr_t) == 2 * kTaggedSize);
+  static_assert(kEmbedderDataSlotSize == 2 * sizeof(ptraddr_t));
+#else   // !__CHERI_PURE_CAPABILITY__
+  static_assert(kEmbedderDataSlotSize == 2 * kTaggedSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
     for (int offset = EmbedderDataArray::OffsetOfElementAt(0);
          offset < object_size; offset += kEmbedderDataSlotSize) {
       IteratePointer(obj, offset + EmbedderDataSlot::kTaggedPayloadOffset, v);
