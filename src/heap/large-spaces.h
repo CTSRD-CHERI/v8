@@ -66,13 +66,6 @@ class LargePage : public MemoryChunk {
   friend class MemoryAllocator;
 };
 
-template<size_t A, size_t B> struct TAssertEquality {
-  static_assert(A<=B, "Not equal");
-  static constexpr bool _cResult = (A==B);
-};
-static constexpr bool _cIsEqual = 
-  TAssertEquality<sizeof(LargePage), MemoryChunk::kHeaderSize>::_cResult;
-
 static_assert(sizeof(LargePage) <= MemoryChunk::kHeaderSize);
 
 // -----------------------------------------------------------------------------
