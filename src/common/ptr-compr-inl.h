@@ -23,7 +23,11 @@ PtrComprCageBase::PtrComprCageBase(const LocalIsolate* isolate)
 // V8HeapCompressionScheme
 //
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kPtrComprCageBaseMask = ~(kPtrComprCageBaseAlignment - 1);
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr Address kPtrComprCageBaseMask = ~(kPtrComprCageBaseAlignment - 1);
+#endif  // !__CHERIi_PURE_CAPABILITY__
 
 // static
 Address V8HeapCompressionScheme::GetPtrComprCageBaseAddress(
