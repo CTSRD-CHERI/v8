@@ -478,7 +478,11 @@ INTERNAL_DECLARE_SET_TRACE_VALUE(const TraceStringWithCopy&,
 #undef INTERNAL_DECLARE_SET_TRACE_VALUE
 
 static V8_INLINE void SetTraceValue(ConvertableToTraceFormat* convertable_value,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                    unsigned char* type, uintptr_t* value) {
+#else   // !__CHERI_PURE_CAPABILITY__
                                     unsigned char* type, uint64_t* value) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   *type = TRACE_VALUE_TYPE_CONVERTABLE;
   *value = static_cast<uint64_t>(reinterpret_cast<intptr_t>(convertable_value));
 }
@@ -486,7 +490,11 @@ static V8_INLINE void SetTraceValue(ConvertableToTraceFormat* convertable_value,
 template <typename T>
 static V8_INLINE typename std::enable_if<
     std::is_convertible<T*, ConvertableToTraceFormat*>::value>::type
+#if defined(__CHERI_PURE_CAPABILITY__)
+SetTraceValue(std::unique_ptr<T> ptr, unsigned char* type, uintptr_t* value) {
+#else   // !__CHERI_PURE_CAPABILITY__
 SetTraceValue(std::unique_ptr<T> ptr, unsigned char* type, uint64_t* value) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   SetTraceValue(ptr.release(), type, value);
 }
 

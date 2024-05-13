@@ -228,7 +228,11 @@ BUILTIN(Trace) {
 
 #else   // !defined(V8_USE_PERFETTO)
   uint8_t arg_type;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t arg_value;
+#else   // !__CHERI_PURE_CAPABILITY__
   uint64_t arg_value;
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (num_args) {
     std::unique_ptr<JsonTraceValue> traced_value(
         new JsonTraceValue(isolate, Handle<String>::cast(arg_json)));
