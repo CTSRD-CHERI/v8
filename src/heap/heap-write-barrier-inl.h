@@ -78,7 +78,11 @@ struct MemoryChunk {
 
   V8_INLINE bool InYoungGeneration() const {
     if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    constexpr size_t kYoungGenerationMask = kFromPageBit | kToPageBit;
+#else    // !__CHERI_PURE_CAPABILITY__
     constexpr uintptr_t kYoungGenerationMask = kFromPageBit | kToPageBit;
+#endif   // !__CHERI_PURE_CAPABILITY__
     return GetFlags() & kYoungGenerationMask;
   }
 
