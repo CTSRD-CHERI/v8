@@ -79,7 +79,11 @@ class PossiblyEmptyBuckets {
   bool IsEmpty() const { return bitmap_ == kNullAddress; }
 
  private:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr ptraddr_t kPointerTag = 1;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr Address kPointerTag = 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
   static constexpr int kWordSize = sizeof(uintptr_t);
   static constexpr int kBitsPerWord = kWordSize * kBitsPerByte;
 
