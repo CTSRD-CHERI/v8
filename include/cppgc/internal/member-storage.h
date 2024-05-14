@@ -49,7 +49,11 @@ class V8_EXPORT CageBaseGlobal final {
 
  private:
   // We keep the lower halfword as ones to speed up decompression.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr size_t kLowerHalfWordMask =
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr uintptr_t kLowerHalfWordMask =
+#endif  // !__CHERI_PURE_CAPABILITY__
       (api_constants::kCagedHeapReservationAlignment - 1);
 
   static union alignas(api_constants::kCachelineSize) Base {
