@@ -784,8 +784,13 @@ constexpr intptr_t kSmiSignMask = static_cast<intptr_t>(
 
 // Desired alignment for tagged pointers.
 constexpr int kObjectAlignmentBits = kTaggedSizeLog2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kObjectAlignment = 1 << kObjectAlignmentBits;
+constexpr size_t kObjectAlignmentMask = kObjectAlignment - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kObjectAlignment = 1 << kObjectAlignmentBits;
 constexpr intptr_t kObjectAlignmentMask = kObjectAlignment - 1;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
 // Object alignment for 8GB pointer compressed heap.
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -804,12 +809,22 @@ static_assert(
 #endif
 
 // Desired alignment for system pointers.
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kPointerAlignment = (1 << kSystemPointerSizeLog2);
+constexpr size_t kPointerAlignmentMask = kPointerAlignment - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kPointerAlignment = (1 << kSystemPointerSizeLog2);
 constexpr intptr_t kPointerAlignmentMask = kPointerAlignment - 1;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
 // Desired alignment for double values.
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kDoubleAlignment = 8;
+constexpr size_t kDoubleAlignmentMask = kDoubleAlignment - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kDoubleAlignment = 8;
 constexpr intptr_t kDoubleAlignmentMask = kDoubleAlignment - 1;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
 // Desired alignment for generated code is 64 bytes on x64 (to allow 64-bytes
 // loop header alignment) and 32 bytes (to improve cache line utilization) on
@@ -823,8 +838,13 @@ constexpr int kCodeAlignmentBits = 6;
 #else
 constexpr int kCodeAlignmentBits = 5;
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr size_t kCodeAlignment = 1 << kCodeAlignmentBits;
+constexpr size_t kCodeAlignmentMask = kCodeAlignment - 1;
+#else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kCodeAlignment = 1 << kCodeAlignmentBits;
 constexpr intptr_t kCodeAlignmentMask = kCodeAlignment - 1;
+#endif   // !__CHERI_PURE_CAPABILITY__
 
 #if defined(__CHERI_PURE_CAPABILITY__)
 const ptraddr_t kWeakHeapObjectMask = 1 << 1;
