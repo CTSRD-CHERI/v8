@@ -520,6 +520,10 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
   uintptr_t ConstexprUintPtrAdd(uintptr_t a, uintptr_t b) { return a + b; }
   intptr_t ConstexprWordNot(intptr_t a) { return ~a; }
   uintptr_t ConstexprWordNot(uintptr_t a) { return ~a; }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  intptr_t ConstexprWordNot(ssize_t a) { return ~a; }
+  uintptr_t ConstexprWordNot(size_t a) { return ~a; }
+#endif   // __CHERI_PURE_CAPABILITY__
 
   TNode<BoolT> TaggedEqual(TNode<AnyTaggedT> a, TNode<AnyTaggedT> b) {
     if (COMPRESS_POINTERS_BOOL) {
