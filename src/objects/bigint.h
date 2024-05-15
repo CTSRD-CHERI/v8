@@ -97,7 +97,13 @@ class BigIntBase : public PrimitiveHeapObject {
   // somewhere below that maximum.
   static const int kMaxLengthBits = 1 << 30;  // ~1 billion.
   static const int kMaxLength =
-      kMaxLengthBits / (kSystemPointerSize * kBitsPerByte);
+#if UINTPTR_MAX == 0xFFFFFFFF
+      kMaxLengthBits / (kUInt32Size * kBitsPerByte);
+#elif UINTPTR_MAX == 0xFFFFFFFFFFFFFFFF
+      kMaxLengthBits / (kUInt64Size * kBitsPerByte);
+#else
+#error Unsupported platform.
+#endif
 
   // Sign and length are stored in the same bitfield.  Since the GC needs to be
   // able to read the length concurrently, the getters and setters are atomic.
@@ -130,10 +136,23 @@ class BigIntBase : public PrimitiveHeapObject {
   friend class ::v8::internal::BigInt;  // MSVC wants full namespace.
   friend class MutableBigInt;
 
-  using digit_t = uintptr_t;
+#if UINTPTR_MAX == 0xFFFFFFFF
+  using digit_t = uint32_t;
+#elif UINTPTR_MAX == 0xFFFFFFFFFFFFFFFF
+  using digit_t = uint64_t;
+#else
+#error Unsupported platform.
+#endif
+
   static const int kDigitSize = sizeof(digit_t);
   // kMaxLength definition assumes this:
-  static_assert(kDigitSize == kSystemPointerSize);
+#if UINTPTR_MAX == 0xFFFFFFFF
+  static_assert(kDigitSize == kUInt32Size);
+#elif UINTPTR_MAX == 0xFFFFFFFFFFFFFFFF
+  static_assert(kDigitSize == kUInt64Size);
+#else
+#error Unsupported platform.
+#endif
 
   static const int kDigitBits = kDigitSize * kBitsPerByte;
   static const int kHalfDigitBits = kDigitBits / 2;
