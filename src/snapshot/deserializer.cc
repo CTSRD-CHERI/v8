@@ -1180,8 +1180,16 @@ int Deserializer<IsolateT>::ReadFixedRawData(uint8_t data,
 
   // Deserialize raw data of fixed length from 1 to 32 times kTaggedSize.
   int size_in_tagged = FixedRawDataWithSize::Decode(data);
+#if defined(__CHERI_PURE_CAPABILITY__)
+// On CHERI architectures a capability is twice the size of the integer
+// pointer size of the native architecture.
+  static_assert(TSlot::kSlotDataSize == kTaggedSize ||
+                TSlot::kSlotDataSize == 2 * kTaggedSize ||
+                TSlot::kSlotDataSize == 4 * kTaggedSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(TSlot::kSlotDataSize == kTaggedSize ||
                 TSlot::kSlotDataSize == 2 * kTaggedSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
   int size_in_slots = size_in_tagged / (TSlot::kSlotDataSize / kTaggedSize);
   // kFixedRawData can have kTaggedSize != TSlot::kSlotDataSize when
   // serializing Smi roots in pointer-compressed builds. In this case, the
