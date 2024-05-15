@@ -31,7 +31,8 @@ enum class MachineRepresentation : uint8_t {
   // size for the architecture (e.g. 32 or 64 bit), and also additional
   // metadata that is is compressed to fit in the remaining 32 or 64 bits of
   // the capability.
-  kCapability,
+  kCapability32,
+  kCapability64,
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   // (uncompressed) MapWord
   // kMapWord is the representation of a map word, i.e. a map in the header
@@ -98,9 +99,6 @@ enum class MachineSemantic : uint8_t {
   kSignedBigInt64,
   kUnsignedBigInt64,
   kNumber,
-#if defined(__CHERI_PURE_CAPABILITY__)
-  kCapability,
-#endif // defined(__CHERI_PURE_CAPABILITY__)
   kAny
 };
 
@@ -172,8 +170,8 @@ class MachineType {
   }
   constexpr static MachineRepresentation PointerRepresentation() {
 #if defined(__CHERI_PURE_CAPABILITY__)
-    DCHECK(kSystemPointerSize == 2 * kSystemPointerAddrSize);
-    return MachineRepresentation::kCapability;
+    return (kSystemPointerAddrSize == 4) ? MachineRepresentation::kCapability32
+                                         : MachineRepresentation::kCapability64;
 #else // defined(__CHERI_PURE_CAPABILITY__)
     return (kSystemPointerSize == 4) ? MachineRepresentation::kWord32
                                      : MachineRepresentation::kWord64;
@@ -235,11 +233,7 @@ class MachineType {
     return MachineType(MachineRepresentation::kSimd256, MachineSemantic::kNone);
   }
   constexpr static MachineType Pointer() {
-#if defined(__CHERI_PURE_CAPABILITY__)
-    return MachineType(PointerRepresentation(), MachineSemantic::kCapability);
-#else // defined(__CHERI_PURE_CAPABILITY__)
     return MachineType(PointerRepresentation(), MachineSemantic::kNone);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
   }
   constexpr static MachineType TaggedPointer() {
     return MachineType(MachineRepresentation::kTaggedPointer,
@@ -310,7 +304,9 @@ class MachineType {
       case MachineRepresentation::kSandboxedPointer:
         return MachineType::SandboxedPointer();
 #if defined(__CHERI_PURE_CAPABILITY__)
-      case MachineRepresentation::kCapability:
+      case MachineRepresentation::kCapability32:
+	[[fallthrough]];
+      case MachineRepresentation::kCapability64:
         return MachineType::Pointer();
 #endif // defined(__CHERI_PURE_CAPABILITY__)
       default:
@@ -426,8 +422,9 @@ inline bool IsAnyCompressed(MachineRepresentation rep) {
 
 #if defined(__CHERI_PURE_CAPABILITY__)
 inline bool IsCapability(MachineRepresentation rep) {
-  return ((rep == MachineRepresentation::kCapability) ||
-         CanBeTaggedPointer(rep));
+  return ((rep == MachineRepresentation::kCapability32) ||
+          (rep == MachineRepresentation::kCapability64) ||
+          CanBeTaggedPointer(rep));
 }
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
@@ -466,7 +463,9 @@ V8_EXPORT_PRIVATE inline constexpr int ElementSizeLog2Of(
       return kSystemPointerSizeLog2;
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 #if defined(__CHERI_PURE_CAPABILITY__)
-    case MachineRepresentation::kCapability:
+    case MachineRepresentation::kCapability32:
+      [[fallthrough]];
+    case MachineRepresentation::kCapability64:
       return kSystemPointerSizeLog2;
 #endif // defined(__CHERI_PURE_CAPABILITY__)
     default:
@@ -501,11 +500,13 @@ inline constexpr uint64_t MaxUnsignedValue(MachineRepresentation rep) {
     case MachineRepresentation::kWord32:
       return std::numeric_limits<uint32_t>::max();
     case MachineRepresentation::kWord64:
-#if defined(__CHERI_PURE_CAPABILITY__)
-      [[fallthrough]];
-    case MachineRepresentation::kCapability:
-#endif // defined(__CHERI_PURE_CAPABILITY__)
       return std::numeric_limits<uint64_t>::max();
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case MachineRepresentation::kCapability32:
+      [[fallthrough]];
+    case MachineRepresentation::kCapability64:
+      [[fallthrough]];
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     default:
       UNREACHABLE();
   }
