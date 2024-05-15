@@ -6669,7 +6669,11 @@ Node* EffectControlLinearizer::AdaptFastCallTypedArrayArgument(
                 "Size mismatch between different specializations of "
                 "FastApiTypedArray");
   static_assert(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      kSize == sizeof(uintptr_t) + RoundUp<kUIntptrSize>(sizeof(size_t)),
+#else   // !__CHERI_PURE_CAPABILITY__)
       kSize == sizeof(uintptr_t) + sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY__
       "The size of "
       "FastApiTypedArray isn't equal to the sum of its expected members.");
   Node* stack_slot = __ StackSlot(kSize, kAlign);
@@ -6680,7 +6684,11 @@ Node* EffectControlLinearizer::AdaptFastCallTypedArrayArgument(
   __ Store(StoreRepresentation(MachineType::PointerRepresentation(),
                                kNoWriteBarrier),
            stack_slot, sizeof(size_t), data_ptr);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(ptraddr_t) == sizeof(size_t),
+#else   // !__CHERI_PURE_CAPABILITY__)
   static_assert(sizeof(uintptr_t) == sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY__
                 "The buffer length can't "
                 "fit the PointerRepresentation used to store it.");
 
@@ -6889,7 +6897,12 @@ Node* EffectControlLinearizer::AdaptFastCallArgument(
 
             constexpr int kAlign = alignof(FastOneByteString);
             constexpr int kSize = sizeof(FastOneByteString);
+#if defined(__CHERI_PURE_CAPABILITY__)
+            static_assert(kSize == sizeof(uintptr_t) +
+                          RoundUp<kUIntptrSize>(sizeof(size_t)),
+#else   // !__CHERI_PURE_CAPABILITY__)
             static_assert(kSize == sizeof(uintptr_t) + sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY__
                           "The size of "
                           "FastOneByteString isn't equal to the sum of its "
                           "expected members.");
@@ -6902,7 +6915,11 @@ Node* EffectControlLinearizer::AdaptFastCallArgument(
                                          kNoWriteBarrier),
                      stack_slot, sizeof(size_t), length_in_bytes);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+            static_assert(sizeof(ptraddr_t) == sizeof(size_t),
+#else   // !__CHERI_PURE_CAPABILITY__)
             static_assert(sizeof(uintptr_t) == sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY__
                           "The string length can't "
                           "fit the PointerRepresentation used to store it.");
 
