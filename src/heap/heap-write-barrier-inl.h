@@ -46,7 +46,7 @@ namespace heap_internals {
 struct MemoryChunk {
 #if defined(__CHERI_PURE_CAPABILITY__)
   static constexpr ptraddr_t kFlagsOffset = kSizetSize;
-  static constexpr ptraddr_t kHeapOffset = kSizetSize + kUIntptrSize;
+  static constexpr ptraddr_t kHeapOffset = kSizetSize + kSizetSize;
   static constexpr ptraddr_t kInWritableSharedSpaceBit = uintptr_t{1} << 0;
   static constexpr ptraddr_t kFromPageBit = uintptr_t{1} << 3;
   static constexpr ptraddr_t kToPageBit = uintptr_t{1} << 4;
