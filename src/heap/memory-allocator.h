@@ -304,8 +304,13 @@ class MemoryAllocator {
   struct MemoryChunkAllocationResult {
     void* start;
     size_t size;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    uintptr_t area_start;
+    uintptr_t area_end;
+#else   // !__CHERI_PURE_CAPABILITY__
     size_t area_start;
     size_t area_end;
+#endif  // !__CHERI_PURE_CAPABILITY__
     VirtualMemory reservation;
   };
 
