@@ -437,7 +437,7 @@ using SharedHeapTestStateWithHandle =
 
 template <typename TestType, AllocationType allocation, AllocationSpace space>
 void ToEachTheirOwnWithHandle(TestType* test) {
-  using ThreadType = TestType::ThreadType;
+  using ThreadType = typename TestType::ThreadType;
   auto thread = test->thread();
 
   // Install all the callbacks.
