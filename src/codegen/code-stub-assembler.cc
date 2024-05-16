@@ -5050,7 +5050,16 @@ void CodeStubAssembler::FillFixedArrayWithSmiZero(ElementsKind kind,
   // Call out to memset to perform initialization.
   TNode<ExternalReference> memset =
       ExternalConstant(ExternalReference::libc_memset_function());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // TODO(gcjenkinson): Code Stub Assembler uses IntPtr for integer values,
+  // hence the check as to whether the size matches that of size_t. Longer
+  // term this must be change on CHERI as using a capability carrying type
+  // for an integer value is wasteful and confusing as it makes it unclear
+  // where a capability speciifc load/store/add should be generated.
+  static_assert(kSizetSize == kSystemPointerAddrSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(kSizetSize == kIntptrSize);
+#endif  // __CHERI_PURE_CAPABILITY__
   CallCFunction(memset, MachineType::Pointer(),
                 std::make_pair(MachineType::Pointer(), backing_store),
                 std::make_pair(MachineType::IntPtr(), IntPtrConstant(0)),
@@ -5076,7 +5085,16 @@ void CodeStubAssembler::FillFixedDoubleArrayWithZero(
   // Call out to memset to perform initialization.
   TNode<ExternalReference> memset =
       ExternalConstant(ExternalReference::libc_memset_function());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // TODO(gcjenkinson): Code Stub Assembler uses IntPtr for integer values,
+  // hence the check as to whether the size matches that of size_t. Longer
+  // term this must be change on CHERI as using a capability carrying type
+  // for an integer value is wasteful and confusing as it makes it unclear
+  // where a capability speciifc load/store/add should be generated.
+  static_assert(kSizetSize == kSystemPointerAddrSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(kSizetSize == kIntptrSize);
+#endif  // __CHERI_PURE_CAPABILITY__
   CallCFunction(memset, MachineType::Pointer(),
                 std::make_pair(MachineType::Pointer(), backing_store),
                 std::make_pair(MachineType::IntPtr(), IntPtrConstant(0)),
