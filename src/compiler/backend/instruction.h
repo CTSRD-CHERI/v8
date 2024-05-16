@@ -94,6 +94,9 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
   inline bool IsDoubleRegister() const;
   inline bool IsSimd128Register() const;
   inline bool IsSimd256Register() const;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline bool IsCapabilityRegister() const;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   inline bool IsAnyStackSlot() const;
   inline bool IsStackSlot() const;
   inline bool IsFPStackSlot() const;
@@ -101,6 +104,9 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
   inline bool IsDoubleStackSlot() const;
   inline bool IsSimd128StackSlot() const;
   inline bool IsSimd256StackSlot() const;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  inline bool IsCapabilityStackSlot() const;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
   template <typename SubKindOperand>
   static SubKindOperand* New(Zone* zone, const SubKindOperand& op) {
@@ -567,6 +573,12 @@ class LocationOperand : public InstructionOperand {
       case MachineRepresentation::kCompressedPointer:
       case MachineRepresentation::kCompressed:
       case MachineRepresentation::kSandboxedPointer:
+#if defined(__CHERI_PURE_CAPABILITY__)
+        [[fallthrough]];
+      case MachineRepresentation::kCapability32:
+        [[fallthrough]];
+      case MachineRepresentation::kCapability64:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
         return true;
       case MachineRepresentation::kBit:
       case MachineRepresentation::kWord8:
@@ -667,6 +679,12 @@ bool InstructionOperand::IsSimd256Register() const {
   return IsAnyRegister() && LocationOperand::cast(this)->representation() ==
                                 MachineRepresentation::kSimd256;
 }
+#if defined(__CHERI_PURE_CAPABILITY__)
+bool InstructionOperand::IsCapabilityRegister() const {
+  return IsAnyRegister() &&
+	 IsCapability(LocationOperand::cast(this)->representation());
+}
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 bool InstructionOperand::IsAnyStackSlot() const {
   return IsAnyLocationOperand() &&
@@ -709,12 +727,17 @@ bool InstructionOperand::IsSimd128StackSlot() const {
 }
 
 bool InstructionOperand::IsSimd256StackSlot() const {
-  return IsAnyLocationOperand() &&
-         LocationOperand::cast(this)->location_kind() ==
+  return LocationOperand::cast(this)->location_kind() ==
              LocationOperand::STACK_SLOT &&
          LocationOperand::cast(this)->representation() ==
              MachineRepresentation::kSimd256;
 }
+#if defined(__CHERI_PURE_CAPABILITY__)
+bool InstructionOperand::IsCapabilityStackSlot() const {
+  return IsAnyLocationOperand() &&
+	 IsCapability(LocationOperand::cast(this)->representation());
+}
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 uint64_t InstructionOperand::GetCanonicalizedValue() const {
   if (IsAnyLocationOperand()) {
@@ -1156,6 +1179,9 @@ class V8_EXPORT_PRIVATE Constant final {
   enum Type {
     kInt32,
     kInt64,
+#if defined(__CHERI_PURE_CAPABILITY__)
+    kIntPtr,
+#endif   // __CHERI_PURE_CAPABILITY__
     kFloat32,
     kFloat64,
     kExternalReference,
@@ -1166,6 +1192,9 @@ class V8_EXPORT_PRIVATE Constant final {
 
   explicit Constant(int32_t v);
   explicit Constant(int64_t v) : type_(kInt64), value_(v) {}
+#if defined(__CHERI_PURE_CAPABILITY__)
+  explicit Constant(intptr_t v) : type_(kIntPtr), value_(v) {}
+#endif   // __CHERI_PURE_CAPABILITY__
   explicit Constant(float v)
       : type_(kFloat32), value_(base::bit_cast<int32_t>(v)) {}
   explicit Constant(double v)
@@ -1186,8 +1215,14 @@ class V8_EXPORT_PRIVATE Constant final {
   bool FitsInInt32() const {
     if (type() == kInt32) return true;
     DCHECK(type() == kInt64);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    const int64_t value = static_cast<int64_t>(value_);
+    return value >= std::numeric_limits<int32_t>::min() &&
+           value <= std::numeric_limits<int32_t>::max();
+#else    // __CHERI_PURE_CAPABILITY__
     return value_ >= std::numeric_limits<int32_t>::min() &&
            value_ <= std::numeric_limits<int32_t>::max();
+#endif   // __CHERI_PURE_CAPABILITY__
   }
 
   int32_t ToInt32() const {
@@ -1200,8 +1235,19 @@ class V8_EXPORT_PRIVATE Constant final {
   int64_t ToInt64() const {
     if (type() == kInt32) return ToInt32();
     DCHECK_EQ(kInt64, type());
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return static_cast<uint64_t>(value_);
+#else    // __CHERI_PURE_CAPABILITY__
+    return value_;
+#endif   // __CHERI_PURE_CAPABILITY__
+  }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  int64_t ToIntPtr() const {
+    DCHECK_EQ(kIntPtr, type());
     return value_;
   }
+#endif   // __CHERI_PURE_CAPABILITY__
 
   float ToFloat32() const {
     // TODO(ahaas): We should remove this function. If value_ has the bit
@@ -1218,12 +1264,20 @@ class V8_EXPORT_PRIVATE Constant final {
 
   base::Double ToFloat64() const {
     DCHECK_EQ(kFloat64, type());
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return base::Double(static_cast<uint64_t>(value_));
+#else    // __CHERI_PURE_CAPABILITY__
     return base::Double(base::bit_cast<uint64_t>(value_));
+#endif   // __CHERI_PURE_CAPABILITY__
   }
 
   ExternalReference ToExternalReference() const {
     DCHECK_EQ(kExternalReference, type());
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return ExternalReference::FromRawAddress(base::bit_cast<Address>(value_));
+#else    // __CHERI_PURE_CAPABILITY__
     return ExternalReference::FromRawAddress(static_cast<Address>(value_));
+#endif   // __CHERI_PURE_CAPABILITY__
   }
 
   RpoNumber ToRpoNumber() const {
@@ -1237,7 +1291,11 @@ class V8_EXPORT_PRIVATE Constant final {
  private:
   Type type_;
   RelocInfo::Mode rmode_ = RelocInfo::NO_INFO;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  intptr_t value_;
+#else   // !__CHERI_PURE_CAPABILITY__
   int64_t value_;
+#endif  // !__CHERI_PURE_CAPABILITY__
 };
 
 std::ostream& operator<<(std::ostream&, const Constant&);
