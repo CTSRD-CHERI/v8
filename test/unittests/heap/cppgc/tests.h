@@ -28,7 +28,11 @@ class DelegatingTracingController : public TracingController {
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else   // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif  // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags) override {
     return tracing_controller_->AddTraceEvent(

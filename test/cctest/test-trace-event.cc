@@ -42,7 +42,11 @@ class MockTracingController : public v8::TracingController {
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else   // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif  // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags) override {
     return AddTraceEventWithTimestamp(
@@ -54,7 +58,11 @@ class MockTracingController : public v8::TracingController {
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      const uintptr_t* arg_values,
+#else   // !__CHERI_PURE_CAPABILITY__
       const uint64_t* arg_values,
+#endif  // !__CHERI_PURE_CAPABILITY__
       std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp) override {
     std::unique_ptr<MockTraceObject> to = std::make_unique<MockTraceObject>(
