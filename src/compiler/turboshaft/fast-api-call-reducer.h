@@ -292,7 +292,12 @@ class FastApiCallReducer : public Next {
 
               constexpr int kAlign = alignof(FastOneByteString);
               constexpr int kSize = sizeof(FastOneByteString);
+#if defined(__CHERI_PURE_CAPABILITY__)
+              static_assert(kSize == sizeof(uintptr_t) +
+                            RoundUp<kUIntptrSize>(sizeof(size_t)),
+#else   // !__CHERI_PURE_CAPABILITY_
               static_assert(kSize == sizeof(uintptr_t) + sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY_)
                             "The size of "
                             "FastOneByteString isn't equal to the sum of its "
                             "expected members.");
@@ -301,7 +306,11 @@ class FastApiCallReducer : public Next {
                               MemoryRepresentation::PointerSized());
               __ StoreOffHeap(stack_slot, length_in_bytes,
                               MemoryRepresentation::Uint32(), sizeof(size_t));
+#if defined(__CHERI_PURE_CAPABILITY__)
+              static_assert(sizeof(ptraddr_t) == sizeof(size_t),
+#else   // !__CHERI_PURE_CAPABILITY_
               static_assert(sizeof(uintptr_t) == sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY_)
                             "The string length can't "
                             "fit the PointerRepresentation used to store it.");
               return stack_slot;
@@ -467,7 +476,11 @@ class FastApiCallReducer : public Next {
                   "Size mismatch between different specializations of "
                   "FastApiTypedArray");
     static_assert(
+#if defined(__CHERI_PURE_CAPABILITY__)
+        kSize == sizeof(uintptr_t) + RoundUp<kUIntptrSize>(sizeof(size_t)),
+#else   // !__CHERI_PURE_CAPABILITY_
         kSize == sizeof(uintptr_t) + sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY_)
         "The size of "
         "FastApiTypedArray isn't equal to the sum of its expected members.");
     OpIndex stack_slot = __ StackSlot(kSize, kAlign);
@@ -475,7 +488,11 @@ class FastApiCallReducer : public Next {
                     MemoryRepresentation::PointerSized());
     __ StoreOffHeap(stack_slot, data_ptr, MemoryRepresentation::PointerSized(),
                     sizeof(size_t));
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(sizeof(ptraddr_t) == sizeof(size_t),
+#else   // !__CHERI_PURE_CAPABILITY_
     static_assert(sizeof(uintptr_t) == sizeof(size_t),
+#endif  // !__CHERI_PURE_CAPABILITY_)
                   "The buffer length can't "
                   "fit the PointerRepresentation used to store it.");
     return stack_slot;
