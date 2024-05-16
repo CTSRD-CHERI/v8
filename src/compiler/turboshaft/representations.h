@@ -22,6 +22,10 @@ class RegisterRepresentation {
   enum class Enum : uint8_t {
     kWord32,
     kWord64,
+#if defined(__CHERI_PURE_CAPABILITY__)
+    kCapability32,
+    kCapability64,
+#endif   // __CHERI_PURE_CAPABILITY__
     kFloat32,
     kFloat64,
     kTagged,
@@ -43,6 +47,14 @@ class RegisterRepresentation {
   static constexpr RegisterRepresentation Word64() {
     return RegisterRepresentation(Enum::kWord64);
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr RegisterRepresentation Capability32() {
+    return RegisterRepresentation(Enum::kCapability32);
+  }
+  static constexpr RegisterRepresentation Capability64() {
+    return RegisterRepresentation(Enum::kCapability64);
+  }
+#endif   // __CHERI_PURE_CAPABILITY__
   static constexpr RegisterRepresentation Float32() {
     return RegisterRepresentation(Enum::kFloat32);
   }
@@ -62,12 +74,22 @@ class RegisterRepresentation {
   // The equivalent of intptr_t/uintptr_t: An integral type with the same size
   // as machine pointers.
   static constexpr RegisterRepresentation PointerSized() {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(kSystemPointerSize == 2 * kSystemPointerAddrSize);
+    if constexpr (kSystemPointerAddrSize == 4) {
+      return Capability32();
+    } else {
+      DCHECK_EQ(kSystemPointerAddrSize, 8);
+      return Capability64();
+    }
+#else   // !__CHERI_PURE_CAPABILITY__
     if constexpr (kSystemPointerSize == 4) {
       return Word32();
     } else {
       DCHECK_EQ(kSystemPointerSize, 8);
       return Word64();
     }
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
 
   constexpr bool IsWord() {
@@ -75,6 +97,15 @@ class RegisterRepresentation {
       case Enum::kWord32:
       case Enum::kWord64:
         return true;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      // TODO(gcjenkinson): The capability representations aren't word size
+      // for the architecture, its less clear whether the meaning here is
+      // aligned with that perspective.
+      case Enum::kCapability32:
+	[[fallthrough]];
+      case Enum::kCapability64:
+	[[fallthrough]];
+#endif  // !__CHERI_PURE_CAPABILITY__
       case Enum::kFloat32:
       case Enum::kFloat64:
       case Enum::kTagged:
@@ -88,6 +119,12 @@ class RegisterRepresentation {
       case Enum::kFloat32:
       case Enum::kFloat64:
         return true;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Enum::kCapability32:
+	[[fallthrough]];
+      case Enum::kCapability64:
+	[[fallthrough]];
+#endif   // __CHERI_PURE_CAPABILITY__
       case Enum::kWord32:
       case Enum::kWord64:
       case Enum::kTagged:
@@ -102,6 +139,11 @@ class RegisterRepresentation {
         return std::numeric_limits<uint32_t>::max();
       case Word64():
         return std::numeric_limits<uint64_t>::max();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Enum::kCapability32:
+	[[fallthrough]];
+      case Enum::kCapability64:
+#endif  // !__CHERI_PURE_CAPABILITY__
       case Enum::kFloat32:
       case Enum::kFloat64:
       case Enum::kTagged:
@@ -124,6 +166,12 @@ class RegisterRepresentation {
         return MachineRepresentation::kTagged;
       case Compressed():
         return MachineRepresentation::kCompressed;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Enum::kCapability32:
+        return MachineRepresentation::kCapability32;
+      case Enum::kCapability64:
+        return MachineRepresentation::kCapability64;
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
   }
 
@@ -141,6 +189,12 @@ class RegisterRepresentation {
         return kSystemPointerSize;
       case Compressed():
         return kSystemPointerSize;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Enum::kCapability32:
+	[[fallthrough]];
+      case Enum::kCapability64:
+        return kSystemPointerSize;
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
   }
 
@@ -154,6 +208,12 @@ class RegisterRepresentation {
         return Word32();
       case MachineRepresentation::kWord64:
         return Word64();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability32:
+        return Capability32();
+      case MachineRepresentation::kCapability64:
+        return Capability64();
+#endif  // !__CHERI_PURE_CAPABILITY__
       case MachineRepresentation::kTaggedSigned:
       case MachineRepresentation::kTaggedPointer:
       case MachineRepresentation::kTagged:
@@ -288,6 +348,10 @@ class MemoryRepresentation {
     kUint32,
     kInt64,
     kUint64,
+#if defined(__CHERI_PURE_CAPABILITY__)
+    kCapability32,
+    kCapability64,
+#endif   // __CHERI_PURE_CAPABILITY__
     kFloat32,
     kFloat64,
     kAnyTagged,
@@ -328,6 +392,14 @@ class MemoryRepresentation {
   static constexpr MemoryRepresentation Uint64() {
     return MemoryRepresentation(Enum::kUint64);
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr MemoryRepresentation Capability32() {
+    return MemoryRepresentation(Enum::kCapability32);
+  }
+  static constexpr MemoryRepresentation Capability64() {
+    return MemoryRepresentation(Enum::kCapability64);
+  }
+#endif   // __CHERI_PURE_CAPABILITY__
   static constexpr MemoryRepresentation Float32() {
     return MemoryRepresentation(Enum::kFloat32);
   }
@@ -347,12 +419,22 @@ class MemoryRepresentation {
     return MemoryRepresentation(Enum::kSandboxedPointer);
   }
   static constexpr MemoryRepresentation PointerSized() {
-    if constexpr (kSystemPointerSize == 4) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(kSystemPointerSize == 2 * kSystemPointerAddrSize);
+    if constexpr (kSystemPointerAddrSize == 4) {
+      return Capability32();
+    } else {
+      DCHECK_EQ(kSystemPointerAddrSize, 8);
+      return Capability64();
+    }
+#else   // !__CHERI_PURE_CAPABILITY__
+  if constexpr (kSystemPointerSize == 4) {
       return Uint32();
     } else {
       DCHECK_EQ(kSystemPointerSize, 8);
       return Uint64();
     }
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
 
   bool IsWord() const {
@@ -366,6 +448,15 @@ class MemoryRepresentation {
       case Int64():
       case Uint64():
         return true;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      // TODO(gcjenkinson): The capability representations aren't word size
+      // for the architecture, its less clear whether the meaning here is
+      // aligned with that perspective.
+      case Capability32():
+	[[fallthrough]];
+      case Capability64():
+	[[fallthrough]];
+#endif  // !__CHERI_PURE_CAPABILITY__
       case Float32():
       case Float64():
       case AnyTagged():
@@ -388,6 +479,12 @@ class MemoryRepresentation {
       case Uint32():
       case Uint64():
         return false;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+	[[fallthrough]];
+      case Capability64():
+	[[fallthrough]];
+#endif   // __CHERI_PURE_CAPABILITY__
       case Float32():
       case Float64():
       case AnyTagged():
@@ -413,6 +510,12 @@ class MemoryRepresentation {
       case Uint16():
       case Uint32():
       case Uint64():
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+	[[fallthrough]];
+      case Capability64():
+	[[fallthrough]];
+#endif   // __CHERI_PURE_CAPABILITY__
       case Float32():
       case Float64():
       case SandboxedPointer():
@@ -434,6 +537,12 @@ class MemoryRepresentation {
       case Uint16():
       case Uint32():
       case Uint64():
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+	[[fallthrough]];
+      case Capability64():
+	[[fallthrough]];
+#endif   // __CHERI_PURE_CAPABILITY__
       case Float32():
       case Float64():
       case SandboxedPointer():
@@ -453,6 +562,12 @@ class MemoryRepresentation {
       case Int64():
       case Uint64():
         return RegisterRepresentation::Word64();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+        return RegisterRepresentation::Capability64();
+      case Capability64():
+        return RegisterRepresentation::Capability64();
+#endif   // __CHERI_PURE_CAPABILITY__
       case Float32():
         return RegisterRepresentation::Float32();
       case Float64():
@@ -497,6 +612,12 @@ class MemoryRepresentation {
         return MachineType::Int64();
       case Uint64():
         return MachineType::Uint64();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+        return MachineType::Pointer();
+      case Capability64():
+        return MachineType::Pointer();
+#endif   // __CHERI_PURE_CAPABILITY__
       case Float32():
         return MachineType::Float32();
       case Float64():
@@ -522,6 +643,12 @@ class MemoryRepresentation {
         return type.IsSigned() ? Int32() : Uint32();
       case MachineRepresentation::kWord64:
         return type.IsSigned() ? Int64() : Uint64();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability32:
+        return Capability32();
+      case MachineRepresentation::kCapability64:
+        return Capability64();
+#endif  // !__CHERI_PURE_CAPABILITY__
       case MachineRepresentation::kTaggedSigned:
         return TaggedSigned();
       case MachineRepresentation::kTaggedPointer:
@@ -559,6 +686,12 @@ class MemoryRepresentation {
         return Uint32();
       case MachineRepresentation::kWord64:
         return Uint64();
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability32:
+        return Capability64();
+      case MachineRepresentation::kCapability64:
+        return Capability64();
+#endif  // !__CHERI_PURE_CAPABILITY__
       case MachineRepresentation::kTaggedSigned:
         return TaggedSigned();
       case MachineRepresentation::kTaggedPointer:
@@ -603,6 +736,12 @@ class MemoryRepresentation {
       case Float64():
       case SandboxedPointer():
         return 3;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Capability32():
+	[[fallthrough]];
+      case Capability64():
+	[[fallthrough]];
+#endif   // __CHERI_PURE_CAPABILITY__
       case AnyTagged():
       case TaggedPointer():
       case TaggedSigned():
