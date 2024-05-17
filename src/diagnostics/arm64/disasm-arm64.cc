@@ -553,7 +553,11 @@ void DisassemblingDecoder::VisitExtract(Instruction* instr) {
 void DisassemblingDecoder::VisitPCRelAddressing(Instruction* instr) {
   switch (instr->Mask(PCRelAddressingMask)) {
     case ADR:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      Format(instr, "adr", "'Yd, 'AddrPCRelByte");
+#else
       Format(instr, "adr", "'Xd, 'AddrPCRelByte");
+#endif // __CHERI_PURE_CAPABILITY__
       break;
     // ADRP is not implemented.
     default:
@@ -836,11 +840,19 @@ void DisassemblingDecoder::VisitLoadStorePreIndex(Instruction* instr) {
   const char* form = "(LoadStorePreIndex)";
 
   switch (instr->Mask(LoadStorePreIndexMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LS_PREINDEX(A, B, C)  \
+  case A##_pre:               \
+    mnemonic = B;             \
+    form = C ", ['Yns'ILS]!"; \
+    break;
+#else
 #define LS_PREINDEX(A, B, C)  \
   case A##_pre:               \
     mnemonic = B;             \
     form = C ", ['Xns'ILS]!"; \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_LIST(LS_PREINDEX)
 #undef LS_PREINDEX
   }
@@ -852,11 +864,19 @@ void DisassemblingDecoder::VisitLoadStorePostIndex(Instruction* instr) {
   const char* form = "(LoadStorePostIndex)";
 
   switch (instr->Mask(LoadStorePostIndexMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LS_POSTINDEX(A, B, C) \
+  case A##_post:              \
+    mnemonic = B;             \
+    form = C ", ['Yns]'ILS";  \
+    break;
+#else
 #define LS_POSTINDEX(A, B, C) \
   case A##_post:              \
     mnemonic = B;             \
     form = C ", ['Xns]'ILS";  \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_LIST(LS_POSTINDEX)
 #undef LS_POSTINDEX
   }
@@ -868,11 +888,19 @@ void DisassemblingDecoder::VisitLoadStoreUnsignedOffset(Instruction* instr) {
   const char* form = "(LoadStoreUnsignedOffset)";
 
   switch (instr->Mask(LoadStoreUnsignedOffsetMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LS_UNSIGNEDOFFSET(A, B, C) \
+  case A##_unsigned:               \
+    mnemonic = B;                  \
+    form = C ", ['Yns'ILU]";       \
+    break;
+#else
 #define LS_UNSIGNEDOFFSET(A, B, C) \
   case A##_unsigned:               \
     mnemonic = B;                  \
     form = C ", ['Xns'ILU]";       \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_LIST(LS_UNSIGNEDOFFSET)
 #undef LS_UNSIGNEDOFFSET
     case PRFM_unsigned:
@@ -987,11 +1015,19 @@ void DisassemblingDecoder::VisitLoadStorePairPostIndex(Instruction* instr) {
   const char* form = "(LoadStorePairPostIndex)";
 
   switch (instr->Mask(LoadStorePairPostIndexMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LSP_POSTINDEX(A, B, C, D) \
+  case A##_post:                  \
+    mnemonic = B;                 \
+    form = C ", ['Yns]'ILP4";    \
+    break;
+#else
 #define LSP_POSTINDEX(A, B, C, D) \
   case A##_post:                  \
     mnemonic = B;                 \
     form = C ", ['Xns]'ILP" D;    \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_PAIR_LIST(LSP_POSTINDEX)
 #undef LSP_POSTINDEX
   }
@@ -1003,11 +1039,19 @@ void DisassemblingDecoder::VisitLoadStorePairPreIndex(Instruction* instr) {
   const char* form = "(LoadStorePairPreIndex)";
 
   switch (instr->Mask(LoadStorePairPreIndexMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LSP_PREINDEX(A, B, C, D)   \
+  case A##_pre:                    \
+    mnemonic = B;                  \
+    form = C ", ['Yns'ILP4]!";     \
+    break;
+#else
 #define LSP_PREINDEX(A, B, C, D)   \
   case A##_pre:                    \
     mnemonic = B;                  \
     form = C ", ['Xns'ILP" D "]!"; \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_PAIR_LIST(LSP_PREINDEX)
 #undef LSP_PREINDEX
   }
@@ -1019,11 +1063,19 @@ void DisassemblingDecoder::VisitLoadStorePairOffset(Instruction* instr) {
   const char* form = "(LoadStorePairOffset)";
 
   switch (instr->Mask(LoadStorePairOffsetMask)) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LSP_OFFSET(A, B, C, D)    \
+  case A##_off:                   \
+    mnemonic = B;                 \
+    form = C ", ['Yns'ILP4]";     \
+    break;
+#else
 #define LSP_OFFSET(A, B, C, D)    \
   case A##_off:                   \
     mnemonic = B;                 \
     form = C ", ['Xns'ILP" D "]"; \
     break;
+#endif // __CHERI_PURE_CAPABILITY__
     LOAD_STORE_PAIR_LIST(LSP_OFFSET)
 #undef LSP_OFFSET
   }
@@ -1031,6 +1083,62 @@ void DisassemblingDecoder::VisitLoadStorePairOffset(Instruction* instr) {
 }
 
 #undef LOAD_STORE_PAIR_LIST
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define LOAD_STORE_PAIR_CAP_LIST(V)     \
+  V(STP_c, "stp", "'Yt, 'Yt2", "4")     \
+  V(LDP_c, "ldp", "'Yt, 'Yt2", "4")
+
+void DisassemblingDecoder::VisitLoadStorePairCapPostIndex(Instruction* instr) {
+  const char* mnemonic = "unimplemented";
+  const char* form = "(LoadStorePairCapPostIndex)";
+
+  switch (instr->Mask(LoadStorePairPostIndexMask)) {
+#define LSP_POSTINDEX(A, B, C, D) \
+  case A##_post:                  \
+    mnemonic = B;                 \
+    form = C ", ['Yns]'ILP4";    \
+    break;
+    LOAD_STORE_PAIR_CAP_LIST(LSP_POSTINDEX)
+#undef LSP_POSTINDEX
+  }
+  Format(instr, mnemonic, form);
+}
+
+void DisassemblingDecoder::VisitLoadStorePairCapPreIndex(Instruction* instr) {
+  const char* mnemonic = "unimplemented";
+  const char* form = "(LoadStorePairCapPreIndex)";
+
+  switch (instr->Mask(LoadStorePairPreIndexMask)) {
+#define LSP_PREINDEX(A, B, C, D)   \
+  case A##_pre:                    \
+    mnemonic = B;                  \
+    form = C ", ['Yns'ILP4 ]!";   \
+    break;
+    LOAD_STORE_PAIR_CAP_LIST(LSP_PREINDEX)
+#undef LSP_PREINDEX
+  }
+  Format(instr, mnemonic, form);
+}
+
+void DisassemblingDecoder::VisitLoadStorePairCapOffset(Instruction* instr) {
+  const char* mnemonic = "unimplemented";
+  const char* form = "(LoadStorePairCapOffset)";
+
+  switch (instr->Mask(LoadStorePairCapOffsetMask)) {
+#define LSP_OFFSET(A, B, C, D)    \
+  case A##_off:                   \
+    mnemonic = B;                 \
+    form = C ", ['Yns'ILP4 ]";   \
+    break;
+LOAD_STORE_PAIR_CAP_LIST(LSP_OFFSET)
+#undef LSP_OFFSET
+  }
+  Format(instr, mnemonic, form);
+}
+
+#undef LOAD_STORE_PAIR_CAP_LIST
+#endif // __CHERI_PURE_CAPABILITY__
 
 #define LOAD_STORE_ACQUIRE_RELEASE_LIST(V)      \
   V(STLXR_b, "stlxrb", "'Ws, 'Wt")              \
@@ -3719,6 +3827,168 @@ void DisassemblingDecoder::VisitUnallocated(Instruction* instr) {
   Format(instr, "unallocated", "(Unallocated)");
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+void DisassemblingDecoder::VisitAddSubCapExtended(Instruction* instr) {
+  const char* form = "'Yds, 'Yns, 'Xm'Ext";
+  switch(instr->Mask(AddSubCapExtendedMask)) {
+  case ADD_c_ext:
+    Format(instr, "add", form);
+    break;
+  default:
+    UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitAddSubCapImmediate(Instruction* instr) {
+  const char* form = "'Yds, 'Yns, 'IAddSubC";
+  switch(instr->Mask(AddSubCapImmediateMask)) {
+  case ADD_c_imm:
+    Format(instr, "add", form);
+    break;
+  case SUB_c_imm:
+    Format(instr, "sub", form);
+    break;
+  default:
+    UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitCopyCapability(Instruction* instr) {
+  const char* form = "'Yds, 'Yns";
+  const char *mnemonic = "mov";
+  // MOV <Cd|CSP>, <Cn|CSP> is equivalent to CPY <Cd|CSP>, <Cn|CSP>
+  // and is always preferred disassembly.
+  switch(instr->Mask(CopyCapabilityMask)) {
+    case CPY:
+      Format(instr, mnemonic, form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitConditionalSelectCap(Instruction* instr) {
+  const char *mnemonic = "csel";
+  const char* form = "'Yd, 'Yn, 'Ym, 'Cond";
+  switch (instr->Mask(ConditionalSelectCapMask)) {
+    case CSEL_c:
+      Format(instr, mnemonic, form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitGetField1(Instruction* instr) {
+  const char* form = "'Xd, 'Yns";
+  const char *mnemonic = "gcvalue";
+  switch(instr->Mask(GetField1Mask)) {
+    case GCVALUE:
+      Format(instr, mnemonic, form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapUnscaledOffsetNormal(
+    Instruction* instr) {
+  const char* form = "'Yt, ['Yns'ILUC]";
+  switch(instr->Mask(LoadStoreCapUnscaledOffsetNormalMask)) {
+    case LDRU_c_normal:
+      Format(instr, "ldur", form);
+      break;
+    case STRU_c_normal:
+      Format(instr, "stur", form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapUnsignedOffsetCapNormal(
+    Instruction* instr) {
+  const char* form = "'Yt, ['Yns'ILUC]";
+  switch(instr->Mask(LoadStoreCapUnsignedOffsetCapNormalMask)) {
+    case LDR_c_unsigned_cap_normal:
+      Format(instr, "ldr", form);
+      break;
+    case STR_c_unsigned_cap_normal:
+      Format(instr, "str", form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapRegisterOffsetNormal(
+    Instruction* instr) {
+  const char* form = "'Yt, ['Yns 'Xm'Ext]";
+  switch(instr->Mask(LoadStoreCapRegisterOffsetNormalMask)) {
+    case LDR_c_reg_normal:
+      Format(instr, "ldr", form);
+      break;
+    case STR_c_reg_normal:
+      Format(instr, "str", form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitLoadStorePostCapIndex(Instruction* instr) {
+  const char* form = "'Yt, ['Yns] 'ILUC]!";
+  switch(instr->Mask(LoadStorePostCapIndexMask)) {
+    case LDR_c_post:
+      Format(instr, "ldr", form);
+      break;
+    case STR_c_post:
+      Format(instr, "str", form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitLoadStorePreCapIndex(Instruction* instr) {
+  const char* form = "'Yt, ['Yns 'ILUC]!";
+  switch(instr->Mask(LoadStorePreCapIndexMask)) {
+    case LDR_c_pre:
+      Format(instr, "ldr", form);
+      break;
+    case STR_c_pre:
+      Format(instr, "str", form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitSetField1(Instruction* instr) {
+  const char* form = "'Yds, 'Yns, 'Xm";
+  const char *mnemonic = "scvalue";
+  switch(instr->Mask(SetField1Mask)) {
+    case SCVALUE:
+      Format(instr, mnemonic, form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DisassemblingDecoder::VisitCompareCapabilities(Instruction* instr) {
+  const char* form = "'Yn, 'Ym";
+  const char *mnemonic = "cmp";
+  switch(instr->Mask(CompareCapabilitiesMask)) {
+    case SUBS_c:
+      Format(instr, mnemonic, form);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 void DisassemblingDecoder::ProcessOutput(Instruction* /*instr*/) {
   // The base disasm does nothing more than disassembling into a buffer.
 }
@@ -3728,7 +3998,11 @@ void DisassemblingDecoder::AppendRegisterNameToOutput(const CPURegister& reg) {
   char reg_char;
 
   if (reg.IsRegister()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    reg_char = reg.Is128Bits() ? 'c' : reg.Is64Bits() ? 'x' : 'w';
+#else
     reg_char = reg.Is64Bits() ? 'x' : 'w';
+#endif // __CHERI_PURE_CAPABILITY
   } else {
     DCHECK(reg.IsVRegister());
     switch (reg.SizeInBits()) {
@@ -3750,13 +4024,30 @@ void DisassemblingDecoder::AppendRegisterNameToOutput(const CPURegister& reg) {
     }
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (reg.IsVRegister() || !(reg.Aliases(sp) || reg.Aliases(csp)) ||
+      reg.Aliases(xzr) || reg.Aliases(czr)) {
+#else
   if (reg.IsVRegister() || !(reg.Aliases(sp) || reg.Aliases(xzr))) {
+#endif // _CHERI_PRE_CAPABILITY__
     // Filter special registers
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (reg.IsC() && (reg.code() == 27)) {
+#else
     if (reg.IsX() && (reg.code() == 27)) {
+#endif // _CHERI_PRE_CAPABILITY__
       AppendToOutput("cp");
+#if defined(__CHERI_PURE_CAPABILITY__)
+    } else if (reg.IsC() && (reg.code() == 29)) {
+#else
     } else if (reg.IsX() && (reg.code() == 29)) {
+#endif // _CHERI_PRE_CAPABILITY__
       AppendToOutput("fp");
+#if defined(__CHERI_PURE_CAPABILITY__)
+    } else if (reg.IsC() && (reg.code() == 30)) {
+#else
     } else if (reg.IsX() && (reg.code() == 30)) {
+#endif // _CHERI_PRE_CAPABILITY__
       AppendToOutput("lr");
     } else {
       // A core or scalar/vector register: [wx]0 - 30, [bhsdq]0 - 31.
@@ -3764,7 +4055,11 @@ void DisassemblingDecoder::AppendRegisterNameToOutput(const CPURegister& reg) {
     }
   } else if (reg.Aliases(sp)) {
     // Disassemble w31/x31 as stack pointer wsp/sp.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    AppendToOutput("%s", reg.Is128Bits() ? "csp" : reg.Is64Bits() ? "sp" : "wsp");
+#else
     AppendToOutput("%s", reg.Is64Bits() ? "sp" : "wsp");
+#endif // _CHERI_PRE_CAPABILITY__
   } else {
     // Disassemble w31/x31 as zero register wzr/xzr.
     AppendToOutput("%czr", reg_char);
@@ -3812,6 +4107,12 @@ int DisassemblingDecoder::SubstituteField(Instruction* instr,
     case 'S':
     case 'D':
     case 'Q':
+#if defined(__CHERI_PURE_CAPABILITY__)
+    // Note: The 'C prefix is already used for conditions, use of
+    // 'Y (cababilitY) doesn't clash with any of the existing format codes,
+    // (note C already used for Cond)
+    case 'Y':
+#endif // __CHERI_PURE_CAPABILITY__
       return SubstituteRegisterField(instr, format);
     case 'I':
       return SubstituteImmediateField(instr, format);
@@ -3971,6 +4272,12 @@ int DisassemblingDecoder::SubstituteRegisterField(Instruction* instr,
     case 'V':
       AppendToOutput("v%d", reg_num);
       return field_len;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case 'Y':
+      reg_type = CPURegister::kRegister;
+      reg_size = kCRegSizeInBits;
+      break;
+#endif // __CHERI_PURE_CAPABILITY__
     default:
       UNREACHABLE();
   }
@@ -4028,6 +4335,15 @@ int DisassemblingDecoder::SubstituteImmediateField(Instruction* instr,
           return 4;
         }
         case 'U': {  // ILU - Immediate Load/Store Unsigned.
+#if defined(__CHERI_PURE_CAPABILITY__)
+	  if (format[3] == 'C') { // ILUC - Immediate Load/Store Unsigned.
+            if (instr->ImmLSUnsigned() != 0) {
+              int shift = instr->SizeLS();
+              AppendToOutput(", #%" PRId32, instr->ImmLSUnsigned() << shift);
+	    }
+            return 4;
+	  }
+#endif // __CHERI_PURE_CAPABILITY
           if (instr->ImmLSUnsigned() != 0) {
             int shift = instr->SizeLS();
             AppendToOutput(", #%" PRId32, instr->ImmLSUnsigned() << shift);
@@ -4043,6 +4359,18 @@ int DisassemblingDecoder::SubstituteImmediateField(Instruction* instr,
       return 6;
     }
     case 'A': {  // IAddSub.
+#if defined(__CHERI_PURE_CAPABILITY__)
+      if (format[7] == 'C') { // IAddSubC
+	// Note: In the Morello capabiltiy add immediate instruction bit 23 is
+	// used to differentiate the addition and subtraction. Using the
+	// ShiftAddSub getter erronously accessess both bits 22 and 23
+	// causing the immediate value to be incorrectly calculated.
+        int64_t imm = instr->ImmAddSubCapability() <<
+            (12 * instr->Bit(ShiftAddSubCapability_offset));
+        AppendToOutput("#0x%" PRIx64 " (%" PRId64 ")", imm, imm);
+        return 8;
+      }
+#endif // __CHERI_PURE_CAPABILITY
       DCHECK_LE(instr->ShiftAddSub(), 1);
       int64_t imm = instr->ImmAddSub() << (12 * instr->ShiftAddSub());
       AppendToOutput("#0x%" PRIx64 " (%" PRId64 ")", imm, imm);
