@@ -551,7 +551,11 @@ class Internals {
 
   // ExternalPointerTable layout guarantees.
   static const int kExternalPointerTableBufferOffset = 0;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kExternalPointerTableSize = 3 * kApiSystemPointerSize;
+#else   // !__CHERI_PURE_CAPABILITY__
   static const int kExternalPointerTableSize = 4 * kApiSystemPointerSize;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // IsolateData layout guarantees.
   static const int kIsolateCageBaseOffset = 0;
