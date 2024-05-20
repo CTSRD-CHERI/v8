@@ -58,7 +58,7 @@ class PointerWithPayload {
   }
 
   V8_INLINE PointerType* GetPointer() const {
-    return reinterpret_cast<PointerType*>(pointer_with_payload_ & kPointerMask);
+    return reinterpret_cast<PointerType*>(pointer_with_payload_ & (size_t) kPointerMask);
   }
 
   // An optimized version of GetPointer for when we know the payload value.

@@ -88,7 +88,12 @@ Segment* AccountingAllocator::AllocateSegment(size_t bytes,
   if (COMPRESS_ZONES_BOOL && supports_compression) {
     bytes = RoundUp(bytes, kZonePageSize);
     memory = AllocatePages(bounded_page_allocator_.get(), nullptr, bytes,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                           kZonePageSize, PageAllocator::kReadWrite,
+			   PageAllocator::kReadWrite);
+#else
                            kZonePageSize, PageAllocator::kReadWrite);
+#endif // __CHERI_+PURE_CAPABILITY__
 
   } else {
     auto result = AllocAtLeastWithRetry(bytes);

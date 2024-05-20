@@ -56,7 +56,12 @@ MemoryRegion ReserveMemoryRegion(PageAllocator& allocator,
                                  size_t allocation_size) {
   void* region_memory =
       allocator.AllocatePages(nullptr, allocation_size, kPageSize,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                              PageAllocator::Permission::kNoAccess,
+                              PageAllocator::Permission::kReadWrite);
+#else
                               PageAllocator::Permission::kNoAccess);
+#endif // __CHERI_PURE_CAPABILITY__
   if (!region_memory) {
     oom_handler("Oilpan: Reserving memory.");
   }

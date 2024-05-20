@@ -23,8 +23,15 @@ LsanPageAllocator::LsanPageAllocator(v8::PageAllocator* page_allocator)
 
 void* LsanPageAllocator::AllocatePages(void* hint, size_t size,
                                        size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                       PageAllocator::Permission access,
+                                       PageAllocator::Permission max_access) {
+  void* result = page_allocator_->AllocatePages(hint, size, alignment, access,
+		                                max_access);
+#else
                                        PageAllocator::Permission access) {
   void* result = page_allocator_->AllocatePages(hint, size, alignment, access);
+#endif // __CHERI_PURE_CAPABILITY__
 #if defined(LEAK_SANITIZER)
   if (result != nullptr) {
     __lsan_register_root_region(result, size);

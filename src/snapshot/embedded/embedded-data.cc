@@ -119,7 +119,11 @@ void OffHeapInstructionStream::CreateOffHeapOffHeapInstructionStream(
   const uint32_t allocation_code_size = RoundUp(d.code_size(), alignment);
   uint8_t* allocated_code_bytes = static_cast<uint8_t*>(AllocatePages(
       page_allocator, requested_allocation_code_address, allocation_code_size,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      alignment, PageAllocator::kReadWrite, PageAllocator::kReadWriteExecute));
+#else
       alignment, PageAllocator::kReadWrite));
+#endif // __CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(allocated_code_bytes);
 
   void* const requested_allocation_data_address =
@@ -127,7 +131,11 @@ void OffHeapInstructionStream::CreateOffHeapOffHeapInstructionStream(
   const uint32_t allocation_data_size = RoundUp(d.data_size(), alignment);
   uint8_t* allocated_data_bytes = static_cast<uint8_t*>(AllocatePages(
       page_allocator, requested_allocation_data_address, allocation_data_size,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      alignment, PageAllocator::kReadWrite, PageAllocator::kReadWriteExecute));
+#else
       alignment, PageAllocator::kReadWrite));
+#endif // __CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(allocated_data_bytes);
 
   // Copy the embedded blob into the newly allocated backing store. Switch

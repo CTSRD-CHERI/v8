@@ -81,7 +81,12 @@ Address VirtualAddressSpace::AllocatePages(Address hint, size_t size,
 
   return reinterpret_cast<Address>(
       OS::Allocate(reinterpret_cast<void*>(hint), size, alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                   static_cast<OS::MemoryPermission>(permissions),
+                   static_cast<OS::MemoryPermission>(max_page_permissions())));
+#else
                    static_cast<OS::MemoryPermission>(permissions)));
+#endif // __CHERI_PURE_CAPABILITY__
 }
 
 void VirtualAddressSpace::FreePages(Address address, size_t size) {
@@ -106,7 +111,12 @@ bool VirtualAddressSpace::AllocateGuardRegion(Address address, size_t size) {
 
   void* hint = reinterpret_cast<void*>(address);
   void* result = OS::Allocate(hint, size, allocation_granularity(),
+#if defined(__CHERI_PURE_CAPABILITY__)
+                              OS::MemoryPermission::kNoAccess,
                               OS::MemoryPermission::kNoAccess);
+#else
+                              OS::MemoryPermission::kNoAccess);
+#endif // __CHERI_PURE_CAPABILITY__
   if (result && result != hint) {
     OS::Free(result, size);
   }
@@ -244,7 +254,12 @@ Address VirtualAddressSubspace::AllocatePages(Address hint, size_t size,
   if (address == RegionAllocator::kAllocationFailure) return kNullAddress;
 
   if (!reservation_.Allocate(reinterpret_cast<void*>(address), size,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                             static_cast<OS::MemoryPermission>(permissions),
+                             static_cast<OS::MemoryPermission>(max_page_permissions()))) {
+#else
                              static_cast<OS::MemoryPermission>(permissions))) {
+#endif // __CHERI_PURE_CAPABILITY__
     // This most likely means that we ran out of memory.
     CHECK_EQ(size, region_allocator_.FreeRegion(address));
     return kNullAddress;

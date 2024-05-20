@@ -33,7 +33,12 @@ class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
   }
 
   void* AllocatePages(void* address, size_t size, size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                      PageAllocator::Permission access,
+                      PageAllocator::Permission max_access) override;
+#else
                       PageAllocator::Permission access) override;
+#endif // __CHERI_PURE_CAPABILITY__
 
   std::unique_ptr<SharedMemory> AllocateSharedPages(
       size_t size, const void* original_address) override;

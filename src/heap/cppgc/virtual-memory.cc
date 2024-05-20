@@ -19,7 +19,12 @@ VirtualMemory::VirtualMemory(PageAllocator* page_allocator, size_t size,
   const size_t page_size = page_allocator_->AllocatePageSize();
   start_ = page_allocator->AllocatePages(hint, RoundUp(size, page_size),
                                          RoundUp(alignment, page_size),
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                         PageAllocator::kNoAccess,
+                                         PageAllocator::kReadWrite);
+#else
                                          PageAllocator::kNoAccess);
+#endif // __CHERI_PURE_CAPABILITY__
   if (start_) {
     size_ = RoundUp(size, page_size);
   }

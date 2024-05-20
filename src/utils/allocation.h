@@ -151,7 +151,12 @@ V8_EXPORT_PRIVATE
 V8_WARN_UNUSED_RESULT void* AllocatePages(v8::PageAllocator* page_allocator,
                                           void* address, size_t size,
                                           size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                          PageAllocator::Permission access,
+                                          PageAllocator::Permission max_access);
+#else
                                           PageAllocator::Permission access);
+#endif // !__CHERI_PURE_CAPABILITY
 
 // Frees memory allocated by a call to AllocatePages. |address| and |size| must
 // be multiples of AllocatePageSize().

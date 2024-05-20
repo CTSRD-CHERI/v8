@@ -55,7 +55,12 @@ GCInfoTable::GCInfoTable(PageAllocator& page_allocator,
       oom_handler_(oom_handler),
       table_(static_cast<decltype(table_)>(page_allocator_.AllocatePages(
           nullptr, MaxTableSize(), page_allocator_.AllocatePageSize(),
+#if defined(__CHERI_PURE_CAPABILITY__)
+          PageAllocator::kNoAccess,
+          PageAllocator::kReadWrite))),
+#else
           PageAllocator::kNoAccess))),
+#endif // __CHERI_PURE_CAPABILITY__
       read_only_table_end_(reinterpret_cast<uint8_t*>(table_)) {
   if (!table_) {
     oom_handler_("Oilpan: GCInfoTable initial reservation.");
