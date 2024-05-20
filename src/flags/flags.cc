@@ -821,7 +821,14 @@ void FlagList::FreezeFlags() {
   // first unprotect the memory again.
   // Note that for string flags we only protect the pointer itself, but not the
   // string storage. TODO(12887): Fix this.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // TODO(gcjenkinson): SetDataReadOnly gives a protection fault on CheriBSD.
+  // On CHERI it is possible to decrease the rihgts of the capability to
+  // read-only giving a stronger protection but this is somewhat disruptive 
+  // to the current designi where v8_flags is a global variable.
+#else   // !__CHERI_PURE_CAPABILITY__
   base::OS::SetDataReadOnly(&v8_flags, sizeof(v8_flags));
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 // static
