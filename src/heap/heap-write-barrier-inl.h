@@ -95,7 +95,11 @@ struct MemoryChunk {
   }
 
   V8_INLINE uintptr_t GetFlags() const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return *reinterpret_cast<const size_t*>(reinterpret_cast<Address>(this) +
+#else    // !__CHERI_PURE_CAPABILITY__
     return *reinterpret_cast<const uintptr_t*>(reinterpret_cast<Address>(this) +
+#endif   // !__CHERI_PURE_CAPABILITY__
                                                kFlagsOffset);
   }
 
