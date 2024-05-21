@@ -12,6 +12,9 @@
 #include <atomic>
 #include <type_traits>
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#include "src/base/macros.h"
+#endif  // !__CHERI_PURE_CAPABILITY__
 #include "v8-version.h"  // NOLINT(build/include_directory)
 #include "v8config.h"    // NOLINT(build/include_directory)
 
@@ -546,8 +549,14 @@ class Internals {
   static const int kBuiltinTier0TableSize = 7 * kApiSystemPointerSize;
   static const int kLinearAllocationAreaSize = 3 * kApiSystemPointerSize;
   static const int kThreadLocalTopSize = 25 * kApiSystemPointerSize;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kHandleScopeDataSize =
+      2 * kApiSystemPointerSize +
+      RoundUp<kApiSystemPointerSize>(2 * kApiInt32Size);
+#else   // !__CHERI_PURE_CAPABILITY__
   static const int kHandleScopeDataSize =
       2 * kApiSystemPointerSize + 2 * kApiInt32Size;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // ExternalPointerTable layout guarantees.
   static const int kExternalPointerTableBufferOffset = 0;
@@ -563,8 +572,13 @@ class Internals {
       kIsolateCageBaseOffset + kApiSystemPointerSize;
   static const int kVariousBooleanFlagsOffset =
       kIsolateStackGuardOffset + kStackGuardSize;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kBuiltinTier0EntryTableOffset =
+      kVariousBooleanFlagsOffset + kApiSystemPointerSize;
+#else   // !__CHERI_PURE_CAPABILITY__
   static const int kBuiltinTier0EntryTableOffset =
       kVariousBooleanFlagsOffset + 8;
+#endif  // !__CHERI_PURE_CAPABILITY__
   static const int kBuiltinTier0TableOffset =
       kBuiltinTier0EntryTableOffset + kBuiltinTier0EntryTableSize;
   static const int kNewAllocationInfoOffset =
@@ -579,8 +593,13 @@ class Internals {
       kIsolateFastCCallCallerPcOffset + kApiSystemPointerSize;
   static const int kIsolateLongTaskStatsCounterOffset =
       kIsolateFastApiCallTargetOffset + kApiSystemPointerSize;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kIsolateThreadLocalTopOffset =
+      kIsolateLongTaskStatsCounterOffset + kApiSystemPointerSize;
+#else   // !__CHERI_PURE_CAPABILITY__
   static const int kIsolateThreadLocalTopOffset =
       kIsolateLongTaskStatsCounterOffset + kApiSizetSize;
+#endif  // !__CHERI_PURE_CAPABILITY__
   static const int kIsolateHandleScopeDataOffset =
       kIsolateThreadLocalTopOffset + kThreadLocalTopSize;
   static const int kIsolateEmbedderDataOffset =

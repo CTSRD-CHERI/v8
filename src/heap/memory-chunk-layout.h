@@ -72,7 +72,6 @@ class V8_EXPORT_PRIVATE MemoryChunkLayout {
     FIELD(ProgressBar, ProgressBar),
 #if defined(__CHERI_PURE_CAPABILITY__)
     FIELD(std::atomic<size_t>, LiveByteCount),
-    FIELD(size_t, Padding1),
 #else   // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<intptr_t>, LiveByteCount),
 #endif  // !__CHERI_PURE_CAPABILITY__
@@ -85,12 +84,20 @@ class V8_EXPORT_PRIVATE MemoryChunkLayout {
     FIELD(std::atomic<intptr_t>, ConcurrentSweeping),
 #endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(std::atomic<size_t>[kNumTypes], ExternalBackingStoreBytes),
+#if defined(__CHERI_PURE_CAPABILITY__)
+    FIELD(size_t, Padding1),
+#endif   // __CHERI_PURE_CAPABILITY__
     FIELD(heap::ListNode<MemoryChunk>, ListNode),
     FIELD(FreeListCategory**, Categories),
     FIELD(CodeObjectRegistry*, CodeObjectRegistry),
     FIELD(PossiblyEmptyBuckets, PossiblyEmptyBuckets),
     FIELD(ActiveSystemPages*, ActiveSystemPages),
+#if defined(__CHERI_PURE_CAPABILITY__)
     FIELD(size_t, AllocatedLabSize),
+    FIELD(size_t, Padding2),
+#else   // !__CHERI_PURE_CAPABILITY__
+    FIELD(size_t, AllocatedLabSize),
+#endif  // !__CHERI_PURE_CAPABILITY__
     FIELD(MarkingBitmap, MarkingBitmap),
     kEndOfMarkingBitmap,
     kMemoryChunkHeaderSize =
