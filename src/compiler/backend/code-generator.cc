@@ -1308,6 +1308,18 @@ void CodeGenerator::AddTranslationForOperand(Instruction* instr,
           literal = DeoptimizationLiteral(static_cast<double>(smi.value()));
         }
         break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Constant::kIntPtr:
+	DCHECK((8 == kSystemPointerSize) || (16 == kSystemPointerSize));
+        DCHECK((type.representation() == MachineRepresentation::kCapability32) ||
+               (type.representation() == MachineRepresentation::kCapability64));
+        CHECK_EQ(
+            constant.ToIntPtr(),
+            static_cast<intptr_t>(static_cast<intptr_t>(constant.ToIntPtr())));
+        literal =
+            DeoptimizationLiteral(static_cast<intptr_t>(constant.ToIntPtr()));
+    break;
+#endif   // __CHERI_PURE_CAPABILITY__
       case Constant::kFloat32:
         DCHECK(type.representation() == MachineRepresentation::kFloat32 ||
                type.representation() == MachineRepresentation::kTagged);
