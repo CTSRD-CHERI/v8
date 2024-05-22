@@ -60,8 +60,13 @@ void CpuFeatures::FlushICache(void* address, size_t length) {
   uintptr_t start = reinterpret_cast<uintptr_t>(address);
   // Sizes will be used to generate a mask big enough to cover a pointer.
   CacheLineSizes sizes;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t dsize = sizes.dcache_line_size();
+  size_t isize = sizes.icache_line_size();
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t dsize = sizes.dcache_line_size();
   uintptr_t isize = sizes.icache_line_size();
+#endif  // !__CHERI_PURE_CAPABILITY__
   // Cache line sizes are always a power of 2.
   DCHECK_EQ(CountSetBits(dsize, 64), 1);
   DCHECK_EQ(CountSetBits(isize, 64), 1);
