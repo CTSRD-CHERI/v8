@@ -28,6 +28,7 @@
 .clangd
 .cpplint-cache
 .cproject
+.ctags
 .DS_Store
 .gclient_entries
 .gdb_history
