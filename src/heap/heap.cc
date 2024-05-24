@@ -3164,7 +3164,18 @@ void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
     // Ensure the filler map is properly initialized.
     DCHECK(filler.map(heap->isolate()).IsMap());
   } else {
+    // CHERI: We have to align to capability size here in order to store a map.
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    // FIXME(ds815): This can probably be done cleaner. Also make sure that this
+    // makes sense...
+    // TODO(ds815): Check if this is even necessary. See what stack traces I get
+    // and why.
+    Address aligned_addr = AlignToCapSize(addr);
+    ptrdiff_t to_align_offset = aligned_addr - addr;
+    DCHECK_GT(size, 2 * kTaggedSize + to_align_offset);
+#else
     DCHECK_GT(size, 2 * kTaggedSize);
+#endif
     filler.align_to_cap_size();
     filler.set_map_after_allocation(roots.unchecked_free_space_map(),
                                     SKIP_WRITE_BARRIER);
