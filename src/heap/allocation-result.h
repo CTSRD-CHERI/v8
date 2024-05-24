@@ -60,7 +60,10 @@ class AllocationResult final {
     return HeapObject::cast(object_).address();
   }
 
-  void align_to(size_t to) { (void)object_.align_to(to); }
+  AllocationResult align_to(size_t to) {
+    (void)object_.align_to(to);
+    return *this;
+  }
 
  private:
   explicit AllocationResult(HeapObject heap_object) : object_(heap_object) {}
