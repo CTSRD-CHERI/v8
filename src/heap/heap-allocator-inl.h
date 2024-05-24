@@ -110,10 +110,10 @@ V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult HeapAllocator::AllocateRaw(
           DCHECK_EQ(alignment, AllocationAlignment::kTaggedAligned);
           DCHECK(AllowCodeAllocation::IsAllowed());
 #ifdef __CHERI_PURE_CAPABILITY__
-          allocation =
-              code_space()->AllocateRaw(size_in_bytes + kCodeAlignment,
-                                        AllocationAlignment::kTaggedAligned);
-          allocation.align_to(kCodeAlignment);
+          allocation = code_space()
+                           ->AllocateRaw(size_in_bytes + kCodeAlignment,
+                                         AllocationAlignment::kTaggedAligned)
+                           .align_to(kCodeAlignment);
 #else
           allocation = code_space()->AllocateRaw(
               size_in_bytes, AllocationAlignment::kTaggedAligned);
