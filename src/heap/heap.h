@@ -2511,6 +2511,7 @@ class Heap {
   friend class heap::TestMemoryAllocatorScope;
   friend class third_party_heap::Heap;
   friend class third_party_heap::Impl;
+  friend class SpaceWithLinearArea;
 
   // The allocator interface.
   friend class Factory;

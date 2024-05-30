@@ -3147,6 +3147,10 @@ static_assert(!USE_ALLOCATION_ALIGNMENT_BOOL ||
 
 int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
   switch (alignment) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    case kCapAligned:
+      return kSystemPointerSize;
+#endif
     case kTaggedAligned:
       return 0;
     case kDoubleAligned:
@@ -3163,6 +3167,13 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
 
 // static
 int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  if (alignment == kCapAligned) {
+    Address aligned_addr = AlignToCapSize(address);
+    ptrdiff_t how_much = aligned_addr - address;
+    return how_much;
+  }
+#endif
   if (alignment == kDoubleAligned &&
       (address & static_cast<size_t>(kDoubleAlignmentMask)) != 0)
     return kTaggedSize;
@@ -3283,19 +3294,10 @@ void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
       *slot = static_cast<Tagged_t>(kClearedFreeMemoryValue);
     }
   } else {
-    // CHERI: We have to align to capability size here in order to store a map.
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    // FIXME(ds815): This can probably be done cleaner. Also make sure that this
-    // makes sense...
-    // TODO(ds815): Check if this is even necessary. See what stack traces I get
-    // and why.
-    Address aligned_addr = AlignToCapSize(addr);
-    ptrdiff_t to_align_offset = aligned_addr - addr;
-    DCHECK_GT(size, 2 * kTaggedSize + to_align_offset);
-#else
-    DCHECK_GT(size, 2 * kTaggedSize);
+#if  defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    DCHECK_EQ(filler.address() % 16, 0);
 #endif
-    filler.align_to_cap_size();
+    DCHECK_GT(size, 2 * kTaggedSize);
     filler.set_map_after_allocation(roots.unchecked_free_space_map(),
                                     SKIP_WRITE_BARRIER);
     FreeSpace::cast(filler).set_size(size, kRelaxedStore);

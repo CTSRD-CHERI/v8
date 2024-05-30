@@ -977,7 +977,11 @@ enum AllocationAlignment {
   // The allocated address is kDoubleSize aligned.
   kDoubleAligned,
   // The (allocated address + kTaggedSize) is kDoubleSize aligned.
-  kDoubleUnaligned
+  kDoubleUnaligned,
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // The allocated address is kSystemPointerSize aligned.
+  kCapAligned
+#endif
 };
 
 #ifdef V8_HOST_ARCH_32_BIT

@@ -130,10 +130,7 @@ template <typename Impl>
 Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithFiller(
     Handle<Map> map, int length, Handle<Oddball> filler,
     AllocationType allocation) {
-  // CHERI: Align to kSystemPointerSize because we are storing a capability at
-  // the start of this location.
-  HeapObject result =
-      AllocateRawFixedArray(length, allocation, kSystemPointerSize);
+  HeapObject result = AllocateRawFixedArray(length, allocation);
   DisallowGarbageCollection no_gc;
   DCHECK(ReadOnlyHeap::Contains(*map));
   DCHECK(ReadOnlyHeap::Contains(*filler));
@@ -152,10 +149,7 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithZeroes(
   if (length > FixedArray::kMaxLength) {
     FATAL("Invalid FixedArray size %d", length);
   }
-  // CHERI: Align to kSystemPointerSize because we are storing a capability at
-  // the start of this location.
-  HeapObject result =
-      AllocateRawFixedArray(length, allocation, kSystemPointerSize);
+  HeapObject result = AllocateRawFixedArray(length, allocation);
   DisallowGarbageCollection no_gc;
   result.set_map_after_allocation(read_only_roots().fixed_array_map(),
                                   SKIP_WRITE_BARRIER);
@@ -190,10 +184,8 @@ Handle<WeakFixedArray> FactoryBase<Impl>::NewWeakFixedArrayWithMap(
   DCHECK_LT(0, length);
   DCHECK(ReadOnlyHeap::Contains(map));
 
-  // CHERI: Align to kSystemPointerSize because we are storing a capability at
-  // the start of this location.
-  HeapObject result = AllocateRawArray(WeakFixedArray::SizeFor(length),
-                                       allocation, kSystemPointerSize);
+  HeapObject result =
+      AllocateRawArray(WeakFixedArray::SizeFor(length), allocation);
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   DisallowGarbageCollection no_gc;
   WeakFixedArray array = WeakFixedArray::cast(result);
@@ -940,29 +932,29 @@ FactoryBase<Impl>::AllocateRawTwoByteInternalizedString(
 
 template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawArray(int size,
-                                               AllocationType allocation,
-                                               size_t align_to) {
-  HeapObject result =
-      AllocateRaw(size + static_cast<int>(align_to), allocation);
+                                               AllocationType allocation) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  HeapObject result = AllocateRaw(size, allocation, kCapAligned);
+#else
+  HeapObject result = AllocateRaw(size, allocation);
+#endif
   if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       (size >
        isolate()->heap()->AsHeap()->MaxRegularHeapObjectSize(allocation)) &&
       FLAG_use_marking_progress_bar) {
     LargePage::FromHeapObject(result)->ProgressBar().Enable();
   }
-  if (align_to != 0) result.align_to(align_to);
   return result;
 }
 
 template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawFixedArray(int length,
-                                                    AllocationType allocation,
-                                                    size_t align_to) {
+                                                    AllocationType allocation) {
   if (length < 0 || length > FixedArray::kMaxLength) {
     FATAL("Fatal JavaScript invalid size error %d", length);
     UNREACHABLE();
   }
-  return AllocateRawArray(FixedArray::SizeFor(length), allocation, align_to);
+  return AllocateRawArray(FixedArray::SizeFor(length), allocation);
 }
 
 template <typename Impl>
@@ -989,16 +981,16 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   // from MAP_SPACE here, like external_map or message_object_map, but currently
   // no one does so this check is sufficient.
   DCHECK(ReadOnlyHeap::Contains(map));
-  // CHERI: Align to kSystemPointerSize because we are storing a capability at
-  // the start of this location.
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  HeapObject result =
-      AllocateRaw(size + kSystemPointerSize, allocation, alignment);
+  // TODO(ds815): Add a static check here that kCapAligned size requirement is
+  // >= alignment passed in. This is not relevant if v8 does not do aligned
+  // allocations (which it does not by default), but once the default switches,
+  // it would  be good to have this check in place.
+  HeapObject result = AllocateRaw(size, allocation, kCapAligned);
 #else
   HeapObject result = AllocateRaw(size, allocation, alignment);
 #endif
   DisallowGarbageCollection no_gc;
-  result.align_to_cap_size();
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   return result;
 }

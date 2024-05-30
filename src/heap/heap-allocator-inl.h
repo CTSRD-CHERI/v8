@@ -120,7 +120,11 @@ V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult HeapAllocator::AllocateRaw(
 #endif
           break;
         case AllocationType::kMap:
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+          DCHECK_EQ(alignment, AllocationAlignment::kCapAligned);
+#else
           DCHECK_EQ(alignment, AllocationAlignment::kTaggedAligned);
+#endif
           allocation = space_for_maps()->AllocateRaw(
               size_in_bytes, AllocationAlignment::kTaggedAligned);
           break;
