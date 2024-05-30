@@ -76,7 +76,6 @@ void FreeListCategory::Free(Address start, size_t size_in_bytes, FreeMode mode,
   {
     CodePageMemoryModificationScope memory_modification_scope(
         BasicMemoryChunk::FromAddress(start));
-    free_space.align_to_cap_size();
     free_space.set_next(top());
   }
   set_top(free_space);

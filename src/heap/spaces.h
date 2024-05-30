@@ -585,7 +585,8 @@ class SpaceWithLinearArea : public Space {
   // Allocate the requested number of bytes in the space if possible, return a
   // failure object if not.
   V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult AllocateRawUnaligned(
-      int size_in_bytes, AllocationOrigin origin = AllocationOrigin::kRuntime);
+      int size_in_bytes, AllocationOrigin origin = AllocationOrigin::kRuntime,
+      AllocationAlignment alignment = kTaggedAligned);
 
   // Allocate the requested number of bytes in the space double aligned if
   // possible, return a failure object if not.
@@ -617,7 +618,8 @@ class SpaceWithLinearArea : public Space {
   // Allocates an object from the linear allocation area. Assumes that the
   // linear allocation area is large enough to fit the object.
   V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult
-  AllocateFastUnaligned(int size_in_bytes, AllocationOrigin origin);
+  AllocateFastUnaligned(int size_in_bytes, AllocationOrigin origin,
+                        AllocationAlignment alignment = kTaggedAligned);
   // Tries to allocate an aligned object from the linear allocation area.
   // Returns nullptr if the linear allocation area does not fit the object.
   // Otherwise, returns the object pointer and writes the allocation size

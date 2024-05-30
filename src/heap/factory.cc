@@ -396,7 +396,7 @@ HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   int size = map->instance_size();
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
-      size + kSystemPointerSize, allocation);
+      size, allocation, AllocationOrigin::kRuntime, kCapAligned);
 #else
   HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
       size, allocation);
@@ -405,7 +405,6 @@ HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   WriteBarrierMode write_barrier_mode = allocation == AllocationType::kYoung
                                             ? SKIP_WRITE_BARRIER
                                             : UPDATE_WRITE_BARRIER;
-  result.align_to_cap_size();
   result.set_map_after_allocation(*map, write_barrier_mode);
   return result;
 }

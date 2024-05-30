@@ -403,6 +403,11 @@ MemoryAllocator::AllocateUninitializedChunkAt(BaseSpace* space,
 
   Address area_start = base + MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(
                                   space->identity());
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // CHERI: We require this to always be the case if we're going to create a
+  // heap object at the start of the area.
+  DCHECK_EQ(area_start % 16, 0);
+#endif
   Address area_end = area_start + area_size;
 
   return MemoryChunkAllocationResult{
@@ -642,6 +647,9 @@ MemoryAllocator::AllocateUninitializedPageFromPool(Space* space) {
   const Address area_start =
       start +
       MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(space->identity());
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  DCHECK_EQ(area_start % 16, 0);
+#endif
   const Address area_end = start + size;
   // Pooled pages are always regular data pages.
   DCHECK_NE(CODE_SPACE, space->identity());

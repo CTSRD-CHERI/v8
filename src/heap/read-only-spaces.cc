@@ -580,6 +580,7 @@ void ReadOnlySpace::EnsureSpaceForAllocation(int size_in_bytes) {
 
   top_ = chunk->area_start();
   limit_ = chunk->area_end();
+  DCHECK_EQ(top_ % 16, 0);
   return;
 }
 
@@ -629,15 +630,17 @@ AllocationResult ReadOnlySpace::AllocateRawAligned(
   return AllocationResult::FromObject(object);
 }
 
-AllocationResult ReadOnlySpace::AllocateRawUnaligned(int size_in_bytes) {
+AllocationResult ReadOnlySpace::AllocateRawUnaligned(
+    int size_in_bytes, AllocationAlignment alignment) {
   DCHECK(!IsDetached());
   size_in_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(size_in_bytes);
   EnsureSpaceForAllocation(size_in_bytes);
   Address current_top = top_;
+  Address cap_aligned_current_top = AlignToCapSize(current_top);
   Address new_top = current_top + size_in_bytes;
   DCHECK_LE(new_top, limit_);
   top_ = new_top;
-  HeapObject object = HeapObject::FromAddress(current_top);
+  HeapObject object = HeapObject::FromAddress(cap_aligned_current_top);
 
   DCHECK(!object.is_null());
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(object.address(), size_in_bytes);

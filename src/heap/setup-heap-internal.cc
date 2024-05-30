@@ -248,9 +248,8 @@ AllocationResult Heap::AllocateMap(AllocationType allocation_type,
                                  ? AllocationType::kMap
                                  : AllocationType::kReadOnly);
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  AllocationResult allocation =
-      AllocateRaw(Map::kSize + kSystemPointerSize, allocation_type)
-          .align_to(kSystemPointerSize);
+  AllocationResult allocation = AllocateRaw(
+      Map::kSize, allocation_type, AllocationOrigin::kRuntime, kCapAligned);
 #else
   AllocationResult allocation = AllocateRaw(Map::kSize, allocation_type);
 #endif
@@ -270,8 +269,8 @@ AllocationResult Heap::AllocatePartialMap(InstanceType instance_type,
   Object result;
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   AllocationResult allocation =
-      AllocateRaw(Map::kSize + kSystemPointerSize, AllocationType::kReadOnly)
-          .align_to(kSystemPointerSize);
+      AllocateRaw(Map::kSize, AllocationType::kReadOnly,
+                  AllocationOrigin::kRuntime, kCapAligned);
 #else
   AllocationResult allocation =
       AllocateRaw(Map::kSize, AllocationType::kReadOnly);
@@ -321,9 +320,8 @@ AllocationResult Heap::Allocate(Handle<Map> map,
   int size = map->instance_size();
   HeapObject result;
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  AllocationResult allocation =
-      AllocateRaw(size + kSystemPointerSize, allocation_type)
-          .align_to(kSystemPointerSize);
+  AllocationResult allocation = AllocateRaw(
+      size, allocation_type, AllocationOrigin::kRuntime, kCapAligned);
 #else
   AllocationResult allocation = AllocateRaw(size, allocation_type);
 #endif
@@ -386,9 +384,8 @@ bool Heap::CreateEarlyReadOnlyMaps() {
   {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     AllocationResult alloc =
-        AllocateRaw(FixedArray::SizeFor(0) + kSystemPointerSize,
-                    AllocationType::kReadOnly)
-            .align_to(kSystemPointerSize);
+        AllocateRaw(FixedArray::SizeFor(0), AllocationType::kReadOnly,
+                    AllocationOrigin::kRuntime, kCapAligned);
 #else
     AllocationResult alloc =
         AllocateRaw(FixedArray::SizeFor(0), AllocationType::kReadOnly);
@@ -402,9 +399,8 @@ bool Heap::CreateEarlyReadOnlyMaps() {
   {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     AllocationResult alloc =
-        AllocateRaw(WeakFixedArray::SizeFor(0) + kSystemPointerSize,
-                    AllocationType::kReadOnly)
-            .align_to(kSystemPointerSize);
+        AllocateRaw(WeakFixedArray::SizeFor(0), AllocationType::kReadOnly,
+                    AllocationOrigin::kRuntime, kCapAligned);
 #else
     AllocationResult alloc =
         AllocateRaw(WeakFixedArray::SizeFor(0), AllocationType::kReadOnly);
@@ -418,10 +414,9 @@ bool Heap::CreateEarlyReadOnlyMaps() {
 
   {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    AllocationResult allocation =
-        AllocateRaw(WeakArrayList::SizeForCapacity(0) + kSystemPointerSize,
-                    AllocationType::kReadOnly)
-            .align_to(kSystemPointerSize);
+    AllocationResult allocation = AllocateRaw(
+        WeakArrayList::SizeForCapacity(0), AllocationType::kReadOnly,
+        AllocationOrigin::kRuntime, kCapAligned);
 #else
     AllocationResult allocation = AllocateRaw(WeakArrayList::SizeForCapacity(0),
                                               AllocationType::kReadOnly);
@@ -474,8 +469,8 @@ bool Heap::CreateEarlyReadOnlyMaps() {
   {
     int size = DescriptorArray::SizeFor(0);
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    if (!AllocateRaw(size + kSystemPointerSize, AllocationType::kReadOnly)
-             .align_to(kSystemPointerSize)
+    if (!AllocateRaw(size, AllocationType::kReadOnly,
+                     AllocationOrigin::kRuntime, kCapAligned)
              .To(&obj))
       return false;
 #else
@@ -584,8 +579,13 @@ bool Heap::CreateEarlyReadOnlyMaps() {
     {
       // The invalid_prototype_validity_cell is needed for JSObject maps.
       Smi value = Smi::FromInt(Map::kPrototypeChainInvalid);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
       AllocationResult alloc =
-          AllocateRaw(Cell::kSize, AllocationType::kReadOnly);
+          AllocateRaw(Cell::kSize, AllocationType::kReadOnly,
+                      AllocationOrigin::kRuntime, kCapAligned);
+#else
+      AllocationResult alloc = AllocateRaw(Cell::kSize, AllocationType::kReadOnly);
+#endif
       if (!alloc.To(&obj)) return false;
       obj.set_map_after_allocation(roots.cell_map(), SKIP_WRITE_BARRIER);
       Cell::cast(obj).set_value(value);
