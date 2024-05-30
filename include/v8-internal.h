@@ -12,9 +12,6 @@
 #include <atomic>
 #include <type_traits>
 
-#if defined(__CHERI_PURE_CAPABILITY__)
-#include "src/base/macros.h"
-#endif  // !__CHERI_PURE_CAPABILITY__
 #include "v8-version.h"  // NOLINT(build/include_directory)
 #include "v8config.h"    // NOLINT(build/include_directory)
 
@@ -552,7 +549,7 @@ class Internals {
 #if defined(__CHERI_PURE_CAPABILITY__)
   static const int kHandleScopeDataSize =
       2 * kApiSystemPointerSize +
-      RoundUp<kApiSystemPointerSize>(2 * kApiInt32Size);
+      __builtin_align_up(2 * kApiInt32Size, kApiSystemPointerSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   static const int kHandleScopeDataSize =
       2 * kApiSystemPointerSize + 2 * kApiInt32Size;
