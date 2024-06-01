@@ -261,8 +261,7 @@ class ReadOnlySpace : public BaseSpace {
 
   void DetachFromHeap() { heap_ = nullptr; }
 
-  AllocationResult AllocateRawUnaligned(
-      int size_in_bytes, AllocationAlignment alignment = kTaggedAligned);
+  AllocationResult AllocateRawUnaligned(int size_in_bytes);
   AllocationResult AllocateRawAligned(int size_in_bytes,
                                       AllocationAlignment alignment);
   HeapObject TryAllocateLinearlyAligned(int size_in_bytes,

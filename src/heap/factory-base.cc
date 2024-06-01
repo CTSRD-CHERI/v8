@@ -37,8 +37,13 @@ template <AllocationType allocation>
 Handle<HeapNumber> FactoryBase<Impl>::NewHeapNumber() {
   static_assert(HeapNumber::kSize <= kMaxRegularHeapObjectSize);
   Map map = read_only_roots().heap_number_map();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  HeapObject result = AllocateRawWithImmortalMap(HeapNumber::kSize, allocation,
+                                                 map, kTaggedAligned);
+#else
   HeapObject result = AllocateRawWithImmortalMap(HeapNumber::kSize, allocation,
                                                  map, kDoubleUnaligned);
+#endif
   return handle(HeapNumber::cast(result), isolate());
 }
 
@@ -1131,7 +1136,7 @@ template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawArray(int size,
                                                AllocationType allocation) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  HeapObject result = AllocateRaw(size, allocation, kCapAligned);
+  HeapObject result = AllocateRaw(size, allocation, kTaggedAligned);
 #else
   HeapObject result = AllocateRaw(size, allocation);
 #endif
@@ -1179,11 +1184,9 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   // no one does so this check is sufficient.
   DCHECK(ReadOnlyHeap::Contains(map));
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  // TODO(ds815): Add a static check here that kCapAligned size requirement is
-  // >= alignment passed in. This is not relevant if v8 does not do aligned
-  // allocations (which it does not by default), but once the default switches,
-  // it would  be good to have this check in place.
-  HeapObject result = AllocateRaw(size, allocation, kCapAligned);
+  // TODO(ds815): Add a static check here that kTaggedAligned size requirement
+  // is >= alignment passed in.
+  HeapObject result = AllocateRaw(size, allocation, kTaggedAligned);
 #else
   HeapObject result = AllocateRaw(size, allocation, alignment);
 #endif

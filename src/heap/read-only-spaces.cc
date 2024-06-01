@@ -630,17 +630,15 @@ AllocationResult ReadOnlySpace::AllocateRawAligned(
   return AllocationResult::FromObject(object);
 }
 
-AllocationResult ReadOnlySpace::AllocateRawUnaligned(
-    int size_in_bytes, AllocationAlignment alignment) {
+AllocationResult ReadOnlySpace::AllocateRawUnaligned(int size_in_bytes) {
   DCHECK(!IsDetached());
   size_in_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(size_in_bytes);
   EnsureSpaceForAllocation(size_in_bytes);
   Address current_top = top_;
-  Address cap_aligned_current_top = AlignToCapSize(current_top);
   Address new_top = current_top + size_in_bytes;
   DCHECK_LE(new_top, limit_);
   top_ = new_top;
-  HeapObject object = HeapObject::FromAddress(cap_aligned_current_top);
+  HeapObject object = HeapObject::FromAddress(current_top);
 
   DCHECK(!object.is_null());
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(object.address(), size_in_bytes);
@@ -655,9 +653,13 @@ AllocationResult ReadOnlySpace::AllocateRawUnaligned(
 
 AllocationResult ReadOnlySpace::AllocateRaw(int size_in_bytes,
                                             AllocationAlignment alignment) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return AllocateRawAligned(size_in_bytes, alignment);
+#else
   return USE_ALLOCATION_ALIGNMENT_BOOL && alignment != kTaggedAligned
              ? AllocateRawAligned(size_in_bytes, alignment)
              : AllocateRawUnaligned(size_in_bytes);
+#endif
 }
 
 size_t ReadOnlyPage::ShrinkToHighWaterMark() {
