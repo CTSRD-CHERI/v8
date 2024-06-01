@@ -299,6 +299,9 @@ HeapObject ReadOnlyHeapObjectIterator::Next() {
     HeapObject object = HeapObject::FromAddress(current_addr_);
     const int object_size = object.Size();
     current_addr_ += object_size;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    current_addr_ = AlignToCapSize(current_addr_);
+#endif
 
     if (object.IsFreeSpaceOrFiller()) {
       continue;

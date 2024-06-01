@@ -208,28 +208,14 @@ MemoryChunk* MemoryChunkIterator::Next() {
   return chunk;
 }
 
-// CHERI: We need to pass in the alignment for kCapAligned.
+// CHERI: We need to pass in the alignment for kTaggedAligned.
 AllocationResult SpaceWithLinearArea::AllocateFastUnaligned(
-    int size_in_bytes, AllocationOrigin origin, AllocationAlignment alignment) {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  if (alignment == kCapAligned) {
-    Address current_top = allocation_info_->top();
-    Address cap_aligned_current_top = AlignToCapSize(current_top);
-    int padding_needed = cap_aligned_current_top - current_top;
-    if (!allocation_info_->CanIncrementTop(padding_needed))
-      return AllocationResult::Failure();
-    Address unaligned_start = allocation_info_->IncrementTop(padding_needed);
-    heap_->ZapCodeObject(unaligned_start, padding_needed);
-  }
-#endif
+    int size_in_bytes, AllocationOrigin origin) {
   if (!allocation_info_->CanIncrementTop(size_in_bytes)) {
     return AllocationResult::Failure();
   }
   HeapObject obj =
       HeapObject::FromAddress(allocation_info_->IncrementTop(size_in_bytes));
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  if (alignment == kCapAligned) DCHECK_EQ(obj.address() % 16, 0);
-#endif
 
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(obj.address(), size_in_bytes);
 
@@ -267,44 +253,33 @@ AllocationResult SpaceWithLinearArea::AllocateRaw(int size_in_bytes,
 
   AllocationResult result;
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  result = AllocateFastAligned(size_in_bytes, nullptr, alignment, origin);
+#else
   if (USE_ALLOCATION_ALIGNMENT_BOOL && alignment != kTaggedAligned) {
     result = AllocateFastAligned(size_in_bytes, nullptr, alignment, origin);
   } else {
-    result = AllocateFastUnaligned(size_in_bytes, origin, alignment);
+    result = AllocateFastUnaligned(size_in_bytes, origin);
   }
+#endif
 
   return result.IsFailure() ? AllocateRawSlow(size_in_bytes, alignment, origin)
                             : result;
 }
 
 AllocationResult SpaceWithLinearArea::AllocateRawUnaligned(
-    int size_in_bytes, AllocationOrigin origin, AllocationAlignment alignment) {
+    int size_in_bytes, AllocationOrigin origin) {
   DCHECK(!FLAG_enable_third_party_heap);
   int max_aligned_size;
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  if (!EnsureAllocation(size_in_bytes,
-                        alignment == kCapAligned ? kCapAligned : kTaggedAligned,
-                        origin, &max_aligned_size)) {
-#else
   if (!EnsureAllocation(size_in_bytes, kTaggedAligned, origin,
                         &max_aligned_size)) {
-#endif
     return AllocationResult::Failure();
   }
 
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  DCHECK_GE(max_aligned_size, size_in_bytes);
-#else
   DCHECK_EQ(max_aligned_size, size_in_bytes);
-#endif
   DCHECK_LE(allocation_info_->start(), allocation_info_->top());
 
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  AllocationResult result = AllocateFastUnaligned(max_aligned_size, origin)
-                                .align_to(kSystemPointerSize);
-#else
   AllocationResult result = AllocateFastUnaligned(size_in_bytes, origin);
-#endif
   DCHECK(!result.IsFailure());
 
   if (FLAG_trace_allocations_origins) {
@@ -347,11 +322,15 @@ AllocationResult SpaceWithLinearArea::AllocateRawAligned(
 
 AllocationResult SpaceWithLinearArea::AllocateRawSlow(
     int size_in_bytes, AllocationAlignment alignment, AllocationOrigin origin) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  return AllocateRawAligned(size_in_bytes, alignment, origin);
+#else
   AllocationResult result =
       USE_ALLOCATION_ALIGNMENT_BOOL && alignment != kTaggedAligned
           ? AllocateRawAligned(size_in_bytes, alignment, origin)
-          : AllocateRawUnaligned(size_in_bytes, origin, alignment);
+          : AllocateRawUnaligned(size_in_bytes, origin);
   return result;
+#endif
 }
 
 }  // namespace internal

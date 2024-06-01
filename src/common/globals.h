@@ -394,6 +394,7 @@ using AtomicTagged_t = base::Atomic32;
 
 constexpr int kTaggedSize = kSystemPointerSize;
 constexpr int kTaggedSizeLog2 = kSystemPointerSizeLog2;
+constexpr int kTaggedAlignmentMask = kTaggedSize - 1;
 
 // These types define raw and atomic storage types for tagged values stored
 // on V8 heap.
@@ -979,8 +980,8 @@ enum AllocationAlignment {
   // The (allocated address + kTaggedSize) is kDoubleSize aligned.
   kDoubleUnaligned,
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  // The allocated address is kSystemPointerSize aligned.
-  kCapAligned
+  // The allocated address is kCodeAlignment aligned.
+  kCodeAligned,
 #endif
 };
 

@@ -145,7 +145,7 @@ AllocationResult Heap::AllocateMap(InstanceType instance_type,
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   AllocationResult allocation = AllocateRaw(
       Map::kSize, is_mutable ? AllocationType::kMap : AllocationType::kReadOnly,
-      AllocationOrigin::kRuntime, kCapAligned);
+      AllocationOrigin::kRuntime, kTaggedAligned);
 #else
   AllocationResult allocation =
       AllocateRaw(Map::kSize, is_mutable ? AllocationType::kMap
@@ -165,14 +165,8 @@ AllocationResult Heap::AllocateMap(InstanceType instance_type,
 AllocationResult Heap::AllocatePartialMap(InstanceType instance_type,
                                           int instance_size) {
   Object result;
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  AllocationResult allocation =
-      AllocateRaw(Map::kSize, AllocationType::kReadOnly,
-                  AllocationOrigin::kRuntime, kCapAligned);
-#else
   AllocationResult allocation =
       AllocateRaw(Map::kSize, AllocationType::kReadOnly);
-#endif
   if (!allocation.To(&result)) return allocation;
   // Map::cast cannot be used due to uninitialized map field.
   Map map = Map::unchecked_cast(result);
@@ -217,12 +211,7 @@ AllocationResult Heap::Allocate(Handle<Map> map,
   DCHECK(map->instance_type() != MAP_TYPE);
   int size = map->instance_size();
   HeapObject result;
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  AllocationResult allocation = AllocateRaw(
-      size, allocation_type, AllocationOrigin::kRuntime, kCapAligned);
-#else
   AllocationResult allocation = AllocateRaw(size, allocation_type);
-#endif
   if (!allocation.To(&result)) return allocation;
   // New space objects are allocated white.
   WriteBarrierMode write_barrier_mode =
@@ -272,14 +261,8 @@ bool Heap::CreateInitialMaps() {
   }
 
   {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    AllocationResult alloc =
-        AllocateRaw(FixedArray::SizeFor(0), AllocationType::kReadOnly,
-                    AllocationOrigin::kRuntime, kCapAligned);
-#else
     AllocationResult alloc =
         AllocateRaw(FixedArray::SizeFor(0), AllocationType::kReadOnly);
-#endif
     if (!alloc.To(&obj)) return false;
     obj.set_map_after_allocation(roots.fixed_array_map(), SKIP_WRITE_BARRIER);
     FixedArray::cast(obj).set_length(0);
@@ -287,14 +270,8 @@ bool Heap::CreateInitialMaps() {
   set_empty_fixed_array(FixedArray::cast(obj));
 
   {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    AllocationResult alloc =
-        AllocateRaw(WeakFixedArray::SizeFor(0), AllocationType::kReadOnly,
-                    AllocationOrigin::kRuntime, kCapAligned);
-#else
     AllocationResult alloc =
         AllocateRaw(WeakFixedArray::SizeFor(0), AllocationType::kReadOnly);
-#endif
     if (!alloc.To(&obj)) return false;
     obj.set_map_after_allocation(roots.weak_fixed_array_map(),
                                  SKIP_WRITE_BARRIER);
@@ -303,14 +280,8 @@ bool Heap::CreateInitialMaps() {
   set_empty_weak_fixed_array(WeakFixedArray::cast(obj));
 
   {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    AllocationResult allocation = AllocateRaw(
-        WeakArrayList::SizeForCapacity(0), AllocationType::kReadOnly,
-        AllocationOrigin::kRuntime, kCapAligned);
-#else
     AllocationResult allocation = AllocateRaw(WeakArrayList::SizeForCapacity(0),
                                               AllocationType::kReadOnly);
-#endif
     if (!allocation.To(&obj)) return false;
     obj.set_map_after_allocation(roots.weak_array_list_map(),
                                  SKIP_WRITE_BARRIER);
@@ -367,14 +338,7 @@ bool Heap::CreateInitialMaps() {
   // Allocate the empty descriptor array.
   {
     int size = DescriptorArray::SizeFor(0);
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    if (!AllocateRaw(size, AllocationType::kReadOnly,
-                     AllocationOrigin::kRuntime, kCapAligned)
-             .To(&obj))
-      return false;
-#else
     if (!AllocateRaw(size, AllocationType::kReadOnly).To(&obj)) return false;
-#endif
     obj.set_map_after_allocation(roots.descriptor_array_map(),
                                  SKIP_WRITE_BARRIER);
     DescriptorArray array = DescriptorArray::cast(obj);
@@ -484,13 +448,7 @@ bool Heap::CreateInitialMaps() {
     {
       // The invalid_prototype_validity_cell is needed for JSObject maps.
       Smi value = Smi::FromInt(Map::kPrototypeChainInvalid);
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-      AllocationResult alloc =
-          AllocateRaw(Cell::kSize, AllocationType::kOld,
-                      AllocationOrigin::kRuntime, kCapAligned);
-#else
       AllocationResult alloc = AllocateRaw(Cell::kSize, AllocationType::kOld);
-#endif
       if (!alloc.To(&obj)) return false;
       obj.set_map_after_allocation(roots.cell_map(), SKIP_WRITE_BARRIER);
       Cell::cast(obj).set_value(value);

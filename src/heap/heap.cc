@@ -3148,11 +3148,15 @@ static_assert(!USE_ALLOCATION_ALIGNMENT_BOOL ||
 int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
   switch (alignment) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    case kCapAligned:
-      return kSystemPointerSize;
+    case kCodeAligned:
+      return kCodeAlignment;
 #endif
     case kTaggedAligned:
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      return kSystemPointerSize;
+#else
       return 0;
+#endif
     case kDoubleAligned:
     case kDoubleUnaligned:
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
@@ -3168,10 +3172,14 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
 // static
 int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  if (alignment == kCapAligned) {
+  if (alignment == kTaggedAligned) {
     Address aligned_addr = AlignToCapSize(address);
     ptrdiff_t how_much = aligned_addr - address;
     return how_much;
+  }
+  if (alignment == kCodeAligned &&
+      (address & static_cast<size_t>(kCodeAlignmentMask)) != 0) {
+    return kCodeAlignment;
   }
 #endif
   if (alignment == kDoubleAligned &&
@@ -3281,8 +3289,24 @@ namespace {
 void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
                               ClearFreedMemoryMode clear_memory_mode) {
   if (size == 0) return;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  if (!IsAligned(addr, kTaggedSize)) {
+    Address aligned_addr = AlignToCapSize(addr);
+    size_t bytes_before_filler = aligned_addr - addr;
+    DCHECK(IsAligned(addr, kIntSize));
+    for (int i = 0; i < bytes_before_filler / kIntSize; i++) {
+      Memory<int>(addr + i * kIntSize) = heap->ZapValue();
+    }
+    addr = aligned_addr;
+    size -= bytes_before_filler;
+    if (size == 0) size = kTaggedSize;
+  }
+#endif
   HeapObject filler = HeapObject::FromAddress(addr);
   ReadOnlyRoots roots(heap);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  DCHECK(IsAligned(filler.address(), kSystemPointerSize));
+#endif
   if (size == kTaggedSize) {
     filler.set_map_after_allocation(roots.unchecked_one_pointer_filler_map(),
                                     SKIP_WRITE_BARRIER);
@@ -3294,9 +3318,6 @@ void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
       *slot = static_cast<Tagged_t>(kClearedFreeMemoryValue);
     }
   } else {
-#if  defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-    DCHECK_EQ(filler.address() % 16, 0);
-#endif
     DCHECK_GT(size, 2 * kTaggedSize);
     filler.set_map_after_allocation(roots.unchecked_free_space_map(),
                                     SKIP_WRITE_BARRIER);

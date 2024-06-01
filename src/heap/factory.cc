@@ -276,13 +276,7 @@ MaybeHandle<Code> Factory::CodeBuilder::AllocateCode(
   AllocationType allocation_type = V8_EXTERNAL_CODE_SPACE_BOOL || is_executable_
                                        ? AllocationType::kCode
                                        : AllocationType::kReadOnly;
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  // Ensure we have enough space to align the code to kCodeAlignment on CHERI.
-  const int object_size =
-      Code::SizeFor(code_desc_.body_size()) + kCodeAlignment;
-#else
   const int object_size = Code::SizeFor(code_desc_.body_size());
-#endif
   if (retry_allocation_or_fail) {
     result = allocator->AllocateRawWith<HeapAllocator::kRetryOrFail>(
         object_size, allocation_type, AllocationOrigin::kRuntime);
@@ -382,13 +376,8 @@ void Factory::InitializeAllocationMemento(AllocationMemento memento,
 HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   DCHECK(map->instance_type() != MAP_TYPE);
   int size = map->instance_size();
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
-      size, allocation, AllocationOrigin::kRuntime, kCapAligned);
-#else
   HeapObject result = allocator()->AllocateRawWith<HeapAllocator::kRetryOrFail>(
       size, allocation);
-#endif
   // New space objects are allocated white.
   WriteBarrierMode write_barrier_mode = allocation == AllocationType::kYoung
                                             ? SKIP_WRITE_BARRIER
