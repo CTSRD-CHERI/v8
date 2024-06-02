@@ -553,9 +553,18 @@ void Map::MapVerify(Isolate* isolate) {
     // Ensure that embedder fields are located exactly between header and
     // inobject properties.
     CHECK_EQ(header_end_offset, JSObject::GetEmbedderFieldsStartOffset(*this));
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    CHECK_EQ(
+        RoundUp(header_end_offset + JSObject::GetEmbedderFieldCount(*this) *
+                                        kEmbedderDataSlotSize,
+                kSystemPointerSize),
+        inobject_fields_start_offset);
+#else
     CHECK_EQ(header_end_offset +
                  JSObject::GetEmbedderFieldCount(*this) * kEmbedderDataSlotSize,
+
              inobject_fields_start_offset);
+#endif
 
     if (IsJSSharedStructMap() || IsJSSharedArrayMap() || IsJSAtomicsMutex() ||
         IsJSAtomicsCondition()) {
