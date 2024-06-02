@@ -539,9 +539,11 @@ void Map::MapVerify(Isolate* isolate) {
     // Ensure that embedder fields are located exactly between header and
     // inobject properties.
     CHECK_EQ(header_end_offset, JSObject::GetEmbedderFieldsStartOffset(*this));
-    CHECK_EQ(header_end_offset +
-                 JSObject::GetEmbedderFieldCount(*this) * kEmbedderDataSlotSize,
-             inobject_fields_start_offset);
+    CHECK_EQ(
+        RoundUp(header_end_offset + JSObject::GetEmbedderFieldCount(*this) *
+                                        kEmbedderDataSlotSize,
+                kSystemPointerSize),
+        inobject_fields_start_offset);
   }
 
   if (!may_have_interesting_symbols()) {

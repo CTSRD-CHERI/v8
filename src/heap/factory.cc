@@ -1893,8 +1893,9 @@ Map Factory::InitializeMap(Map map, InstanceType type, int instance_size,
 #endif
   if (map.IsJSObjectMap()) {
     DCHECK(!ReadOnlyHeap::Contains(map));
-    map.SetInObjectPropertiesStartInWords(instance_size / kTaggedSize -
-                                          inobject_properties);
+    map.SetInObjectPropertiesStartInWords(
+        RoundUp(instance_size, kSystemPointerSize) / kTaggedSize -
+        inobject_properties);
     DCHECK_EQ(map.GetInObjectProperties(), inobject_properties);
     map.set_prototype_validity_cell(roots->invalid_prototype_validity_cell());
   } else {
