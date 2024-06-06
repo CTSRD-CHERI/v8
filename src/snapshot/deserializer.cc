@@ -1243,7 +1243,16 @@ HeapObject Deserializer<IsolateT>::Allocate(AllocationType allocation, int size,
     // Make sure that the previous object is initialized sufficiently to
     // be iterated over by the GC.
     int object_size = previous_allocation_obj_->Size(isolate_);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    // On CHERI systems, we can end up in a situation where we need to pad out
+    // the space before the filler object, so the filler might occupy more
+    // space.
+    DCHECK_LE(object_size,
+              RoundUp(previous_allocation_size_ + kSystemPointerSize + 1,
+                      kSystemPointerSize));
+#else
     DCHECK_LE(object_size, previous_allocation_size_);
+#endif
   }
 #endif
 
