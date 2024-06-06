@@ -1162,18 +1162,15 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
   int base = bytes_processed_so_far_;
   int up_to_offset = static_cast<int>(up_to - object_start);
   int to_skip = up_to_offset - bytes_processed_so_far_;
-  int bytes_to_output = to_skip;
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  DCHECK(IsAligned(bytes_to_output, 8));
-  int tagged_to_output = bytes_to_output / 8;
-#else
+  int bytes_to_output = RoundUp(to_skip, kSystemPointerSize);
   DCHECK(IsAligned(bytes_to_output, kTaggedSize));
   int tagged_to_output = bytes_to_output / kTaggedSize;
-#endif
   bytes_processed_so_far_ += to_skip;
   DCHECK_GE(to_skip, 0);
   if (bytes_to_output != 0) {
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
     DCHECK(to_skip == bytes_to_output);
+#endif
     if (tagged_to_output <= kFixedRawDataCount) {
       sink_->Put(FixedRawDataWithSize::Encode(tagged_to_output),
                  "FixedRawData");
