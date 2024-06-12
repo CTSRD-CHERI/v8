@@ -305,7 +305,13 @@ base::AddressRegion CodeRange::GetPreferredRegion(size_t radius_in_megabytes,
   // If ExternalCodeCompressionScheme ever changes then the requirements might
   // need to be updated.
   static_assert(k4GB <= kPtrComprCageReservationSize);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Address expected_cage_start = RoundDown(embedded_blob_code_start,
+                                          kMinExpectedOSPageSize);
+  DCHECK_EQ(expected_cage_start,
+#else    // !__CHERI_PURE_CAPABILITY
   DCHECK_EQ(four_gb_cage_start,
+#endif   // !__CHERI_PURE_CAPABILITY
             ExternalCodeCompressionScheme::PrepareCageBaseAddress(
                 embedded_blob_code_start));
 #endif  // V8_EXTERNAL_CODE_SPACE
