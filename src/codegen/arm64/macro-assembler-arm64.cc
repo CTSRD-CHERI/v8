@@ -2857,7 +2857,16 @@ void MacroAssembler::TailCallBuiltin(Builtin builtin, Condition cond) {
 void MacroAssembler::LoadCodeInstructionStart(Register destination,
                                               Register code_object) {
   ASM_CODE_COMMENT(this);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  //UseScratchRegisterScope temps(this);
+  //Register scratch = temps.AcquireC();
+  //Mov(scratch, FieldMemOperand(code_object, Code::kInstructionStartOffset));
+  //Add(scratch, scratch, kPointerAlignment - 1);
+  //And(scratch, scratch, ~kPointerAlignmentMask);
+  //Ldr(destination, scrtach);
+#else   // __CHERI_PURE_CAPABILITY__
   Ldr(destination, FieldMemOperand(code_object, Code::kInstructionStartOffset));
+#endif   // __CHERI_PURE_CAPABILITY__
 }
 
 void MacroAssembler::CallCodeObject(Register code_object) {
@@ -4319,7 +4328,11 @@ void MacroAssembler::Abort(AbortReason reason) {
       // InterpreterEntryTrampoline and InterpreterEntryTrampolineForProfiling
       // when v8_flags.debug_code is enabled.
       UseScratchRegisterScope temps(this);
+#if defined(__CHERI_PURE_CAPABILITY__)
+      Register scratch = temps.AcquireC();
+#else   // !__CHERI_PURE_CAPABILITY__
       Register scratch = temps.AcquireX();
+#endif  // !__CHERI_PURE_CAPABILITY__
       LoadEntryFromBuiltin(Builtin::kAbort, scratch);
       Call(scratch);
     } else {
