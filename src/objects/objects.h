@@ -721,6 +721,23 @@ class Object : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
     return WriteMaybeUnalignedValue<T>(field_address(offset), value);
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
+                                                 std::is_enum<T>::value,
+                                             int>::type = 0>
+  inline T ReadFieldAlignUp(size_t offset, size_t alignment = alignof(max_align_t)) const {
+    return ReadMaybeUnalignedValue<T>(__builtin_align_up(field_address(offset), alignment));
+  }
+
+  template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
+                                                 std::is_enum<T>::value,
+                                             int>::type = 0>
+  inline void WriteFieldAlignUp(size_t offset, T value, size_t alignment = alignof(max_align_t)) const {
+    return WriteMaybeUnalignedValue<T>(__builtin_align_up(field_address(offset), alignment), value);
+  }
+
+#endif    //__CHERI_PURE_CAPABILITY__
+
   // Atomically reads a field using relaxed memory ordering. Can only be used
   // with integral types whose size is <= kTaggedSize (to guarantee alignment).
   template <class T,

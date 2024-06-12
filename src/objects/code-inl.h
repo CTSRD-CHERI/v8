@@ -588,7 +588,11 @@ Object Code::raw_instruction_stream(PtrComprCageBase cage_base,
 }
 
 DEF_GETTER(Code, instruction_start, Address) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  return ReadFieldAlignUp<Address>(kInstructionStartOffset);
+#else   // !__CHERI_PURE_CAPABILITY__
   return ReadField<Address>(kInstructionStartOffset);
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 void Code::init_instruction_start(Isolate* isolate, Address value) {
@@ -596,7 +600,11 @@ void Code::init_instruction_start(Isolate* isolate, Address value) {
 }
 
 void Code::set_instruction_start(Isolate* isolate, Address value) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  WriteFieldAlignUp<Address>(kInstructionStartOffset, value);
+#else   // !__CHERI_PURE_CAPABILITY__
   WriteField<Address>(kInstructionStartOffset, value);
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 void Code::SetInstructionStreamAndInstructionStart(Isolate* isolate_for_sandbox,
