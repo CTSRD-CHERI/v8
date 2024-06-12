@@ -131,16 +131,26 @@ void V8HeapCompressionScheme::ProcessIntermediatePointers(
 // static
 Address ExternalCodeCompressionScheme::PrepareCageBaseAddress(
     Address on_heap_addr) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  return RoundDown<kMinExpectedOSPageSize>(on_heap_addr);
+#else   // !__CHERI_PURE_CAPABILITY__
   return RoundDown<kPtrComprCageBaseAlignment>(on_heap_addr);
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 // static
 Address ExternalCodeCompressionScheme::GetPtrComprCageBaseAddress(
     PtrComprCageBase cage_base) {
   Address base = cage_base.address();
+#if !defined(__CHERI_PURE_CAPABILITY__)
   V8_ASSUME((base & kPtrComprCageBaseMask) == base);
+#endif  // !__CHERI_PURE_CAPABILITY__
   base = reinterpret_cast<Address>(V8_ASSUME_ALIGNED(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      reinterpret_cast<void*>(base), kMinExpectedOSPageSize));
+#else   // !__CHERI_PURE_CAPABILITY__
       reinterpret_cast<void*>(base), kPtrComprCageBaseAlignment));
+#endif  // !__CHERI_PURE_CAPABILITY__
   return base;
 }
 
@@ -164,9 +174,17 @@ V8_CONST Address ExternalCodeCompressionScheme::base() {
   // V8_ASSUME_ALIGNED is often not preserved across ptr-to-int casts (i.e. when
   // casting to an Address). To increase our chances we additionally encode the
   // same information in this V8_ASSUME.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  V8_ASSUME((base & (kMinExpectedOSPageSize - 1)) == base);
+#else   // !__CHERI_PURE_CAPABILITY__
   V8_ASSUME((base & kPtrComprCageBaseMask) == base);
+#endif  // !__CHERI_PURE_CAPABILITY__
   return reinterpret_cast<Address>(V8_ASSUME_ALIGNED(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      reinterpret_cast<void*>(base), kMinExpectedOSPageSize));
+#else   // !__CHERI_PURE_CAPABILITY__
       reinterpret_cast<void*>(base), kPtrComprCageBaseAlignment));
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 // static
@@ -174,7 +192,11 @@ Tagged_t ExternalCodeCompressionScheme::CompressObject(Address tagged) {
   // This is used to help clang produce better code. Values which could be
   // invalid pointers need to be compressed with CompressAny.
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
+#if defined(__CHERI_PURE_CAPABILITY__)
+  V8_ASSUME((tagged & (kMinExpectedOSPageSize - 1)) == base() || HAS_SMI_TAG(tagged));
+#else   // !__CHERI_PURE_CAPABILITY__)
   V8_ASSUME((tagged & kPtrComprCageBaseMask) == base() || HAS_SMI_TAG(tagged));
+#endif  // !__CHERI_PURE_CAPABILITY__
 #endif
   return static_cast<Tagged_t>(static_cast<uint32_t>(tagged));
 }
@@ -200,8 +222,22 @@ Address ExternalCodeCompressionScheme::DecompressTagged(
 #else
   Address cage_base = GetPtrComprCageBaseAddress(on_heap_addr);
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+   size_t diff = static_cast<size_t>(static_cast<uint32_t>(raw_value)) -
+                 static_cast<size_t>(static_cast<uint32_t>(cage_base));
+   // The cage base value was chosen such that it's less or equal than any
+   // pointer in the cage, thus if we got a negative diff then it means that
+   // the decompressed value is off by 4GB.
+   if (static_cast<ssize_t>(diff) < 0) {
+     diff += size_t{4} * GB;
+   }
+   DCHECK(is_uint32(diff));
+   Address result = cage_base + diff;
+   DCHECK_EQ(static_cast<uint32_t>(result), raw_value);
+#else   // !__CHERI_PURE_CAPABILITY__
   Address result = cage_base + static_cast<Address>(raw_value);
   V8_ASSUME(static_cast<uint32_t>(result) == raw_value);
+#endif   // !__CHERI_PURE_CAPABILITY
   return result;
 }
 
