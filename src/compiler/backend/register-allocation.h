@@ -58,6 +58,12 @@ inline int ByteWidthForStackSlot(MachineRepresentation rep) {
     case MachineRepresentation::kWord32:
     case MachineRepresentation::kFloat32:
     case MachineRepresentation::kSandboxedPointer:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      [[fallthrough]];
+    case MachineRepresentation::kCapability32:
+      [[fallthrough]];
+    case MachineRepresentation::kCapability64:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
       return kSystemPointerSize;
     case MachineRepresentation::kTaggedSigned:
     case MachineRepresentation::kTaggedPointer:

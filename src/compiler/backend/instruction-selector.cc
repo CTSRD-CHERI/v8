@@ -2657,6 +2657,10 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsSimd256(node), VisitI16x16ExtMulI8x16S(node);
     case IrOpcode::kI16x16ExtMulI8x16U:
       return MarkAsSimd256(node), VisitI16x16ExtMulI8x16U(node);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case IrOpcode::kCapAdd:
+      return MarkAsCapability(node), VisitCapAdd(node);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #endif  //  V8_TARGET_ARCH_X64
     default:
       FATAL("Unexpected operator #%d:%s @ node #%d", node->opcode(),

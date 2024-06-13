@@ -13,6 +13,9 @@ bool InstructionScheduler::SchedulerSupported() { return true; }
 int InstructionScheduler::GetTargetInstructionFlags(
     const Instruction* instr) const {
   switch (instr->arch_opcode()) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64AddCap:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     case kArm64Add:
     case kArm64Add32:
     case kArm64And:
@@ -40,6 +43,9 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kArm64Eon32:
     case kArm64Sadalp:
     case kArm64Saddlp:
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64SubCap:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     case kArm64Sub:
     case kArm64Sub32:
     case kArm64Mul:
@@ -314,6 +320,9 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kArm64Ldrsw:
     case kArm64LdrW:
     case kArm64Ldr:
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64LdrCapability:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     case kArm64LdrDecompressTaggedSigned:
     case kArm64LdrDecompressTagged:
     case kArm64LdarDecompressTaggedSigned:
@@ -342,6 +351,9 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kArm64StrWPair:
     case kArm64Str:
     case kArm64StrPair:
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64StrCapability:
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     case kArm64StrCompressTagged:
     case kArm64StlrCompressTagged:
     case kArm64StrEncodeSandboxedPointer:

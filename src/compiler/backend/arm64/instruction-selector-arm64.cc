@@ -149,6 +149,13 @@ class Arm64OperandGenerator final : public OperandGenerator {
   bool CanBeLoadStoreShiftImmediate(Node* node, MachineRepresentation rep) {
     // TODO(arm64): Load and Store on 128 bit Q registers is not supported yet.
     DCHECK_GT(MachineRepresentation::kSimd128, rep);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    // TODO(gcjenkinson): Not too sure about this, needs further consideration.
+    if (rep == MachineRepresentation::kCapability64) {
+      return IsIntegerConstant(node) &&
+             (GetIntegerConstantValue(node) == 1 + ElementSizeLog2Of(rep));
+    }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     return IsIntegerConstant(node) &&
            (GetIntegerConstantValue(node) == ElementSizeLog2Of(rep));
   }
@@ -462,11 +469,17 @@ uint8_t GetBinopProperties(InstructionCode opcode) {
       break;
     case kArm64Add32:
     case kArm64Add:
+ #if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64AddCap:
+ #endif // defined(__CHERI_PURE_CAPABILITY__)
       result = CanCommuteField::update(result, true);
       result = IsAddSubField::update(result, true);
       break;
     case kArm64Sub32:
     case kArm64Sub:
+ #if defined(__CHERI_PURE_CAPABILITY__)
+    case kArm64SubCap:
+ #endif // defined(__CHERI_PURE_CAPABILITY__)
       result = IsAddSubField::update(result, true);
       break;
     case kArm64Tst32:
@@ -891,6 +904,12 @@ void InstructionSelector::VisitLoad(Node* node) {
       opcode = kArm64LdrQ;
       immediate_mode = kNoImmediate;
       break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case MachineRepresentation::kCapability64:
+      opcode = kArm64LdrCapability;
+      immediate_mode = kLoadStoreImm64;
+      break;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     case MachineRepresentation::kSimd256:  // Fall through.
     case MachineRepresentation::kMapWord:  // Fall through.
     case MachineRepresentation::kNone:
@@ -1037,6 +1056,12 @@ void InstructionSelector::VisitStore(Node* node) {
         opcode = kArm64StrQ;
         immediate_mode = kNoImmediate;
         break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability64:
+        opcode = kArm64StrCapability;
+        immediate_mode = kLoadStoreImm64;
+        break;
+#endif //defined( __CHERI_PURE_CAPABILITY__)
       case MachineRepresentation::kSimd256:  // Fall through.
       case MachineRepresentation::kMapWord:  // Fall through.
       case MachineRepresentation::kNone:
@@ -1756,6 +1781,22 @@ void InstructionSelector::VisitInt64Add(Node* node) {
   }
   VisitAddSub<Int64BinopMatcher>(this, node, kArm64Add, kArm64Sub);
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+void InstructionSelector::VisitCapAdd(Node* node) {
+  Arm64OperandGenerator g(this);
+  Int64BinopMatcher m(node);
+  if (m.right().HasResolvedValue() && (m.right().ResolvedValue() < 0) &&
+      (m.right().ResolvedValue() > std::numeric_limits<int>::min()) &&
+      g.CanBeImmediate(-m.right().ResolvedValue(), kArithmeticImm)) {
+    Emit(kArm64SubCap, g.DefineAsRegister(node),
+         g.UseRegister(m.left().node()),
+         g.TempImmediate(static_cast<int32_t>(-m.right().ResolvedValue())));
+  } else {
+    VisitBinop<Int64BinopMatcher>(this, node, kArm64AddCap, kArithmeticImm);
+  }
+}
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 void InstructionSelector::VisitInt32Sub(Node* node) {
   Arm64OperandGenerator g(this);

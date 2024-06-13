@@ -552,6 +552,9 @@ TNode<RawPtrT> CodeAssembler::LoadParentFramePointer() {
     return UncheckedCast<ResType>(raw_assembler()->name(a, b));              \
   }
 CODE_ASSEMBLER_BINARY_OP_LIST(DEFINE_CODE_ASSEMBLER_BINARY_OP)
+#if defined(__CHERI_PURE_CAPABILITY__)
+CODE_ASSEMBLER_PURECAP_BINARY_OP_LIST(DEFINE_CODE_ASSEMBLER_BINARY_OP)
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #undef DEFINE_CODE_ASSEMBLER_BINARY_OP
 
 TNode<WordT> CodeAssembler::WordShl(TNode<WordT> value, int shift) {

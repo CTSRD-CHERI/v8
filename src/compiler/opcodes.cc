@@ -18,6 +18,9 @@ namespace {
 char const* const kMnemonics[] = {
 #define DECLARE_MNEMONIC(x, ...) #x,
     ALL_OP_LIST(DECLARE_MNEMONIC)
+#if defined(__CHERI_PURE_CAPABILITY__)
+    PURECAP_OP_LIST(DECLARE_MNEMONIC)
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #undef DECLARE_MNEMONIC
         "UnknownOpcode"};
 

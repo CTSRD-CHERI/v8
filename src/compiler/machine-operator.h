@@ -1225,9 +1225,33 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
   // new_value_high, new_value_low
   const Operator* Word32AtomicPairCompareExchange();
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  const Operator* CapAdd();
+#endif // __CHERI_PURE_CAPABILITY__
+
   // Target machine word-size assumed by this builder.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // For CHERI the machine representation is twice the word size of the
+  // native architure.
+  bool Is32() const {
+    if (word() == MachineRepresentation::kCapability32) {
+      DCHECK(kSystemPointerSize == (2 * kSystemPointerAddrSize));
+      return kSystemPointerSize == sizeof(uint32_t) * 2;
+    } else {
+      return word() == MachineRepresentation::kWord32; }
+  }
+  bool Is64() const {
+    if (word() == MachineRepresentation::kCapability64) {
+      DCHECK(kSystemPointerSize == (2 * kSystemPointerAddrSize));
+      return kSystemPointerSize == sizeof(uint64_t) * 2;
+    } else {
+	return word() == MachineRepresentation::kWord64;
+    }
+  }
+#else // defined(__CHERI_PURE_CAPABILITY__)
   bool Is32() const { return word() == MachineRepresentation::kWord32; }
   bool Is64() const { return word() == MachineRepresentation::kWord64; }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   MachineRepresentation word() const { return word_; }
 
   bool UnalignedLoadSupported(MachineRepresentation rep) {

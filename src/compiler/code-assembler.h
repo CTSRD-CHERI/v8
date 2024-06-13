@@ -294,6 +294,11 @@ class CodeAssemblerParameterizedLabel;
   V(Word64Shr, Word64T, Word64T, Word64T)                               \
   V(Word64Sar, Word64T, Word64T, Word64T)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define CODE_ASSEMBLER_PURECAP_BINARY_OP_LIST(V)                        \
+  V(CapAdd, WordT, WordT, IntPtrT)
+#endif // defined(__CHERI_PURE_CAPABILITY__)
+
 TNode<Float64T> Float64Add(TNode<Float64T> a, TNode<Float64T> b);
 
 #define CODE_ASSEMBLER_UNARY_OP_LIST(V)                        \
@@ -882,6 +887,9 @@ class V8_EXPORT_PRIVATE CodeAssembler {
 #define DECLARE_CODE_ASSEMBLER_BINARY_OP(name, ResType, Arg1Type, Arg2Type) \
   TNode<ResType> name(TNode<Arg1Type> a, TNode<Arg2Type> b);
   CODE_ASSEMBLER_BINARY_OP_LIST(DECLARE_CODE_ASSEMBLER_BINARY_OP)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  CODE_ASSEMBLER_PURECAP_BINARY_OP_LIST(DECLARE_CODE_ASSEMBLER_BINARY_OP)
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #undef DECLARE_CODE_ASSEMBLER_BINARY_OP
 
   TNode<UintPtrT> WordShr(TNode<UintPtrT> left, TNode<IntegralT> right) {
