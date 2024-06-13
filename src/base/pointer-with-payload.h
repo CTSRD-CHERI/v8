@@ -72,7 +72,11 @@ class PointerWithPayload {
 
   V8_INLINE void Update(PointerType* new_pointer, PayloadType new_payload) {
     pointer_with_payload_ = reinterpret_cast<uintptr_t>(new_pointer) |
+#if defined(__CHERI_PURE_CAPABILITY__)
+                            static_cast<ptraddr_t>(new_payload);
+#else   // !__CHERI_PURE_CAPABILITY__
                             static_cast<uintptr_t>(new_payload);
+#endif  // !__CHERI_PURE_CAPABILITY__
     DCHECK_EQ(GetPayload(), new_payload);
     DCHECK_EQ(GetPointer(), new_pointer);
   }
@@ -80,7 +84,11 @@ class PointerWithPayload {
   V8_INLINE void SetPointer(PointerType* newptr) {
     DCHECK_EQ(reinterpret_cast<uintptr_t>(newptr) & kPayloadMask, 0);
     pointer_with_payload_ = reinterpret_cast<uintptr_t>(newptr) |
+#if defined(__CHERI_PURE_CAPABILITY__)
+                            static_cast<ptraddr_t>(pointer_with_payload_ & kPayloadMask);
+#else   // !__CHERI_PURE_CAPABILITY__
                             (pointer_with_payload_ & kPayloadMask);
+#endif  // !__CHERI_PURE_CAPABILITY__
     DCHECK_EQ(GetPointer(), newptr);
   }
 
@@ -89,7 +97,11 @@ class PointerWithPayload {
   }
 
   V8_INLINE void SetPayload(PayloadType new_payload) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    ptraddr_t new_payload_ptr = static_cast<ptraddr_t>(new_payload);
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t new_payload_ptr = static_cast<uintptr_t>(new_payload);
+#endif  // !__CHERI_PURE_CAPABILITY__
     DCHECK_EQ(new_payload_ptr & kPayloadMask, new_payload_ptr);
     pointer_with_payload_ =
         (pointer_with_payload_ & kPointerMask) | new_payload_ptr;
@@ -108,9 +120,9 @@ class PointerWithPayload {
       "bits manually.");
 
 #if defined(__CHERI_PURE_CAPABILITY__)
-  static constexpr size_t kPayloadMask =
+  static constexpr ptraddr_t kPayloadMask =
       (size_t{1} << NumPayloadBits) - 1;
-  static constexpr size_t kPointerMask = ~kPayloadMask;
+  static constexpr ptraddr_t kPointerMask = ~kPayloadMask;
 #else   // !__CHERI_PURE_CAPABILITY__
   static constexpr uintptr_t kPayloadMask =
       (uintptr_t{1} << NumPayloadBits) - 1;

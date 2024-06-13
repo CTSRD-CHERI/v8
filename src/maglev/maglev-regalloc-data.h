@@ -48,10 +48,17 @@ struct RegisterStateFlags {
   const bool is_initialized = false;
   const bool is_merge = false;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  explicit constexpr operator ptraddr_t() const {
+    return (is_initialized ? 1 << kIsInitializedShift : 0) |
+           (is_merge ? 1 << kIsMergeShift : 0);
+  }
+#else  // !__CHERI_PURE_CAPABILITY__
   explicit constexpr operator uintptr_t() const {
     return (is_initialized ? 1 << kIsInitializedShift : 0) |
            (is_merge ? 1 << kIsMergeShift : 0);
   }
+#endif  // !__CHERI_PURE_CAPABILITY__
   constexpr explicit RegisterStateFlags(uintptr_t state)
       : is_initialized((state & (1 << kIsInitializedShift)) != 0),
         is_merge((state & (1 << kIsMergeShift)) != 0) {}
