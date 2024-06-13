@@ -3637,6 +3637,8 @@ TNode<BigInt> CodeStubAssembler::AllocateRawBigInt(TNode<IntPtrT> length) {
   if (FIELD_SIZE(BigInt::kOptionalPaddingOffset) != 0) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     DCHECK_EQ(12, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
+#elif defined(__CHERI_PURE_CAPABILITY__) && defined(V8_COMPRESS_POINTERS)
+    DCHECK_EQ(8, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
 #else
     DCHECK_EQ(4, FIELD_SIZE(BigInt::kOptionalPaddingOffset));
 #endif
@@ -5057,7 +5059,11 @@ void CodeStubAssembler::FillFixedArrayWithSmiZero(ElementsKind kind,
       FixedArray::kHeaderSize - kHeapObjectTag;
   TNode<IntPtrT> offset =
       ElementOffsetFromIndex(start, kind, fa_base_data_offset);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  TNode<WordT> backing_store = CapAdd(BitcastTaggedToWord(array), offset);
+#else   // !__CHERI_PURE_CAPABILITY__
   TNode<IntPtrT> backing_store = IntPtrAdd(BitcastTaggedToWord(array), offset);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Call out to memset to perform initialization.
   TNode<ExternalReference> memset =
@@ -5092,7 +5098,11 @@ void CodeStubAssembler::FillFixedDoubleArrayWithZero(
       FixedDoubleArray::kHeaderSize - kHeapObjectTag;
   TNode<IntPtrT> offset = ElementOffsetFromIndex(start, PACKED_DOUBLE_ELEMENTS,
                                                  fa_base_data_offset);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  TNode<WordT> backing_store = CapAdd(BitcastTaggedToWord(array), offset);
+#else   // !__CHERI_PURE_CAPABILITY__
   TNode<IntPtrT> backing_store = IntPtrAdd(BitcastTaggedToWord(array), offset);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Call out to memset to perform initialization.
   TNode<ExternalReference> memset =

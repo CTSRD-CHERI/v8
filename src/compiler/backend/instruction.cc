@@ -283,6 +283,13 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& op) {
         case MachineRepresentation::kSandboxedPointer:
           os << "|sb";
           break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+        case MachineRepresentation::kCapability32:
+          [[fallthrough]];
+        case MachineRepresentation::kCapability64:
+          os << "|cap";
+          break;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
         case MachineRepresentation::kMapWord:
           UNREACHABLE();
       }

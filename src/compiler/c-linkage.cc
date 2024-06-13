@@ -58,10 +58,18 @@ namespace {
 // ===========================================================================
 // == arm64 ====================================================================
 // ===========================================================================
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define PARAM_REGISTERS c0, c1, c2, c3, c4, c5, c6, c7
+#else // defined(__CHERI_PURE_CAPABILITY__)
 #define PARAM_REGISTERS x0, x1, x2, x3, x4, x5, x6, x7
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 #define FP_PARAM_REGISTERS d0, d1, d2, d3, d4, d5, d6, d7
 #define FP_RETURN_REGISTER d0
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define CALLEE_SAVE_REGISTERS c19, c20, c21, c22, c23, c24, c25, c26, c27, c28
+#else // defined(__CHERI_PURE_CAPABILITY__)
 #define CALLEE_SAVE_REGISTERS x19, x20, x21, x22, x23, x24, x25, x26, x27, x28
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
 #define CALLEE_SAVE_FP_REGISTERS d8, d9, d10, d11, d12, d13, d14, d15
 

@@ -88,12 +88,8 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   }
   Node* IntPtrConstant(intptr_t value) {
     // TODO(dcarney): mark generated code as unserializable if value != 0.
-#ifdef __CHERI_PURE_CAPABILITY__
-    return kSystemPointerSize >= 8 ? Int64Constant(value)
-#else
-    return kSystemPointerSize == 8 ? Int64Constant(value)
-#endif
-                                   : Int32Constant(static_cast<int>(value));
+    return kSystemPointerAddrSize == 8 ? Int64Constant(value)
+                                       : Int32Constant(static_cast<int>(value));
   }
   Node* RelocatableIntPtrConstant(intptr_t value, RelocInfo::Mode rmode);
   Node* Int32Constant(int32_t value) {
@@ -601,19 +597,17 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
         value);
   }
 
-#ifdef __CHERI_PURE_CAPABILITY__
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Node* CapAdd(Node* a, Node* b) {
+    return AddNode(machine()->CapAdd(), a, b);
+  }
+#endif // defined(__CHERI_PURE_CAPABILITY__)
+
 #define INTPTR_BINOP(prefix, name)                           \
   Node* IntPtr##name(Node* a, Node* b) {                     \
-    return kSystemPointerSize >= 8 ? prefix##64##name(a, b)  \
-                                   : prefix##32##name(a, b); \
+    return kSystemPointerAddrSize == 8 ? prefix##64##name(a, b)  \
+                                       : prefix##32##name(a, b); \
   }
-#else
-#define INTPTR_BINOP(prefix, name)                           \
-  Node* IntPtr##name(Node* a, Node* b) {                     \
-    return kSystemPointerSize == 8 ? prefix##64##name(a, b)  \
-                                   : prefix##32##name(a, b); \
-  }
-#endif
 
   INTPTR_BINOP(Int, Add)
   INTPTR_BINOP(Int, AddWithOverflow)
@@ -633,19 +627,11 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
 
 #undef INTPTR_BINOP
 
-#ifdef __CHERI_PURE_CAPABILITY__
-#define UINTPTR_BINOP(prefix, name)                          \
-  Node* UintPtr##name(Node* a, Node* b) {                    \
-    return kSystemPointerSize >= 8 ? prefix##64##name(a, b)  \
-                                   : prefix##32##name(a, b); \
+#define UINTPTR_BINOP(prefix, name)                              \
+  Node* UintPtr##name(Node* a, Node* b) {                        \
+    return kSystemPointerAddrSize == 8 ? prefix##64##name(a, b)  \
+                                       : prefix##32##name(a, b); \
   }
-#else
-#define UINTPTR_BINOP(prefix, name)                          \
-  Node* UintPtr##name(Node* a, Node* b) {                    \
-    return kSystemPointerSize == 8 ? prefix##64##name(a, b)  \
-                                   : prefix##32##name(a, b); \
-  }
-#endif
 
   UINTPTR_BINOP(Uint, LessThan)
   UINTPTR_BINOP(Uint, LessThanOrEqual)
@@ -664,12 +650,8 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   }
 
   Node* IntPtrAbsWithOverflow(Node* a) {
-#ifdef __CHERI_PURE_CAPABILITY__
-    return kSystemPointerSize >= 8 ? Int64AbsWithOverflow(a)
-#else
-    return kSystemPointerSize == 8 ? Int64AbsWithOverflow(a)
-#endif
-                                   : Int32AbsWithOverflow(a);
+    return kSystemPointerAddrSize == 8 ? Int64AbsWithOverflow(a)
+                                       : Int32AbsWithOverflow(a);
   }
 
   Node* Float32Add(Node* a, Node* b) {
