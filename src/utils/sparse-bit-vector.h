@@ -19,14 +19,22 @@ class SparseBitVector : public ZoneObject {
   // 6 words for the bits plus {offset} plus {next} will be 8 machine words per
   // {Segment}. Most bit vectors are expected to fit in that single {Segment}.
   static constexpr int kNumWordsPerSegment = 6;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr int kBitsPerWord = kBitsPerByte * kSystemPointerAddrSize;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr int kBitsPerWord = kBitsPerByte * kSystemPointerSize;
+#endif  // !__CHERI_PURE_CAPABILITY__
   static constexpr int kNumBitsPerSegment = kBitsPerWord * kNumWordsPerSegment;
 
   struct Segment {
     // Offset of the first bit in this segment.
     int offset = 0;
     // {words} covers bits [{offset}, {offset + kNumBitsPerSegment}).
+#if defined(__CHERI_PURE_CAPABILITY__)
+    ptraddr_t words[kNumWordsPerSegment] = {0};
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t words[kNumWordsPerSegment] = {0};
+#endif  // !__CHERI_PURE_CAPABILITY__
     // The next segment (with strict larger offset), or {nullptr}.
     Segment* next = nullptr;
 
@@ -38,7 +46,11 @@ class SparseBitVector : public ZoneObject {
 
   // Check that {Segment}s are nicely aligned, for (hopefully) better cache line
   // alignment.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(Segment) == 8 * kSystemPointerAddrSize + kSystemPointerSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(sizeof(Segment) == 8 * kSystemPointerSize);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
  public:
   // An iterator to iterate all set bits.
@@ -83,9 +95,17 @@ class SparseBitVector : public ZoneObject {
       int word = bit_in_segment_ / kBitsPerWord;
       int bit_in_word = bit_in_segment_ % kBitsPerWord;
       if (bit_in_word < kBitsPerWord - 1) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+        ptraddr_t remaining_bits =
+#else   // !__CHERI_PURE_CAPABILITY__
         uintptr_t remaining_bits =
+#endif  // !__CHERI_PURE_CAPABILITY__
             segment_->words[word] &
+#if defined(__CHERI_PURE_CAPABILITY__)
+            (std::numeric_limits<ptraddr_t>::max() << (1 + bit_in_word));
+#else   // !__CHERI_PURE_CAPABILITY__
             (std::numeric_limits<uintptr_t>::max() << (1 + bit_in_word));
+#endif  // !__CHERI_PURE_CAPABILITY__
         if (remaining_bits) {
           int next_bit_in_word = base::bits::CountTrailingZeros(remaining_bits);
           DCHECK_LT(bit_in_word, next_bit_in_word);
@@ -183,7 +203,11 @@ class SparseBitVector : public ZoneObject {
       if (segment && segment->offset == other_segment->offset) {
         std::transform(std::begin(segment->words), std::end(segment->words),
                        std::begin(other_segment->words),
+#if defined(__CHERI_PURE_CAPABILITY__)
+                       std::begin(segment->words), std::bit_or<ptraddr_t>{});
+#else   // !__CHERI_PURE_CAPABILITY__
                        std::begin(segment->words), std::bit_or<uintptr_t>{});
+#endif  // !__CHERI_PURE_CAPABILITY__
       } else if (!other_segment->empty()) {
         DCHECK_LT(last->offset, other_segment->offset);
         Segment* new_segment = zone_->New<Segment>();
@@ -232,12 +256,20 @@ class SparseBitVector : public ZoneObject {
 
   static bool set(Segment* segment, int i) {
     auto [word, bit] = GetWordAndBitInWord(segment, i);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return segment->words[word] |= ptraddr_t{1} << bit;
+#else   // !__CHERI_PURE_CAPABILITY__
     return segment->words[word] |= uintptr_t{1} << bit;
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
 
   static bool unset(Segment* segment, int i) {
     auto [word, bit] = GetWordAndBitInWord(segment, i);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return segment->words[word] &= ~(ptraddr_t{1} << bit);
+#else   // !__CHERI_PURE_CAPABILITY__
     return segment->words[word] &= ~(uintptr_t{1} << bit);
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
 
   static void insert_after(Segment* segment, Segment* new_next) {

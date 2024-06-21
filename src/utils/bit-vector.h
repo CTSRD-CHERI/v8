@@ -21,7 +21,11 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
     V8_EXPORT_PRIVATE inline void operator++() {
       int bit_in_word = current_index_ & (kDataBits - 1);
       if (bit_in_word < kDataBits - 1) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+        ptraddr_t remaining_bits = *ptr_ >> (bit_in_word + 1);
+#else   // !__CHERI_PURE_CAPABILITY__
         uintptr_t remaining_bits = *ptr_ >> (bit_in_word + 1);
+#endif  // !__CHERI_PURE_CAPABILITY__
         if (remaining_bits) {
           int next_bit_in_word = base::bits::CountTrailingZeros(remaining_bits);
           current_index_ += next_bit_in_word + 1;
@@ -94,15 +98,25 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
 #ifdef DEBUG
     const BitVector* target_;
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+    ptraddr_t* ptr_;
+    ptraddr_t* end_;
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t* ptr_;
     uintptr_t* end_;
+#endif  // !__CHERI_PURE_CAPABILITY__
     int current_index_;
 
     friend class BitVector;
   };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr int kDataBits = kBitsPerSystemPointerAddr;
+  static constexpr int kDataBitShift = kBitsPerSystemPointerAddrLog2;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr int kDataBits = kBitsPerSystemPointer;
   static constexpr int kDataBitShift = kBitsPerSystemPointerLog2;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   BitVector() = default;
 
@@ -110,7 +124,11 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
     DCHECK_LE(0, length);
     int data_length = (length + kDataBits - 1) >> kDataBitShift;
     if (data_length > 1) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      data_.ptr_ = zone->NewArray<ptraddr_t>(data_length);
+#else   // !__CHERI_PURE_CAPABILITY__
       data_.ptr_ = zone->NewArray<uintptr_t>(data_length);
+#endif  // !__CHERI_PURE_CAPABILITY__
       std::fill_n(data_.ptr_, data_length, 0);
       data_begin_ = data_.ptr_;
       data_end_ = data_begin_ + data_length;
@@ -122,7 +140,11 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
     if (!other.is_inline()) {
       int data_length = other.data_length();
       DCHECK_LT(1, data_length);
+#if defined(__CHERI_PURE_CAPABILITY__)
+      data_.ptr_ = zone->NewArray<ptraddr_t>(data_length);
+#else   // !__CHERI_PURE_CAPABILITY__
       data_.ptr_ = zone->NewArray<uintptr_t>(data_length);
+#endif  // !__CHERI_PURE_CAPABILITY__
       data_begin_ = data_.ptr_;
       data_end_ = data_begin_ + data_length;
       std::copy_n(other.data_begin_, data_length, data_begin_);
@@ -141,7 +163,11 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
     DCHECK_LE(1, old_data_length);
     int new_data_length = (new_length + kDataBits - 1) >> kDataBitShift;
     if (new_data_length > old_data_length) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      ptraddr_t* new_data = zone->NewArray<ptraddr_t>(new_data_length);
+#else   // !__CHERI_PURE_CAPABILITY__
       uintptr_t* new_data = zone->NewArray<uintptr_t>(new_data_length);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
       // Copy over the data.
       std::copy_n(data_begin_, old_data_length, new_data);
@@ -245,8 +271,13 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
 
  private:
   union DataStorage {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    ptraddr_t* ptr_;    // valid if >1 machine word is needed
+    ptraddr_t inline_;  // valid if <=1 machine word is needed
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t* ptr_;    // valid if >1 machine word is needed
     uintptr_t inline_;  // valid if <=1 machine word is needed
+#endif  // !__CHERI_PURE_CAPABILITY__
 
     explicit DataStorage(uintptr_t value) : inline_(value) {}
   };
@@ -258,14 +289,25 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
     V8_ASSUME(index >= 0);
     return index >> kDataBitShift;
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  V8_INLINE static ptraddr_t bit(int index) {
+    return ptraddr_t{1} << (index & (kDataBits - 1));
+  }
+#else   // !__CHERI_PURE_CAPABILITY__
   V8_INLINE static uintptr_t bit(int index) {
     return uintptr_t{1} << (index & (kDataBits - 1));
   }
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   int length_ = 0;
   DataStorage data_{0};
+#if defined(__CHERI_PURE_CAPABILITY__)
+  ptraddr_t* data_begin_ = &data_.inline_;
+  ptraddr_t* data_end_ = &data_.inline_ + 1;
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t* data_begin_ = &data_.inline_;
   uintptr_t* data_end_ = &data_.inline_ + 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
 };
 
 class GrowableBitVector {
