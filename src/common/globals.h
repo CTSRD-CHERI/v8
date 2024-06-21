@@ -576,6 +576,10 @@ constexpr int kBitsPerByteLog2 = 3;
 constexpr int kBitsPerSystemPointer = kSystemPointerSize * kBitsPerByte;
 constexpr int kBitsPerSystemPointerLog2 =
     kSystemPointerSizeLog2 + kBitsPerByteLog2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr int kBitsPerSystemPointerAddr = kSystemPointerAddrSize * kBitsPerByte;
+constexpr int kBitsPerSystemPointerAddrLog2 = kSystemPointerAddrSizeLog2 + kBitsPerByteLog2;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr int kBitsPerInt = kIntSize * kBitsPerByte;
 
 // IEEE 754 single precision floating point number bit layout.
