@@ -1,0 +1,31 @@
+clang_use_chrome_plugins              = false
+is_clang                              = true
+is_component_build                    = true
+use_aura                              = true
+use_lld                               = true
+use_custom_libcxx                     = false
+
+# RelWithDebInfo equivalent
+is_debug                              = true
+v8_optimized_debug                    = true
+
+# We hit a lot of errors since we're compiling for ~unsupported platforms
+treat_warnings_as_errors              = false
+
+v8_use_snapshot                       = false
+v8_use_external_snapshot_data         = false
+
+# Disable WASM for now.
+v8_enable_webassembly                 = false
+
+# Compressed build
+v8_enable_pointer_compression         = true
+v8_enable_external_code_space         = true
+v8_enable_sandbox                     = true
+v8_enable_sandboxed_external_pointers = true
+
+# Needed because we don't use the wrapper on FreeBSD aarch64 builds.
+clang_base_path                       = "/usr/"
+extra_cxxflags                        = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64-unknown-freebsd"
+extra_cflags                          = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64-unknown-freebsd"
+
