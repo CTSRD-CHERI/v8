@@ -141,7 +141,7 @@ class JSArray : public TorqueGeneratedJSArray<JSArray, JSObject> {
   static const int kInitialMaxFastElementArray =
       (kMaxRegularHeapObjectSize - FixedArray::kHeaderSize - kHeaderSize -
        AllocationMemento::kSize) >>
-      kCapSizeLog2;
+      kSystemPointerSizeLog2;
 #else
   static const int kInitialMaxFastElementArray =
       (kMaxRegularHeapObjectSize - FixedArray::kHeaderSize - kHeaderSize -
