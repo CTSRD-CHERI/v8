@@ -137,6 +137,27 @@ struct SmiTagging<8> {
   }
 };
 
+// Smi constants for systems where tagged pointer is a 64-bit value and the
+// system pointer is a 128-bit value.
+template <>
+struct SmiTagging<16> {
+  enum { kSmiShiftSize = 31, kSmiValueSize = 32 };
+
+  static constexpr intptr_t kSmiMinValue =
+      static_cast<intptr_t>(kUintptrAllBitsSet << (kSmiValueSize - 1));
+  static constexpr intptr_t kSmiMaxValue = -(kSmiMinValue + 1);
+
+  V8_INLINE static int SmiToInt(const internal::Address value) {
+    int shift_bits = kSmiTagSize + kSmiShiftSize;
+    // Shift down and throw away top 32 bits.
+    return static_cast<int>(static_cast<intptr_t>(value) >> shift_bits);
+  }
+  V8_INLINE static constexpr bool IsValidSmi(intptr_t value) {
+    // To be representable as a long smi, the value must be a 32-bit integer.
+    return (value == static_cast<int32_t>(value));
+  }
+};
+
 #ifdef V8_COMPRESS_POINTERS
 // See v8:7703 or src/common/ptr-compr-inl.h for details about pointer
 // compression.
