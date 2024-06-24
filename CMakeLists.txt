@@ -12,9 +12,7 @@ find_package(
   COMPONENTS Interpreter
 )
 
-add_compile_definitions(NO_CHERI)
-
-if (NO_CHERI)
+if (NO_CHERI MATCHES "yes")
   message(STATUS "Configuring for non-CHERI")
 endif()
 
