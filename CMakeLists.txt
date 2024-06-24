@@ -29,8 +29,8 @@ file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/tools/clang)
 ExternalProject_Add(
   build
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/build
-  GIT_REPOSITORY https://chromium.googlesource.com/chromium/src/build.git
-  GIT_TAG        a56852668f892151fc97343b57af15e82db2e798
+  GIT_REPOSITORY https://github.com/chromium-cheri/build.git
+  GIT_TAG        1dc31f9c0094506d0a2b2d3f33afbda418bcdf73
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -39,7 +39,7 @@ ExternalProject_Add(
 ExternalProject_Add(
   buildtools 
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/buildtools
-  GIT_REPOSITORY https://chromium.googlesource.com/chromium/src/buildtools.git
+  GIT_REPOSITORY https://github.com/chromium-cheri/buildtools.git
   GIT_TAG        8b16338d17cd71b04a6ba28da7322ab6739892c2
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
@@ -50,7 +50,7 @@ ExternalProject_Add(
   clang 
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/tools/clang
   GIT_REPOSITORY https://chromium.googlesource.com/chromium/src/tools/clang.git
-  GIT_TAG        4e79fda976d9c3f12c8bfbec297bd27dd70a1343
+  GIT_TAG        4ee099ac1c0d6e86e53cedfdcfd7cd2d45e126ca
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -60,7 +60,7 @@ ExternalProject_Add(
   common 
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/base/trace_event/common
   GIT_REPOSITORY https://chromium.googlesource.com/chromium/src/base/trace_event/common.git
-  GIT_TAG        d115b033c4e53666b535cbd1985ffe60badad082
+  GIT_TAG        147f65333c38ddd1ebf554e89965c243c8ce50b3
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -80,7 +80,7 @@ ExternalProject_Add(
   icu 
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/third_party/icu
   GIT_REPOSITORY https://chromium.googlesource.com/chromium/deps/icu.git
-  GIT_TAG        bf58678f110d1d1fb8765627e5a35fdc2fbe1ff6 
+  GIT_TAG        a2961dc659b4ae847a9c6120718cc2517ee57d9e
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -89,45 +89,12 @@ ExternalProject_Add(
 ExternalProject_Add(
   zlib 
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/third_party/zlib
-  GIT_REPOSITORY https://chromium.googlesource.com/chromium/src/third_party/zlib.git
-  GIT_TAG        64bbf988543996eb8df9a86877b32917187eba8f
+  GIT_REPOSITORY https://github.com/chromium-cheri/zlib.git
+  GIT_TAG        05ca39ba1b282fc3ed9e5e3f0ebfadafaa25ef21
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
 )
-
-if (NO_CHERI)
-  ExternalProject_Add(
-    freebsd-ports
-    SOURCE_DIR     freebsd-ports
-    GIT_REPOSITORY https://github.com/freebsd/freebsd-ports.git
-    GIT_TAG        main
-    GIT_SHALLOW    true
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-  add_custom_target(apply-patches ALL
-    COMMAND find ${CMAKE_BINARY_DIR}/freebsd-ports/lang/v8/files -type f -name 'patch-*' -print0 | xargs -t -0 -n 1 patch -p0 -u -N -d ${CMAKE_SOURCE_DIR} -i || true)
-else()
-  ExternalProject_Add(
-    cheribsd-ports 
-    SOURCE_DIR     cheribsd-ports
-    GIT_REPOSITORY https://github.com/gcjenkinson/cheribsd-ports.git
-    GIT_TAG        v8_dependencies 
-    GIT_SHALLOW    true
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-  add_custom_target(apply-patches ALL
-    COMMAND find ${CMAKE_BINARY_DIR}/cheribsd-ports/lang/v8/files -type f -name 'patch-*' -print0 | xargs -t -0 -n 1 patch -p0 -u -N -d ${CMAKE_SOURCE_DIR} -i || true)
-endif()
-
-if (NOT NO_CHERI)
-  add_custom_target(apply-cheribsd-patche ALL
-    COMMAND patch -p0 -u -N -d ${CMAKE_SOURCE_DIR} < ${CMAKE_BINARY_DIR}/cheribsd-ports/lang/v8/files/cheribsd.patch || true)
-endif()
 
 add_custom_target(gcc-toolchain ALL
   COMMAND echo 'checkout_google_benchmark = false' > ${CMAKE_SOURCE_DIR}/build/config/gclient_args.gni)
