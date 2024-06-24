@@ -286,11 +286,11 @@ const size_t kShortBuiltinCallsOldSpaceSizeThreshold = size_t{2} * GB;
 // Determine whether tagged pointers are 8 bytes (used in Torque layouts for
 // choosing where to insert padding).
 #if V8_TARGET_ARCH_64_BIT && !defined(V8_COMPRESS_POINTERS)
-#if defined(V8_HOST_CHERI_PURE_CAPABILITY)
+#if defined(__CHERI_PURE_CAPABILITY__)
 #define TAGGED_SIZE_8_BYTES false
 #else
 #define TAGGED_SIZE_8_BYTES true
-#endif
+#endif // __CHERI_PURE_CAPABILITY__
 #else
 #define TAGGED_SIZE_8_BYTES false
 #endif
@@ -380,7 +380,7 @@ constexpr int kSystemPointerSize = sizeof(void*);
 constexpr int kSystemPointerHexDigits = kSystemPointerSize == 4 ? 8 : 12;
 #if defined(__CHERI_PURE_CAPABILITY__)
 constexpr int kSystemPointerAddrSize = sizeof(ptraddr_t);
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr int kPCOnStackSize = kSystemPointerSize;
 constexpr int kFPOnStackSize = kSystemPointerSize;
 
@@ -425,12 +425,14 @@ constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 32;
 // big reservations, and to ensure that distances within a code space fit
 // within a 32-bit signed integer.
 constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 1024;
+#endif
+
 #if V8_HOST_ARCH_64_BIT
 #if defined(__CHERI_PURE_CAPABILITY__)
 constexpr int kSystemPointerSizeLog2 = 4;
 #else // !__CHERI_PURE_CAPABILITY__
 constexpr int kSystemPointerSizeLog2 = 3;
-#endif // !__CHERI_PURE_CAPABILITY__
+#endif // __CHERI_PURE_CAPABILITY__
 constexpr int kPtrAddrSizeLog2 = 3;
 constexpr int kSystemPointerAddrSizeLog2 = 3;
 constexpr intptr_t kIntptrSignBit =
@@ -504,7 +506,7 @@ static_assert(
     kSystemPointerAddrSize == kInt64Size,
 #else    // !__CHERI_PURE_CAPABILITY__
     kSystemPointerSize == kInt64Size,
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
     "Pointer compression can be enabled only for 64-bit architectures");
 
 constexpr int kTaggedSize = kInt32Size;
@@ -528,7 +530,7 @@ using Tagged_t = Address;
 using AtomicTagged_t = base::AtomicIntPtr;
 #else
 using AtomicTagged_t = base::AtomicWord;
-#endif
+#endif // __CHERI_PURE_CAPABILITY__
 
 #endif  // V8_COMPRESS_POINTERS
 
@@ -802,7 +804,7 @@ constexpr size_t kObjectAlignmentMask = kObjectAlignment - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kObjectAlignment = 1 << kObjectAlignmentBits;
 constexpr intptr_t kObjectAlignmentMask = kObjectAlignment - 1;
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 
 // Object alignment for 8GB pointer compressed heap.
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -811,7 +813,7 @@ constexpr size_t kObjectAlignment8GbHeapMask = kObjectAlignment8GbHeap - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kObjectAlignment8GbHeap = 8;
 constexpr intptr_t kObjectAlignment8GbHeapMask = kObjectAlignment8GbHeap - 1;
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 
 #ifdef V8_COMPRESS_POINTERS_8GB
 static_assert(
@@ -827,7 +829,7 @@ constexpr size_t kPointerAlignmentMask = kPointerAlignment - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kPointerAlignment = (1 << kSystemPointerSizeLog2);
 constexpr intptr_t kPointerAlignmentMask = kPointerAlignment - 1;
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 
 // Desired alignment for double values.
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -836,7 +838,7 @@ constexpr size_t kDoubleAlignmentMask = kDoubleAlignment - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kDoubleAlignment = 8;
 constexpr intptr_t kDoubleAlignmentMask = kDoubleAlignment - 1;
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 
 // Desired alignment for generated code is 64 bytes on x64 (to allow 64-bytes
 // loop header alignment) and 32 bytes (to improve cache line utilization) on
@@ -856,13 +858,13 @@ constexpr size_t kCodeAlignmentMask = kCodeAlignment - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 constexpr intptr_t kCodeAlignment = 1 << kCodeAlignmentBits;
 constexpr intptr_t kCodeAlignmentMask = kCodeAlignment - 1;
-#endif   // !__CHERI_PURE_CAPABILITY__
+#endif   // __CHERI_PURE_CAPABILITY__
 
 #if defined(__CHERI_PURE_CAPABILITY__)
 const ptraddr_t kWeakHeapObjectMask = 1 << 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 const Address kWeakHeapObjectMask = 1 << 1;
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
 
 // The lower 32 bits of the cleared weak reference value is always equal to
 // the |kClearedWeakHeapObjectLower32| constant but on 64-bit architectures
@@ -908,7 +910,7 @@ constexpr uint32_t kPhantomReferenceZap = 0xca11bac;
 static const ptraddr_t kPageAlignmentMask = (intptr_t{1} << kPageSizeBits) - 1;
 #else   // !__CHERI_PURE_CAPABILITY__
 static const intptr_t kPageAlignmentMask = (intptr_t{1} << kPageSizeBits) - 1;
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
 
 // On Intel architecture, cache line size is 64 bytes.
 // On ARM it may be less (32 bytes), but as far this constant is
@@ -1404,6 +1406,7 @@ constexpr int kIeeeDoubleExponentWordOffset = 0;
 // OBJECT_POINTER_ALIGN returns the value aligned as a HeapObject pointer
 #define OBJECT_POINTER_ALIGN(value) \
   (((value) + ::i::kObjectAlignmentMask) & ~::i::kObjectAlignmentMask)
+#endif
 
 // OBJECT_POINTER_ALIGN is used to statically align object sizes to
 // kObjectAlignment (which is kTaggedSize). ALIGN_TO_ALLOCATION_ALIGNMENT is
