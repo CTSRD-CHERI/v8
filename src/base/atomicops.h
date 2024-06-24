@@ -65,6 +65,7 @@ using Atomic64 = int64_t;
 #else
 using Atomic64 = intptr_t;
 #endif  // defined(__ILP32__)
+using AtomicIntPtr = intptr_t;
 #endif  // defined(V8_HOST_ARCH_64_BIT)
 #endif  // V8_OS_STARBOARD
 
