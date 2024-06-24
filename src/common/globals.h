@@ -846,6 +846,10 @@ constexpr int kCodeAlignmentBits = 6;
 // 64 byte alignment is needed on ppc64 to make sure p10 prefixed instructions
 // don't cross 64-byte boundaries.
 constexpr int kCodeAlignmentBits = 6;
+#elif defined(__CHERI_PURE_CAPABILITY__)
+// 64-byte alignment is needed of CHERI due to HeapObject's header being 64
+// bytes.
+constexpr int kCodeAlignmentBits = 6;
 #else
 constexpr int kCodeAlignmentBits = 5;
 #endif

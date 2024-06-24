@@ -64,6 +64,11 @@ void PlatformEmbeddedFileWriterMac::AlignToCodeAlignment() {
   // ARM64 macOS has a 16kiB page size. Since we want to remap it on the heap,
   // needs to be page-aligned.
   fprintf(fp_, ".balign 16384\n");
+#elif defined(__CHERI_PURE_CAPABILITY__)
+  // 64 byte alignment is needed on CHERI because HeapObject header size is 64
+  // bytes.
+  static_assert(64 >= kCodeAlignment);
+  fprintf(fp_, ".balign 64\n");
 #else
   static_assert(32 >= kCodeAlignment);
   fprintf(fp_, ".balign 32\n");

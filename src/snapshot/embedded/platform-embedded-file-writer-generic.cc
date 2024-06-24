@@ -75,6 +75,11 @@ void PlatformEmbeddedFileWriterGeneric::AlignToCodeAlignment() {
   // don't cross 64-byte boundaries.
   static_assert(64 >= kCodeAlignment);
   fprintf(fp_, ".balign 64\n");
+#elif defined(__CHERI_PURE_CAPABILITY__)
+  // 64 byte alignment is needed on CHERI because HeapObject header size is 64
+  // bytes.
+  static_assert(64 >= kCodeAlignment);
+  fprintf(fp_, ".balign 64\n");
 #else
   static_assert(32 >= kCodeAlignment);
   fprintf(fp_, ".balign 32\n");
