@@ -88,7 +88,11 @@ class FixedArrayBase
   // -kTaggedSize is here to ensure that this max size always fits into Smi
   // which is necessary for being able to create a free space filler for the
   // whole array of kMaxSize.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kMaxSize = 64 * kTaggedSize * MB - kTaggedSize;
+#else
   static const int kMaxSize = 128 * kTaggedSize * MB - kTaggedSize;
+#endif
   static_assert(Smi::IsValid(kMaxSize));
 
  protected:
