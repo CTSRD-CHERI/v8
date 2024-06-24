@@ -109,7 +109,7 @@ file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/shim_headers/icui18n_shi
 file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/shim_headers/icuuc_shim/third_party/icu/source/common/unicode)
 file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/include)
 
-if (NO_CHERI)
+if (NO_CHERI MATCHES "yes")
   add_custom_target(cp-icu ALL
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND cp -R /usr/local/include/unicode ${CMAKE_SOURCE_DIR}/out/Release/gen/include/unicode)
@@ -119,6 +119,32 @@ else()
     COMMAND cp -R /usr/local64/include/unicode ${CMAKE_SOURCE_DIR}/out/Release/gen/include/unicode)
 endif()
 
+if (NO_CHERI MATCHES "yes")
+  if (UNCOMPRESSED MATCHES "yes")
+    set(V8_TARGET_DIRECTORY out/flat.uncompressed.release)
+    set(V8_GN_FILE cheri/flat-uncompressed.gn)
+  else()
+    set(V8_TARGET_DIRECTORY out/flat.compressed.release)
+    set(V8_GN_FILE cheri/flat-compressed.gn)
+  endif()
+else()
+  if (UNCOMPRESSED MATCHES "yes")
+    set(V8_TARGET_DIRECTORY out/cheri.uncompressed.release)
+    set(V8_GN_FILE cheri/cheri-uncompressed.gn)
+  else()
+    set(V8_TARGET_DIRECTORY out/cheri.compressed.release)
+    set(V8_GN_FILE cheri/cheri-compressed.gn)
+  endif()
+endif()
+
+add_custom_target(mkdir-target ALL
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND mkdir -p ${V8_TARGET_DIRECTORY})
+
+add_custom_target(cp-gn-file ALL
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND cp ${V8_GN_FILE} ${V8_TARGET_DIRECTORY}/args.gn)
+
 add_custom_target(generate-ninja ALL
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMAND gn gen out/Release)
+  COMMAND gn gen ${V8_TARGET_DIRECTORY})
