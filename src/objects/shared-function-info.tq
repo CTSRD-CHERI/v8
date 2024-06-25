@@ -80,7 +80,9 @@ extern class SharedFunctionInfo extends HeapObject {
   // even if the GC moves this SharedFunctionInfo.
   @if(V8_SFI_HAS_UNIQUE_ID) unique_id: int32;
 
-  @if(V8_SFI_NEEDS_PADDING) optional_padding: uint32;
+  // FIXME(cheri): This is probably going to trip up an assertion on
+  // flat memory architectures.
+  @if(V8_SFI_NEEDS_PADDING) optional_padding: uintptr;
   @ifnot(V8_SFI_NEEDS_PADDING) optional_padding: void;
 }
 
