@@ -257,7 +257,7 @@ void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
   cselc(cd, czr, cd, cond);
 }
 
-void TurboAssembler::Gcvalue(const Register& cs, const Register& rd) {
+void MacroAssembler::Gcvalue(const Register& cs, const Register& rd) {
   DCHECK(allow_macro_instructions());
   DCHECK(cs.Is128Bits());
   DCHECK(rd.Is64Bits());
@@ -1353,6 +1353,7 @@ void MacroAssembler::SmiUntag(Register dst, Register src) {
     }
 #else
     Asr(dst, src, kSmiShift);
+#endif
   }
 }
 
