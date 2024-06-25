@@ -836,8 +836,13 @@ class FailingPageAllocator : public v8::PageAllocator {
   void SetRandomMmapSeed(int64_t seed) override {}
   void* GetRandomMmapAddr() override { return nullptr; }
   void* AllocatePages(void* address, size_t length, size_t alignment,
-                      Permission permissions) override {
-    return nullptr;
+#if defined(__CHERI_PURE_CAPABILITY__)
+                      Permission permission,
+                      Permission max_permission) override{
+#else
+                      Permission permission) override {
+#endif
+      return nullptr;
   }
   bool FreePages(void* address, size_t length) override { return false; }
   bool ReleasePages(void* address, size_t length, size_t new_length) override {
