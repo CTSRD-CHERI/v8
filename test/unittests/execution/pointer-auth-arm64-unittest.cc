@@ -27,6 +27,7 @@ namespace internal {
 
 namespace {
 Address SignPCForTesting(Isolate* isolate, Address pc, Address sp) {
+#ifndef __CHERI_PURE_CAPABILITY__
   if constexpr (!ENABLE_CONTROL_FLOW_INTEGRITY_BOOL) return pc;
 
 #ifdef USE_SIMULATOR
@@ -42,6 +43,7 @@ Address SignPCForTesting(Isolate* isolate, Address pc, Address sp) {
       : [sp] "r"(sp)
       : "x16", "x17");
 #endif
+#endif // !__CHERI_PURE_CAPABILITY__
   return pc;
 }
 
