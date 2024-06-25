@@ -119,7 +119,11 @@ TEST(AsAtomic8, CompareAndSwap_Concurrent) {
 }
 
 TEST(AsAtomicWord, SetBits_Sequential) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t word = 0;
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t word = 0;
+#endif  // !__CHERI_PURE_CAPABILITY__
   // Fill the word with a repeated 0xF0 pattern.
   for (unsigned i = 0; i < sizeof(word); i++) {
     word = (word << 8) | 0xF0;
@@ -129,9 +133,17 @@ TEST(AsAtomicWord, SetBits_Sequential) {
     EXPECT_EQ(0xF0u, (word >> (i * 8) & 0xFFu));
   }
   // Set the i-th byte value to i.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t mask = 0xFF;
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t mask = 0xFF;
+#endif  // !__CHERI_PURE_CAPABILITY__
   for (unsigned i = 0; i < sizeof(word); i++) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    size_t byte = static_cast<uintptr_t>(i) << (i * 8);
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t byte = static_cast<uintptr_t>(i) << (i * 8);
+#endif  // !__CHERI_PURE_CAPABILITY__
     AsAtomicWord::SetBits(&word, byte, mask);
     mask <<= 8;
   }
@@ -149,19 +161,31 @@ class BitSettingThread final : public Thread {
         word_addr_(nullptr),
         bit_index_(0) {}
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  void Initialize(size_t* word_addr, int bit_index) {
+#else   // !__CHERI_PURE_CAPABILITY__
   void Initialize(uintptr_t* word_addr, int bit_index) {
+#endif  // !__CHERI_PURE_CAPABILITY__
     word_addr_ = word_addr;
     bit_index_ = bit_index;
   }
 
   void Run() override {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    size_t bit = 1;
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t bit = 1;
+#endif  // !__CHERI_PURE_CAPABILITY__
     bit = bit << bit_index_;
     AsAtomicWord::SetBits(word_addr_, bit, bit);
   }
 
  private:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t* word_addr_;
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t* word_addr_;
+#endif  // !__CHERI_PURE_CAPABILITY__
   int bit_index_;
 };
 
@@ -172,7 +196,11 @@ TEST(AsAtomicWord, SetBits_Concurrent) {
   const int kThreadCount = kBitCount / 2;
   BitSettingThread threads[kThreadCount];
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t word;
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t word;
+#endif  // !__CHERI_PURE_CAPABILITY__
   AsAtomicWord::Relaxed_Store(&word, 0);
   for (int i = 0; i < kThreadCount; i++) {
     // Thread i sets bit number i * 2.
@@ -184,10 +212,18 @@ TEST(AsAtomicWord, SetBits_Concurrent) {
   for (int i = 0; i < kThreadCount; i++) {
     threads[i].Join();
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  size_t actual_word = AsAtomicWord::Relaxed_Load(&word);
+#else   // !__CHERI_PURE_CAPABILITY__
   uintptr_t actual_word = AsAtomicWord::Relaxed_Load(&word);
+#endif  // !__CHERI_PURE_CAPABILITY__
   for (int i = 0; i < kBitCount; i++) {
     // Every second bit must be set.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    size_t expected = (i % 2 == 0);
+#else   // !__CHERI_PURE_CAPABILITY__
     uintptr_t expected = (i % 2 == 0);
+#endif  // !__CHERI_PURE_CAPABILITY__
     EXPECT_EQ(expected, actual_word & 1u);
     actual_word >>= 1;
   }

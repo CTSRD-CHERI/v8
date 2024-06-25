@@ -152,7 +152,12 @@ TEST_F(PointerAuthArm64Test, ReplacePCAfterGC) {
   // page that was reclaimed after a GC.
   Address pc = reinterpret_cast<Address>(v8::internal::AllocatePages(
       page_allocator, page_allocator->GetRandomMmapAddr(), page_size, page_size,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      PageAllocator::Permission::kReadWrite,
       PageAllocator::Permission::kReadWrite));
+#else   // !__CHERI_PURE_CAPABILITY__
+      PageAllocator::Permission::kReadWrite));
+#endif  // !__CHERI_PURE_CAPABILITY__
   CHECK(SetPermissions(page_allocator, pc, page_size,
                        PageAllocator::Permission::kNoAccess));
 

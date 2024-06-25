@@ -45,9 +45,18 @@ class TrackingPageAllocator : public ::v8::PageAllocator {
   }
 
   void* AllocatePages(void* address, size_t size, size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                      PageAllocator::Permission access,
+                      PageAllocator::Permission max_access) override {
+#else   // !__CHERI_PURE_CAPABILITY__
                       PageAllocator::Permission access) override {
+#endif  // !__CHERI_PURE_CAPABILITY__
     void* result =
+#if defined(__CHERI_PURE_CAPABILITY__)
+        page_allocator_->AllocatePages(address, size, alignment, access, max_access);
+#else   // !__CHERI_PURE_CAPABILITY__
         page_allocator_->AllocatePages(address, size, alignment, access);
+#endif  // !__CHERI_PURE_CAPABILITY__
     if (result) {
       // Mark pages as used.
       Address current_page = reinterpret_cast<Address>(result);
