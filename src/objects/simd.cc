@@ -164,7 +164,7 @@ inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
 #ifdef __CHERI_PURE_CAPABILITY__
   // We don't really support this on CHERI yet.
   return slow_search(array, array_len, index, search_element);
-#endif
+#else // !__CHERI_PURE_CAPABILITY__
   static constexpr bool is_uint32 =
       sizeof(T) == sizeof(uint32_t) && std::is_integral<T>::value;
   static constexpr bool is_uint64 =
@@ -240,6 +240,7 @@ inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
   // to fill a vector register. The slow_search function will take care of
   // iterating through the few remaining items.
   return slow_search(array, array_len, index, search_element);
+#endif // __CHERI_PURE_CAPABILITY__
 }
 
 #if defined(_MSC_VER) && defined(__clang__)
