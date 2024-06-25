@@ -20,6 +20,7 @@ namespace internal {
 // offset between {pc_address} and the pointer used as a context for signing.
 V8_INLINE Address PointerAuthentication::AuthenticatePC(
     Address* pc_address, unsigned offset_from_sp) {
+#ifndef __CHERI_PURE_CAPABILITY__
   uint64_t sp = reinterpret_cast<uint64_t>(pc_address) + offset_from_sp;
   uint64_t pc = static_cast<uint64_t>(*pc_address);
 #ifdef USE_SIMULATOR
@@ -47,10 +48,14 @@ V8_INLINE Address PointerAuthentication::AuthenticatePC(
       : "x16", "x17", "x30");
 #endif
   return pc;
+#else // __CHERI_PURE_CAPABILITY__
+  return static_cast<uint64_t>(*pc_address);
+#endif // !__CHERI_PURE_CAPABILITY__
 }
 
 // Strip Pointer Authentication Code (PAC) from {pc} and return the raw value.
 V8_INLINE Address PointerAuthentication::StripPAC(Address pc) {
+#ifndef __CHERI_PURE_CAPABILITY__
 #ifdef USE_SIMULATOR
   return Simulator::StripPAC(pc, Simulator::kInstructionPointer);
 #else
@@ -67,6 +72,8 @@ V8_INLINE Address PointerAuthentication::StripPAC(Address pc) {
       : "x16", "x30");
   return pc;
 #endif
+#endif // !__CHERI_PURE_CAPABILITY__
+  return pc;
 }
 
 // Authenticate the address stored in {pc_address} and replace it with
@@ -75,6 +82,7 @@ V8_INLINE Address PointerAuthentication::StripPAC(Address pc) {
 V8_INLINE void PointerAuthentication::ReplacePC(Address* pc_address,
                                                 Address new_pc,
                                                 int offset_from_sp) {
+#ifndef __CHERI_PURE_CAPABILITY__
   uint64_t sp = reinterpret_cast<uint64_t>(pc_address) + offset_from_sp;
   uint64_t old_pc = static_cast<uint64_t>(*pc_address);
 #ifdef USE_SIMULATOR
@@ -112,6 +120,7 @@ V8_INLINE void PointerAuthentication::ReplacePC(Address* pc_address,
       : "x16", "x17", "x30");
 #endif
   *pc_address = new_pc;
+#endif // !__CHERI_PURE_CAPABILITY__
 }
 
 
@@ -119,6 +128,7 @@ V8_INLINE void PointerAuthentication::ReplacePC(Address* pc_address,
 V8_INLINE Address PointerAuthentication::SignAndCheckPC(Isolate* isolate,
                                                         Address pc,
                                                         Address sp) {
+#ifndef __CHERI_PURE_CAPABILITY__
 #ifdef USE_SIMULATOR
   pc = Simulator::AddPAC(pc, sp, Simulator::kPACKeyIB,
                          Simulator::kInstructionPointer);
@@ -134,6 +144,7 @@ V8_INLINE Address PointerAuthentication::SignAndCheckPC(Isolate* isolate,
 #endif
   CHECK(Deoptimizer::IsValidReturnAddress(PointerAuthentication::StripPAC(pc),
                                           isolate));
+#endif // !__CHERI_PURE_CAPABILITY__
   return pc;
 }
 
