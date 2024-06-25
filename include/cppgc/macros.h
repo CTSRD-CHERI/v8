@@ -23,8 +23,12 @@ namespace cppgc {
   void* operator new(size_t) = delete;                 \
   void* operator new(size_t, void*) = delete;          \
   static_assert(true, "Force semicolon.")
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define CPPGC_STACK_ALLOCATED_IGNORE(bug_or_reason)
+#else   // !__CHERI_PURE_CAPABILITY__
 #define CPPGC_STACK_ALLOCATED_IGNORE(bug_or_reason) \
   __attribute__((annotate("stack_allocated_ignore")))
+#endif  // !__CHERI_PURE_CAPABILITY__
 #else  // !defined(__clang__)
 #define CPPGC_STACK_ALLOCATED() static_assert(true, "Force semicolon.")
 #define CPPGC_STACK_ALLOCATED_IGNORE(bug_or_reason)

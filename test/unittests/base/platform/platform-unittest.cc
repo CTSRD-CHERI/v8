@@ -65,7 +65,12 @@ TEST(OS, RemapPages) {
     // Target mapping.
     void* remapped_data =
         OS::Allocate(nullptr, size, base::OS::AllocatePageSize(),
+#if defined(__CHERI_PURE_CAPABILITY__)
+                     OS::MemoryPermission::kReadWrite,
                      OS::MemoryPermission::kReadWrite);
+#else   // !__CHERI_PURE_CAPABILITY__
+                     OS::MemoryPermission::kReadWrite);
+#endif  // !__CHERI_PURE_CAPABILITY__
     ASSERT_TRUE(remapped_data);
 
     EXPECT_TRUE(OS::RemapPages(data, size, remapped_data,

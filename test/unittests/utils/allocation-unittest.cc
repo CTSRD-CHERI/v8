@@ -101,7 +101,12 @@ class MemoryAllocationPermissionsTest : public TestWithPlatform {
         v8::internal::GetPlatformPageAllocator();
     const size_t page_size = page_allocator->AllocatePageSize();
     int* buffer = static_cast<int*>(AllocatePages(
+#if defined(__CHERI_PURE_CAPABILITY__)
+        page_allocator, nullptr, page_size, page_size, permission,
+        permission));
+#else   // !__CHERI_PURE_CAPABILITY__
         page_allocator, nullptr, page_size, page_size, permission));
+#endif  // !__CHERI_PURE_CAPABILITY__
     ProbeMemory(buffer, MemoryAction::kRead, can_read);
     ProbeMemory(buffer, MemoryAction::kWrite, can_write);
     FreePages(page_allocator, buffer, page_size);
@@ -141,7 +146,12 @@ TEST_F(AllocationTest, AllocateAndFree) {
   const size_t kAllocationSize = 1 * v8::internal::MB;
   void* mem_addr = v8::internal::AllocatePages(
       page_allocator, page_allocator->GetRandomMmapAddr(), kAllocationSize,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      page_size, PageAllocator::Permission::kReadWrite,
+      PageAllocator::Permission::kReadWrite);
+#else   // !__CHERI_PURE_CAPABILITY__
       page_size, PageAllocator::Permission::kReadWrite);
+#endif  // !__CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(mem_addr);
   v8::internal::FreePages(page_allocator, mem_addr, kAllocationSize);
 
@@ -150,7 +160,12 @@ TEST_F(AllocationTest, AllocateAndFree) {
   void* aligned_mem_addr = v8::internal::AllocatePages(
       page_allocator,
       AlignedAddress(page_allocator->GetRandomMmapAddr(), kBigAlignment),
+#if defined(__CHERI_PURE_CAPABILITY__)
+      kAllocationSize, kBigAlignment, PageAllocator::Permission::kReadWrite,
+      PageAllocator::Permission::kReadWrite);
+#else   // !__CHERI_PURE_CAPABILITY__
       kAllocationSize, kBigAlignment, PageAllocator::Permission::kReadWrite);
+#endif  // !__CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(aligned_mem_addr);
   CHECK_EQ(aligned_mem_addr, AlignedAddress(aligned_mem_addr, kBigAlignment));
   v8::internal::FreePages(page_allocator, aligned_mem_addr, kAllocationSize);
@@ -162,7 +177,12 @@ TEST_F(AllocationTest, ReserveMemory) {
   const size_t kAllocationSize = 1 * v8::internal::MB;
   void* mem_addr = v8::internal::AllocatePages(
       page_allocator, page_allocator->GetRandomMmapAddr(), kAllocationSize,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      page_size, PageAllocator::Permission::kReadWrite,
+      PageAllocator::Permission::kReadWrite);
+#else   // !__CHERI_PURE_CAPABILITY__
       page_size, PageAllocator::Permission::kReadWrite);
+#endif  // !__CHERI_PURE_CAPABILITY__
   CHECK_NE(0, page_size);
   CHECK_NOT_NULL(mem_addr);
   size_t commit_size = page_allocator->CommitPageSize();

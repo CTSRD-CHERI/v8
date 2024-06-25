@@ -24,7 +24,12 @@ class PageWithBitmap final {
   PageWithBitmap()
       : base_(allocator_.AllocatePages(
             nullptr, kPageSize, kPageSize,
+#if defined(__CHERI_PURE_CAPABILITY__)
+            v8::base::PageAllocator::Permission::kReadWrite,
             v8::base::PageAllocator::Permission::kReadWrite)),
+#else   // !__CHERI_PURE_CAPABILITY__
+            v8::base::PageAllocator::Permission::kReadWrite)),
+#endif  // !__CHERI_PURE_CAPABILITY__
         bitmap_(new(base_) ObjectStartBitmap) {}
 
   PageWithBitmap(const PageWithBitmap&) = delete;
