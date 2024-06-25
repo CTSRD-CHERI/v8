@@ -28,3 +28,4 @@ v8_enable_sandboxed_external_pointers = false
 clang_base_path                       = "/usr/local64"
 extra_cxxflags                        = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
 extra_cflags                          = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
+extra_ldflags                         = "-mabi=purecap"
