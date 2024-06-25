@@ -355,6 +355,8 @@ class TypeOracle : public base::ContextualClass<TypeOracle> {
     return Get().GetBuiltinType(FIXED_ARRAY_BASE_TYPE_STRING);
   }
 
+  static bool IsCapability(const Type* field_type);
+
   static base::Optional<const Type*> ImplicitlyConvertableFrom(
       const Type* to, const Type* from) {
     while (from != nullptr) {

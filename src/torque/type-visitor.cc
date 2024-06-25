@@ -125,7 +125,7 @@ void DeclareMethods(AggregateType* container_type,
   }
 }
 
-bool IsCapability(const Type* field_type) {
+bool TypeOracle::IsCapability(const Type* field_type) {
 #if defined(__CHERI_PURE_CAPABILITY__)
   if (field_type->IsSubtypeOf(TypeOracle::GetRawPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetIntPtrType()) ||
@@ -140,7 +140,7 @@ bool IsCapability(const Type* field_type) {
     const std::vector<Field>& fields = aggregate_type->fields();
     if (fields.size() == 0) return false;
     const Field& first_field = fields[0];
-    return IsCapability(first_field.name_and_type.type);
+    return TypeOracle::IsCapability(first_field.name_and_type.type);
   }
 #endif
   return false;
@@ -242,7 +242,7 @@ const StructType* TypeVisitor::ComputeType(
       ReportError("struct field \"", field.name_and_type.name->value,
                   "\" carries constexpr type \"", *field_type, "\"");
     }
-    if (IsCapability(field_type)) {
+    if (TypeOracle::IsCapability(field_type)) {
       ResidueClass adjusted_offset = offset;
       auto needed_padding = AlignToCapabilitySize(adjusted_offset);
       auto* u8 = TypeOracle::GetUint8Type();
@@ -501,7 +501,7 @@ void TypeVisitor::VisitClassFieldsAndMethods(
     base::Optional<ClassFieldIndexInfo> array_length = field_expression.index;
     bool is_indexed =
         field_expression.index && !field_expression.index->optional;
-    if (IsCapability(field_type) || is_indexed) {
+    if (TypeOracle::IsCapability(field_type) || is_indexed) {
       ResidueClass adjusted_offset = class_offset;
       auto needed_padding = AlignToCapabilitySize(adjusted_offset);
       auto* u8 = TypeOracle::GetUint8Type();
