@@ -253,7 +253,9 @@ const StructType* TypeVisitor::ComputeType(
             {field.name_and_type.name->pos,
              struct_type,
              base::nullopt,
-             {"__cheri_padding_" + u8->SimpleName() + std::to_string(padding_count++), u8},
+             {"__cheri_padding_" + u8->SimpleName() + struct_type->name() +
+                  std::to_string(padding_count++),
+              u8},
              new_offset,
              false,
              false,
@@ -512,7 +514,9 @@ void TypeVisitor::VisitClassFieldsAndMethods(
             {field_expression.name_and_type.name->pos,
              class_type,
              array_length,
-             {"__cheri_padding_" + u8->SimpleName() + std::to_string(padding_count++), u8},
+             {"__cheri_padding_" + u8->SimpleName() + class_type->name() +
+                  std::to_string(padding_count++),
+              u8},
              new_offset,
              false,
              false,
