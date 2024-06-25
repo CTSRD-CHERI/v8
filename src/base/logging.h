@@ -19,6 +19,8 @@
 V8_BASE_EXPORT V8_NOINLINE void V8_Dcheck(const char* file, int line,
                                           const char* message);
 
+V8_BASE_EXPORT V8_NOINLINE void V8_BackTrace();
+
 #ifdef DEBUG
 // In debug, include file, line, and full error message for all
 // FATAL() calls.
@@ -68,8 +70,6 @@ constexpr const char* kUnreachableCodeMessage = "unreachable code";
 #else
 #define CONSTEXPR_UNREACHABLE() UNREACHABLE()
 #endif
-
-void V8_BackTrace();
 
 namespace v8 {
 namespace base {
