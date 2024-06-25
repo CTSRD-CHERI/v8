@@ -1075,9 +1075,6 @@ Reduction LoadElimination::ReduceLoadElement(Node* node) {
     case MachineRepresentation::kCompressedPointer:
     case MachineRepresentation::kCompressed:
     case MachineRepresentation::kSandboxedPointer:
-#if defined(__CHERI_PURE_CAPABILITY__)
-    case MachineRepresentation::kCapability:
-#endif
       // TODO(turbofan): Add support for doing the truncations.
       break;
     case MachineRepresentation::kFloat64:
@@ -1136,9 +1133,6 @@ Reduction LoadElimination::ReduceStoreElement(Node* node) {
     case MachineRepresentation::kCompressedPointer:
     case MachineRepresentation::kCompressed:
     case MachineRepresentation::kSandboxedPointer:
-#if defined(__CHERI_PURE_CAPABILITY__)
-    case MachineRepresentation::kCapability:
-#endif
       // TODO(turbofan): Add support for doing the truncations.
       break;
     case MachineRepresentation::kFloat64:
@@ -1446,9 +1440,6 @@ LoadElimination::IndexRange LoadElimination::FieldIndexOf(
     case MachineRepresentation::kCompressedPointer:
     case MachineRepresentation::kCompressed:
     case MachineRepresentation::kSandboxedPointer:
-#if defined(__CHERI_PURE_CAPABILITY__)
-    case MachineRepresentation::kCapability:
-#endif
       break;
   }
   int representation_size = ElementSizeInBytes(rep);
