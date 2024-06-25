@@ -198,11 +198,7 @@ void EmbedderDataSlot::PopulateEmbedderDataSnapshot(
   static_assert(sizeof(EmbedderDataSlotSnapshot) == sizeof(AtomicTagged_t) * 2);
 #endif  // !__CHERI_PURE_CAPABILITY__
 #else   // !V8_COMPRESS_POINTERS
-#if defined(__CHERI_PURE_CAPABILITY__)
-  static_assert(sizeof(EmbedderDataSlotSnapshot) == 2 * sizeof(AtomicTagged_t));
-#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(sizeof(EmbedderDataSlotSnapshot) == sizeof(AtomicTagged_t));
-#endif  // !__CHERI_PURE_CAPABILITY__
 #endif  // !V8_COMPRESS_POINTERS
   static_assert(sizeof(EmbedderDataSlotSnapshot) == kEmbedderDataSlotSize);
 
