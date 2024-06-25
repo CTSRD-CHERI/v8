@@ -11,7 +11,7 @@ namespace internal {
 
 // We cannot allocate large objects with |AllocationType::kSharedOld|,
 // see |HeapAllocator::AllocateRawLargeInternal|.
-constexpr int kMaxJSSharedArraySize = (1 << 14) - 2;
+constexpr int kMaxJSSharedArraySize = (1 << 13) - 2;
 static_assert(FixedArray::SizeFor(kMaxJSSharedArraySize) <=
               kMaxRegularHeapObjectSize);
 
