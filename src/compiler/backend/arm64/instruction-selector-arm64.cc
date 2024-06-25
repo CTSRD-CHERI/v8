@@ -1014,7 +1014,11 @@ void InstructionSelector::VisitStore(Node* node) {
           static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 2);
           opcode = kArm64StrWPair;
 #else
+#ifdef __CHERI_PURE_CAPABILITY__
+          static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 4);
+#else
           static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 3);
+#endif
           opcode = kArm64StrPair;
 #endif
         } else {
