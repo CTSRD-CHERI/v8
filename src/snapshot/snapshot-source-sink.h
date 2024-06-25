@@ -76,6 +76,7 @@ class SnapshotByteSource final {
       memcpy(&val, data_ + position_, sizeof(base::AtomicWord));
       base::Relaxed_Store(p, val);
     }
+#endif
   }
 
 #ifdef V8_COMPRESS_POINTERS
