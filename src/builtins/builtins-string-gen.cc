@@ -313,7 +313,9 @@ void StringBuiltinsAssembler::StringEqual_FastLoop(
   // Compare strings in chunks of either 4 or 8 bytes, depending on the
   // alignment of allocations.
   static_assert(kChunk == ElementSizeInBytes(MachineRepresentation::kWord64) ||
-                kChunk == ElementSizeInBytes(MachineRepresentation::kWord32));
+                kChunk == ElementSizeInBytes(MachineRepresentation::kWord32) ||
+                kChunk ==
+                    ElementSizeInBytes(MachineRepresentation::kCapability64));
   TVARIABLE(RawPtrT, rhs_ptr, rhs_data);
   VariableList vars({&rhs_ptr}, zone());
 
