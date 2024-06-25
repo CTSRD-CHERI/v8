@@ -900,6 +900,20 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
 
 #else
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define STORE_PAIR_MACHINE_REPRESENTATION_LIST(V) \
+  V(kWord32, kWord32)                             \
+  V(kWord64, kWord64)                             \
+  V(kTagged, kTagged)                             \
+  V(kTagged, kTaggedSigned)                       \
+  V(kTagged, kTaggedPointer)                      \
+  V(kTaggedSigned, kTagged)                       \
+  V(kTaggedSigned, kTaggedSigned)                 \
+  V(kTaggedSigned, kTaggedPointer)                \
+  V(kTaggedPointer, kTagged)                      \
+  V(kTaggedPointer, kTaggedSigned)                \
+  V(kTaggedPointer, kTaggedPointer)
+#else // !__CHERI_PURE_CAPABILITY__
 #define STORE_PAIR_MACHINE_REPRESENTATION_LIST(V) \
   V(kWord32, kWord32)                             \
   V(kWord64, kWord64)                             \
@@ -918,6 +932,7 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(kTaggedPointer, kTagged)                      \
   V(kTaggedPointer, kTaggedSigned)                \
   V(kTaggedPointer, kTaggedPointer)
+#endif // __CHERI_PURE_CAPABILITY__
 
 #endif  // V8_COMPRESS_POINTERS
 
