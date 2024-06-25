@@ -156,7 +156,7 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
 
   bool Contains(int i) const {
     DCHECK(i >= 0 && i < length());
-    return (data_begin_[word(i)] & bit(i)) != 0;
+    return (data_begin_[word(i)] & static_cast<size_t>(bit(i))) != 0;
   }
 
   void Add(int i) {

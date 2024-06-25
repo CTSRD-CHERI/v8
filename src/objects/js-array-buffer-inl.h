@@ -317,8 +317,9 @@ void JSTypedArray::RemoveExternalPointerCompensationForSerialization(
 void JSTypedArray::AddExternalPointerCompensationForDeserialization(
     Isolate* isolate) {
   DCHECK(is_on_heap());
-  Address pointer = ReadField<Address>(kExternalPointerOffset) +
-                    ExternalPointerCompensationForOnHeapArray(isolate);
+  Address pointer =
+      ReadField<Address>(kExternalPointerOffset) +
+      static_cast<size_t>(ExternalPointerCompensationForOnHeapArray(isolate));
   set_external_pointer(isolate, pointer);
 }
 
@@ -339,7 +340,8 @@ void* JSTypedArray::DataPtr() {
 
 void JSTypedArray::SetOffHeapDataPtr(Isolate* isolate, void* base,
                                      Address offset) {
-  Address address = reinterpret_cast<Address>(base) + offset;
+  Address address =
+      reinterpret_cast<Address>(base) + static_cast<size_t>(offset);
   set_external_pointer(isolate, address);
   // This is the only spot in which the `base_pointer` field can be mutated
   // after object initialization. Note this can happen at most once, when

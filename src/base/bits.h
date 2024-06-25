@@ -207,7 +207,7 @@ inline constexpr
   // than doing binary search.
   using U = typename std::make_unsigned<T>::type;
   U u = value;
-  return CountPopulation(static_cast<U>(~u & (u - 1u)));
+  return CountPopulation(static_cast<U>(~u & static_cast<size_t>(u - 1u)));
 }
 #endif // __CHERI_PURE_CAPABILITY__
 

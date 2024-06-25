@@ -91,7 +91,7 @@ struct MemoryChunk {
     if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
     constexpr uintptr_t kYoungOrSharedChunkMask =
         kFromPageBit | kToPageBit | kInWritableSharedSpaceBit;
-    return GetFlags() & kYoungOrSharedChunkMask;
+    return GetFlags() & static_cast<size_t>(kYoungOrSharedChunkMask);
   }
 
   V8_INLINE uintptr_t GetFlags() const {

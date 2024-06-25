@@ -154,13 +154,13 @@ class AsAtomicImpl {
   template <typename T>
   static bool SetBits(T* addr, T bits, T mask) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    DCHECK_EQ(bits & ~mask, static_cast<T>(0));
+    DCHECK_EQ(bits & ~static_cast<size_t>(mask), static_cast<T>(0));
     T old_value = Relaxed_Load(addr);
     T new_value, old_value_before_cas;
     do {
-      if ((old_value & mask) == bits) return false;
+      if ((old_value & static_cast<size_t>(mask)) == bits) return false;
       CheriDiagnosticOff("-Wcheri-provenance")
-      new_value = (old_value & ~mask) | bits;
+      new_value = (old_value & ~static_cast<size_t>(mask)) | bits;
       CheriDiagnosticPop
       old_value_before_cas = old_value;
       old_value = Release_CompareAndSwap(addr, old_value, new_value);

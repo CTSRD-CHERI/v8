@@ -40,8 +40,10 @@ class V8_EXPORT CagedHeapBase {
     static_assert((static_cast<size_t>(1) << kHalfWordShift) ==
                   api_constants::kCagedHeapReservationSize);
     CPPGC_DCHECK(g_heap_base_);
-    return !(((reinterpret_cast<uintptr_t>(addr1) ^ g_heap_base_) |
-              (reinterpret_cast<uintptr_t>(addr2) ^ g_heap_base_)) >>
+    return !(((reinterpret_cast<uintptr_t>(addr1) ^
+               static_cast<size_t>(g_heap_base_)) |
+              static_cast<ptraddr_t>((reinterpret_cast<uintptr_t>(addr2) ^
+                                      static_cast<size_t>(g_heap_base_)))) >>
              kHalfWordShift);
   }
 

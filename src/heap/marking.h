@@ -55,8 +55,8 @@ class MarkBit final {
 template <>
 inline bool MarkBit::Set<AccessMode::NON_ATOMIC>() {
   CellType old_value = *cell_;
-  if ((old_value & mask_) == mask_) return false;
-  *cell_ = old_value | mask_;
+  if ((old_value & static_cast<size_t>(mask_)) == mask_) return false;
+  *cell_ = old_value | static_cast<size_t>(mask_);
   return true;
 }
 
@@ -67,18 +67,19 @@ inline bool MarkBit::Set<AccessMode::ATOMIC>() {
 
 template <>
 inline bool MarkBit::Get<AccessMode::NON_ATOMIC>() {
-  return (*cell_ & mask_) != 0;
+  return (*cell_ & static_cast<size_t>(mask_)) != 0;
 }
 
 template <>
 inline bool MarkBit::Get<AccessMode::ATOMIC>() {
-  return (base::AsAtomicWord::Acquire_Load(cell_) & mask_) != 0;
+  return (base::AsAtomicWord::Acquire_Load(cell_) &
+          static_cast<size_t>(mask_)) != 0;
 }
 
 inline bool MarkBit::Clear() {
   CellType old_value = *cell_;
-  *cell_ = old_value & ~mask_;
-  return (old_value & mask_) == mask_;
+  *cell_ = old_value & ~static_cast<size_t>(mask_);
+  return (old_value & static_cast<size_t>(mask_)) == mask_;
 }
 
 // Bitmap is a sequence of cells each containing fixed number of bits.

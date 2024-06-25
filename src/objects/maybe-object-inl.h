@@ -108,8 +108,8 @@ void HeapObjectReference::Update(THeapObjectSlot slot, HeapObject value) {
   bool weak_before = HAS_WEAK_HEAP_OBJECT_TAG(old_value);
 #endif
 
-  slot.store(
-      HeapObjectReference(new_value | (old_value & kWeakHeapObjectMask)));
+  slot.store(HeapObjectReference(
+      new_value | static_cast<size_t>(old_value & kWeakHeapObjectMask)));
 
 #ifdef DEBUG
   bool weak_after = HAS_WEAK_HEAP_OBJECT_TAG((*slot).ptr());

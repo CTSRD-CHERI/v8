@@ -103,10 +103,13 @@ inline void MarkingBitmap::SetRange(MarkBitIndex start_index,
     // Then fill all in between cells with 1s.
     SetCellRangeRelaxed<mode>(start_cell_index + 1, end_cell_index);
     // Finally, fill all bits until the end address in the last cell with 1s.
-    SetBitsInCell<mode>(end_cell_index, end_index_mask | (end_index_mask - 1));
+    SetBitsInCell<mode>(
+        end_cell_index,
+        end_index_mask | static_cast<size_t>(end_index_mask - 1));
   } else {
     SetBitsInCell<mode>(start_cell_index,
-                        end_index_mask | (end_index_mask - start_index_mask));
+                        end_index_mask | static_cast<size_t>(end_index_mask -
+                                                             start_index_mask));
   }
   if (mode == AccessMode::ATOMIC) {
     // This fence prevents re-ordering of publishing stores with the mark-bit
@@ -133,11 +136,14 @@ inline void MarkingBitmap::ClearRange(MarkBitIndex start_index,
     // Then fill all in between cells with 0s.
     ClearCellRangeRelaxed<mode>(start_cell_index + 1, end_cell_index);
     // Finally, set all bits until the end address in the last cell with 0s.
-    ClearBitsInCell<mode>(end_cell_index,
-                          end_index_mask | (end_index_mask - 1));
+    ClearBitsInCell<mode>(
+        end_cell_index,
+        end_index_mask | static_cast<size_t>(end_index_mask - 1));
   } else {
-    ClearBitsInCell<mode>(start_cell_index,
-                          end_index_mask | (end_index_mask - start_index_mask));
+    ClearBitsInCell<mode>(
+        start_cell_index,
+        end_index_mask |
+            static_cast<size_t>(end_index_mask - start_index_mask));
   }
   if (mode == AccessMode::ATOMIC) {
     // This fence prevents re-ordering of publishing stores with the mark-bit
@@ -217,9 +223,10 @@ inline Address MarkingBitmap::FindPreviousObjectForConservativeMarking(
   // If the leftmost sequence of set bits does not reach the start of the cell,
   // we found it.
   if (index_of_last_leftmost_one > 0) {
-    return page->address() + MarkingBitmap::IndexToAddressOffset(
-                                 cell_index * MarkingBitmap::kBitsPerCell +
-                                 index_of_last_leftmost_one);
+    return page->address() +
+           static_cast<size_t>(MarkingBitmap::IndexToAddressOffset(
+               cell_index * MarkingBitmap::kBitsPerCell +
+               index_of_last_leftmost_one));
   }
 
   // The leftmost sequence of set bits reaches the start of the cell. We must
@@ -244,9 +251,10 @@ inline Address MarkingBitmap::FindPreviousObjectForConservativeMarking(
   const auto index_of_last_leading_one =
       MarkingBitmap::kBitsPerCell - leading_ones;
   DCHECK_LT(0, index_of_last_leading_one);
-  return page->address() + MarkingBitmap::IndexToAddressOffset(
-                               cell_index * MarkingBitmap::kBitsPerCell +
-                               index_of_last_leading_one);
+  return page->address() +
+         static_cast<size_t>(MarkingBitmap::IndexToAddressOffset(
+             cell_index * MarkingBitmap::kBitsPerCell +
+             index_of_last_leading_one));
 }
 
 // static
@@ -321,14 +329,16 @@ bool LiveObjectRange::iterator::AdvanceToNextMarkedObject() {
     // Mask out lower addresses in the cell.
     const MarkBit::CellType mask =
         MarkingBitmap::IndexInCellMask(next_markbit_index);
-    current_cell_ = cells_[current_cell_index_] & ~(mask - 1);
+    current_cell_ =
+        cells_[current_cell_index_] & ~static_cast<size_t>(mask - 1);
   }
   // The next block finds any marked object starting from the current cell.
   while (true) {
     if (current_cell_) {
       const auto trailing_zeros = base::bits::CountTrailingZeros(current_cell_);
       Address current_cell_base =
-          page_->address() + MarkingBitmap::CellToBase(current_cell_index_);
+          page_->address() +
+          static_cast<size_t>(MarkingBitmap::CellToBase(current_cell_index_));
       Address object_address = current_cell_base + trailing_zeros * kTaggedSize;
       // The object may be a filler which we want to skip.
       current_object_ = HeapObject::FromAddress(object_address);

@@ -3047,7 +3047,7 @@ int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
       (address & static_cast<size_t>(kDoubleAlignmentMask)) != 0)
     return kTaggedSize;
   if (alignment == kDoubleUnaligned &&
-      (address & static_cast<size_t>(kDoubleAlignmentMask)) == 0)
+      (address & static_cast<size_t>(kDoubleAlignmentMask)) == 0) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     return 0;
 #else

@@ -349,7 +349,8 @@ class BasicSlotSet {
               int bit_offset = v8::base::bits::CountTrailingZeros(cell);
               uint32_t bit_mask = 1u << bit_offset;
               Address slot = (cell_offset + bit_offset) * SlotGranularity;
-              if (callback(chunk_start + slot) == KEEP_SLOT) {
+              if (callback(chunk_start + static_cast<size_t>(slot)) ==
+                  KEEP_SLOT) {
                 ++in_bucket_count;
               } else {
                 mask |= bit_mask;

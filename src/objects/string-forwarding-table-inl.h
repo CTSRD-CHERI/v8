@@ -141,8 +141,9 @@ uint32_t StringForwardingTable::Record::raw_hash(
 v8::String::ExternalStringResourceBase*
 StringForwardingTable::Record::external_resource(bool* is_one_byte) const {
   Address address = ExternalResourceAddress();
-  *is_one_byte = (address & kExternalResourceEncodingMask) ==
-                 kExternalResourceIsOneByteTag;
+  *is_one_byte =
+      (address & static_cast<size_t>(kExternalResourceEncodingMask)) ==
+      kExternalResourceIsOneByteTag;
   address &= kExternalResourceAddressMask;
   return reinterpret_cast<v8::String::ExternalStringResourceBase*>(address);
 }
