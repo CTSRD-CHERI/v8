@@ -13,7 +13,7 @@ namespace v8::internal {
 constexpr MarkBit::CellType kMarkedCell =
     std::numeric_limits<MarkBit::CellType>::max();
 constexpr MarkBit::CellType kLowerHalfMarkedCell =
-    kMarkedCell >> ((sizeof(kMarkedCell) * CHAR_BIT) / 2);
+    kMarkedCell >> (((sizeof(kMarkedCell) / 2) * CHAR_BIT) / 2);
 constexpr MarkBit::CellType kHigherHalfMarkedCell = ~kLowerHalfMarkedCell;
 constexpr MarkBit::CellType kWhiteCell = static_cast<MarkBit::CellType>(0x0);
 constexpr uint8_t kMarkedByte = 0xFF;
