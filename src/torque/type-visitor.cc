@@ -126,7 +126,7 @@ void DeclareMethods(AggregateType* container_type,
 }
 
 bool TypeOracle::IsCapability(const Type* field_type) {
-#if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   if (field_type->IsSubtypeOf(TypeOracle::GetRawPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetIntPtrType()) ||
       field_type->IsSubtypeOf(TypeOracle::GetUIntPtrType()) ||
@@ -147,7 +147,7 @@ bool TypeOracle::IsCapability(const Type* field_type) {
 }
 
 uint8_t AlignToCapabilitySize(ResidueClass& offset) {
-#if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   auto offset_opt = offset.SingleValue();
   if (!offset_opt.has_value()) return 0;
   auto maybe_unaligned_offset = offset_opt.value();
