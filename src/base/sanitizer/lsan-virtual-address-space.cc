@@ -25,8 +25,15 @@ LsanVirtualAddressSpace::LsanVirtualAddressSpace(
 
 Address LsanVirtualAddressSpace::AllocatePages(Address hint, size_t size,
                                                size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                               PagePermissions permissions,
+                                               PagePermissions max_permissions) {
+  Address result = vas_->AllocatePages(hint, size, alignment, permissions,
+                                       max_permissions);
+#else   // !__CHERI_PURE_CAPABILITY__
                                                PagePermissions permissions) {
   Address result = vas_->AllocatePages(hint, size, alignment, permissions);
+#endif  // !__CHERI_PURE_CAPABILITY__
 #if defined(LEAK_SANITIZER)
   if (result) {
     __lsan_register_root_region(reinterpret_cast<void*>(result), size);

@@ -74,7 +74,12 @@ Address VirtualAddressSpace::RandomPageAddress() {
 
 Address VirtualAddressSpace::AllocatePages(Address hint, size_t size,
                                            size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                           PagePermissions permissions,
+                                           PagePermissions max_permissions) {
+#else  // !__CHERI_PURE_CAPABILITY__
                                            PagePermissions permissions) {
+#endif // !__CHERI_PURE_CAPABILITY__
   DCHECK(IsAligned(alignment, allocation_granularity()));
   DCHECK(IsAligned(hint, alignment));
   DCHECK(IsAligned(size, allocation_granularity()));
@@ -83,7 +88,7 @@ Address VirtualAddressSpace::AllocatePages(Address hint, size_t size,
       OS::Allocate(reinterpret_cast<void*>(hint), size, alignment,
 #if defined(__CHERI_PURE_CAPABILITY__)
                    static_cast<OS::MemoryPermission>(permissions),
-                   static_cast<OS::MemoryPermission>(max_page_permissions())));
+                   static_cast<OS::MemoryPermission>(max_permissions)));
 #else
                    static_cast<OS::MemoryPermission>(permissions)));
 #endif // __CHERI_PURE_CAPABILITY__
@@ -242,7 +247,12 @@ Address VirtualAddressSubspace::RandomPageAddress() {
 
 Address VirtualAddressSubspace::AllocatePages(Address hint, size_t size,
                                               size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                              PagePermissions permissions,
+                                              PagePermissions max_permissions) {
+#else   // !__CHERI_PURE_CAPABILITY__
                                               PagePermissions permissions) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   DCHECK(IsAligned(alignment, allocation_granularity()));
   DCHECK(IsAligned(hint, alignment));
   DCHECK(IsAligned(size, allocation_granularity()));

@@ -44,7 +44,12 @@ Address EmulatedVirtualAddressSubspace::RandomPageAddress() {
 }
 
 Address EmulatedVirtualAddressSubspace::AllocatePages(
+#if defined(__CHERI_PURE_CAPABILITY__)
+    Address hint, size_t size, size_t alignment, PagePermissions permissions,
+    PagePermissions max_permissions) {
+#else   // !__CHERI_PURE_CAPABILITY__
     Address hint, size_t size, size_t alignment, PagePermissions permissions) {
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (hint == kNoHint || MappedRegionContains(hint, size)) {
     MutexGuard guard(&mutex_);
 
@@ -79,7 +84,12 @@ Address EmulatedVirtualAddressSubspace::AllocatePages(
     hint = RoundDown(hint, alignment);
 
     const Address result =
+#if defined(__CHERI_PURE_CAPABILITY__)
+        parent_space_->AllocatePages(hint, size, alignment, permissions,
+                                     max_permissions);
+#else   // !__CHERI_PURE_CAPABILITY__
         parent_space_->AllocatePages(hint, size, alignment, permissions);
+#endif  // !__CHERI_PURE_CAPABILITY__
     if (UnmappedRegionContains(result, size)) {
       return result;
     } else if (result) {

@@ -21,7 +21,12 @@ void* VirtualAddressSpacePageAllocator::AllocatePages(
 #endif // __CHERI_PURE_CAPABILITY__
   return reinterpret_cast<void*>(
       vas_->AllocatePages(reinterpret_cast<Address>(hint), size, alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                          static_cast<PagePermissions>(access),
+                          static_cast<PagePermissions>(max_access)));
+#else   // !__CHERI_PURE_CAPABILITY__
                           static_cast<PagePermissions>(access)));
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 bool VirtualAddressSpacePageAllocator::FreePages(void* ptr, size_t size) {
