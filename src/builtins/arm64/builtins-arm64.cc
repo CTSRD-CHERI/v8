@@ -472,7 +472,11 @@ void Builtins::Generate_JSConstructStubGeneric(MacroAssembler* masm) {
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // Check if the type of the result is not an object in the ECMA sense.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ JumpIfJSAnyIsNotPrimitive(c0, c4, &leave_and_return);
+#else // defined(__CHERI_PURE_CAPABILITY__)
   __ JumpIfJSAnyIsNotPrimitive(x0, x4, &leave_and_return);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   __ B(&use_receiver);
 
   __ Bind(&do_throw);
@@ -533,7 +537,11 @@ static void GetSharedFunctionInfoBytecodeOrBaseline(MacroAssembler* masm,
   if (v8_flags.debug_code) {
     Label not_baseline;
     __ B(ne, &not_baseline);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    AssertCodeIsBaseline(masm, sfi_data, scratch1.X());
+#else   // !__CHERI_PURE_CAPABILITY__
     AssertCodeIsBaseline(masm, sfi_data, scratch1);
+#endif  // !__CHERI_PURE_CAPABILITY__
     __ B(eq, is_baseline);
     __ Bind(&not_baseline);
   } else {
@@ -558,6 +566,7 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
   //  -- x1 : the JSGeneratorObject to resume
   //  -- lr : return address
   // -----------------------------------
+
   // Store input value into generator object.
   __ StoreTaggedField(
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -576,17 +585,14 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // Load suspended function and context.
-  __ LoadTaggedField(
 #if defined(__CHERI_PURE_CAPABILITY__)
-      c4, FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
+  __ LoadTaggedField(c4,
+                     FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
+  __ LoadTaggedField(cp, FieldMemOperand(c4, JSFunction::kContextOffset));
 #else // defined(__CHERI_PURE_CAPABILITY__)
-      x4, FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
-#endif // defined(__CHERI_PURE_CAPABILITY__)
-  __ LoadTaggedField(cp,
-#if defined(__CHERI_PURE_CAPABILITY__)
-                            FieldMemOperand(c4, JSFunction::kContextOffset));
-#else // defined(__CHERI_PURE_CAPABILITY__)
-                            FieldMemOperand(x4, JSFunction::kContextOffset));
+  __ LoadTaggedField(x4,
+                     FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
+  __ LoadTaggedField(cp, FieldMemOperand(x4, JSFunction::kContextOffset));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // Flood function if we are stepping.
@@ -658,12 +664,13 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // Poke receiver into highest claimed slot.
-  __ LoadTaggedField(
 #if defined(__CHERI_PURE_CAPABILITY__)
-      c5, FieldMemOperand(c1, JSGeneratorObject::kReceiverOffset));
+  __ LoadTaggedField(c5,
+                     FieldMemOperand(c1, JSGeneratorObject::kReceiverOffset));
   __ Poke(c5, __ ReceiverOperand(x10));
 #else // defined(__CHERI_PURE_CAPABILITY__)
-      x5, FieldMemOperand(x1, JSGeneratorObject::kReceiverOffset));
+  __ LoadTaggedField(x5,
+                     FieldMemOperand(x1, JSGeneratorObject::kReceiverOffset));
   __ Poke(x5, __ ReceiverOperand(x10));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
@@ -789,14 +796,12 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
     __ CallRuntime(Runtime::kDebugOnFunctionCall);
 #if defined(__CHERI_PURE_CAPABILITY__)
     __ Pop(padregc, c1);
+    __ LoadTaggedField(c4,
+                       FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
 #else // defined(__CHERI_PURE_CAPABILITY__)
     __ Pop(padreg, x1);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
-    __ LoadTaggedField(
-#if defined(__CHERI_PURE_CAPABILITY__)
-        c4, FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
-#else // defined(__CHERI_PURE_CAPABILITY__)
-        x4, FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
+    __ LoadTaggedField(x4,
+                       FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   }
   __ B(&stepping_prepared);
@@ -812,14 +817,12 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
     __ CallRuntime(Runtime::kDebugPrepareStepInSuspendedGenerator);
 #if defined(__CHERI_PURE_CAPABILITY__)
     __ Pop(padregc, c1);
+    __ LoadTaggedField(c4,
+                       FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
 #else // defined(__CHERI_PURE_CAPABILITY__)
     __ Pop(padreg, x1);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
-    __ LoadTaggedField(
-#if defined(__CHERI_PURE_CAPABILITY__)
-        c4, FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
-#else // defined(__CHERI_PURE_CAPABILITY__)
-        x4, FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
+    __ LoadTaggedField(x4,
+                       FieldMemOperand(x1, JSGeneratorObject::kFunctionOffset));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   }
   __ B(&stepping_prepared);
@@ -1579,7 +1582,7 @@ void Builtins::Generate_BaselineOutOfLinePrologue(MacroAssembler* masm) {
     // Baseline code frames store the feedback vector where interpreter would
     // store the bytecode offset.
 #if defined(__CHERI_PURE_CAPABILITY__)
-    __ AssertFeedbackVector(feedback_vector, x4);
+    __ AssertFeedbackVector(feedback_vector, c4);
 #else // defined(__CHERI_PURE_CAPABILITY__)
     __ AssertFeedbackVector(feedback_vector, x4);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
@@ -1670,7 +1673,11 @@ void Builtins::Generate_BaselineOutOfLinePrologueDeopt(MacroAssembler* masm) {
   __ Drop(2);
 
   // Bytecode array, argc, Closure, Context.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ Pop(padregc, kJavaScriptCallArgCountRegister.C(), kJavaScriptCallTargetRegister,
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Pop(padreg, kJavaScriptCallArgCountRegister, kJavaScriptCallTargetRegister,
+#endif  // !__CHERI_PURE_CAPABILITY__
          kContextRegister);
 
   // Drop frame pointer
@@ -1729,19 +1736,21 @@ void Builtins::Generate_InterpreterEntryTrampoline(
   // The bytecode array could have been flushed from the shared function info,
   // if so, call into CompileLazy.
   Label compile_lazy;
-  __ IsObjectType(kInterpreterBytecodeArrayRegister, x4, x4,
-                  BYTECODE_ARRAY_TYPE);
 #if defined(__CHERI_PURE_CAPABILITY__)
   __ IsObjectType(kInterpreterBytecodeArrayRegister, c4, x4,
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ IsObjectType(kInterpreterBytecodeArrayRegister, x4, x4,
 #endif // defined(__CHERI_PURE_CAPABILITY__)
-                       BYTECODE_ARRAY_TYPE);
+                  BYTECODE_ARRAY_TYPE);
   __ B(ne, &compile_lazy);
 
 #ifndef V8_JITLESS
   // Load the feedback vector from the closure.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register feedback_vector = c2;
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Register feedback_vector = x2;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   __ LoadTaggedField(feedback_vector,
                      FieldMemOperand(closure, JSFunction::kFeedbackCellOffset));
   __ LoadTaggedField(feedback_vector,
@@ -1750,12 +1759,13 @@ void Builtins::Generate_InterpreterEntryTrampoline(
   Label push_stack_frame;
   // Check if feedback vector is valid. If valid, check for optimized code
   // and update invocation count. Otherwise, setup the stack frame.
-  __ LoadTaggedField(
 #if defined(__CHERI_PURE_CAPABILITY__)
-      c7, FieldMemOperand(feedback_vector, HeapObject::kMapOffset));
+  __ LoadTaggedField(c7,
+                     FieldMemOperand(feedback_vector, HeapObject::kMapOffset));
   __ Ldrh(x7, FieldMemOperand(c7, Map::kInstanceTypeOffset));
 #else // defined(__CHERI_PURE_CAPABILITY__)
-      x7, FieldMemOperand(feedback_vector, HeapObject::kMapOffset));
+  __ LoadTaggedField(x7,
+                     FieldMemOperand(feedback_vector, HeapObject::kMapOffset));
   __ Ldrh(x7, FieldMemOperand(x7, Map::kInstanceTypeOffset));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   __ Cmp(x7, FEEDBACK_VECTOR_TYPE);
@@ -1928,7 +1938,6 @@ void Builtins::Generate_InterpreterEntryTrampoline(
   // Any returns to the entry trampoline are either due to the return bytecode
   // or the interpreter tail calling a builtin and then a dispatch.
 
-  masm->isolate()->heap()->SetInterpreterEntryReturnPCOffset(masm->pc_offset());
   __ JumpTarget();
 
   // Get bytecode array and bytecode offset from the stack frame.
@@ -2652,17 +2661,25 @@ void OnStackReplacement(MacroAssembler* masm, OsrSourceTier source,
   // <osr_offset> = <deopt_data>[#header_size + #osr_pc_offset]
   __ SmiUntagField(
 #if defined(__CHERI_PURE_CAPABILITY__)
-      c1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
+      x1, FieldMemOperand(c1, FixedArray::OffsetOfElementAt(
 #else // defined(__CHERI_PURE_CAPABILITY__)
-      c1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
+      x1, FieldMemOperand(x1, FixedArray::OffsetOfElementAt(
 #endif // defined(__CHERI_PURE_CAPABILITY__)
                                   DeoptimizationData::kOsrPcOffsetIndex)));
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ LoadCodeInstructionStart(c0, c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ LoadCodeInstructionStart(x0, x0);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // Compute the target address = code_entry + osr_offset
   // <entry_addr> = <code_entry> + <osr_offset>
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Generate_OSREntry(masm, c0, x1);
+#else   // !__CHERI_PURE_CAPABILITY__
   Generate_OSREntry(masm, x0, x1);
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 }  // namespace
@@ -3244,18 +3261,34 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
   //  -- x0 : the number of arguments
   //  -- x1 : the function to call (checked to be a JSFunction)
   // -----------------------------------
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ AssertCallableFunction(c1);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ AssertCallableFunction(x1);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   __ LoadTaggedField(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      c2, FieldMemOperand(c1, JSFunction::kSharedFunctionInfoOffset));
+#else   // !__CHERI_PURE_CAPABILITY__
       x2, FieldMemOperand(x1, JSFunction::kSharedFunctionInfoOffset));
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // Enter the context of the function; ToObject has to run in the function
   // context, and we also need to take the global proxy from the function
   // context in case of conversion.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ LoadTaggedField(cp, FieldMemOperand(c1, JSFunction::kContextOffset));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ LoadTaggedField(cp, FieldMemOperand(x1, JSFunction::kContextOffset));
+#endif  // !__CHERI_PURE_CAPABILITY__
   // We need to convert the receiver for non-native sloppy mode functions.
   Label done_convert;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ Ldr(w3, FieldMemOperand(c2, SharedFunctionInfo::kFlagsOffset));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Ldr(w3, FieldMemOperand(x2, SharedFunctionInfo::kFlagsOffset));
+#endif  // !__CHERI_PURE_CAPABILITY__
   __ TestAndBranchIfAnySet(w3,
                            SharedFunctionInfo::IsNativeBit::kMask |
                                SharedFunctionInfo::IsStrictBit::kMask,
@@ -3280,7 +3313,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
 #if defined(__CHERI_PURE_CAPABILITY__)
       __ Peek(c3, __ ReceiverOperand(x0));
       __ JumpIfSmi(c3, &convert_to_object);
-      __ JumpIfJSAnyIsNotPrimitive(x3, x4, &done_convert);
+      __ JumpIfJSAnyIsNotPrimitive(c3, c4, &done_convert);
 #else // defined(__CHERI_PURE_CAPABILITY__)
       __ Peek(x3, __ ReceiverOperand(x0));
       __ JumpIfSmi(x3, &convert_to_object);
@@ -3315,7 +3348,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
         FrameScope scope(masm, StackFrame::INTERNAL);
         __ SmiTag(x0);
 #if defined(__CHERI_PURE_CAPABILITY__)
-        __ Push(padreg, c0, c1, cp);
+        __ Push(padregc, c0, c1, cp);
 #else // defined(__CHERI_PURE_CAPABILITY__)
         __ Push(padreg, x0, x1, cp);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
@@ -3331,7 +3364,11 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
         __ SmiUntag(x0);
       }
       __ LoadTaggedField(
+#if defined(__CHERI_PURE_CAPABILITY__)
+          c2, FieldMemOperand(c1, JSFunction::kSharedFunctionInfoOffset));
+#else // defined(__CHERI_PURE_CAPABILITY__)
           x2, FieldMemOperand(x1, JSFunction::kSharedFunctionInfoOffset));
+#endif // defined(__CHERI_PURE_CAPABILITY__)
       __ Bind(&convert_receiver);
     }
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -3352,7 +3389,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
 #if defined(__CHERI_PURE_CAPABILITY__)
   __ Ldrh(x2,
           FieldMemOperand(c2, SharedFunctionInfo::kFormalParameterCountOffset));
-  __ InvokeFunctionCode(c2, no_reg, x2, x0, InvokeType::kJump);
+  __ InvokeFunctionCode(c1, no_reg, x2, x0, InvokeType::kJump);
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ Ldrh(x2,
           FieldMemOperand(x2, SharedFunctionInfo::kFormalParameterCountOffset));
@@ -5828,9 +5865,15 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
   // The arguments are in reverse order, so that arg[argc-2] is actually the
   // first argument to the target function and arg[0] is the last.
   static constexpr Register argc_input = x0;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr Register target_input = c1;
+  // Initialized below if ArgvMode::kStack.
+  static constexpr Register argv_input = c11;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr Register target_input = x1;
   // Initialized below if ArgvMode::kStack.
   static constexpr Register argv_input = x11;
+#endif // !__CHERI_PURE_CAPABILITY__
 
   if (argv_mode == ArgvMode::kStack) {
     // Derive argv from the stack pointer so that it points to the first
@@ -5848,7 +5891,11 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
   // Enter the exit frame.
   FrameScope scope(masm, StackFrame::MANUAL);
   __ EnterExitFrame(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      c10, kExtraStackSpace,
+#else  // !__CHERI_PURE_CAPABILITY__
       x10, kExtraStackSpace,
+#endif // !__CHERI_PURE_CAPABILITY__
       builtin_exit_frame ? StackFrame::BUILTIN_EXIT : StackFrame::EXIT);
 
   if (argv_mode == ArgvMode::kStack) {
@@ -5880,17 +5927,32 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
   //   sp -> sp[0]:    Space reserved for the return address.
 
   // TODO(jgruber): Swap these registers in the calling convention instead.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(target_input == c1);
+  static_assert(argv_input == c11);
+#else  // !__CHERI_PURE_CAPABILITY__
   static_assert(target_input == x1);
   static_assert(argv_input == x11);
+#endif // !__CHERI_PURE_CAPABILITY__
   __ Swap(target_input, argv_input);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr Register target = c11;
+  static constexpr Register argv = c1;
+#else  // !__CHERI_PURE_CAPABILITY__
   static constexpr Register target = x11;
   static constexpr Register argv = x1;
+#endif // !__CHERI_PURE_CAPABILITY__
   static_assert(!AreAliased(argc_input, argc, target, argv));
 
   // Prepare AAPCS64 arguments to pass to the builtin.
   static_assert(argc_input == x0);  // Already in the right spot.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(argv == c1);        // Already in the right spot.
+  __ Mov(c2, ER::isolate_address(masm->isolate()));
+#else  // !__CHERI_PURE_CAPABILITY__
   static_assert(argv == x1);        // Already in the right spot.
   __ Mov(x2, ER::isolate_address(masm->isolate()));
+#endif // !__CHERI_PURE_CAPABILITY__
 
   __ StoreReturnAddressAndCall(target);
 
@@ -5968,7 +6030,7 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   }
   __ Mov(fp, ER::Create(IsolateAddressId::kPendingHandlerFPAddress,
-                       masm->isolate()));
+                        masm->isolate()));
   __ Ldr(fp, MemOperand(fp));
 
   // If the handler is a JS frame, restore the context to the frame. Note that
@@ -6107,9 +6169,15 @@ void CallApiFunctionAndReturn(MacroAssembler* masm, Register function_address,
   MemOperand level_mem_op = __ ExternalReferenceAsOperand(
       ER::handle_scope_level_address(isolate), no_reg);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register return_value = c0;
+  Register scratch = c4;
+  Register scratch2 = c5;
+#else   // !__CHERI_PURE_CAPABILITY__
   Register return_value = x0;
   Register scratch = x4;
   Register scratch2 = x5;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   // Allocate HandleScope in callee-saved registers.
   // We will need to restore the HandleScope after the call to the API function,
@@ -6334,11 +6402,11 @@ void Builtins::Generate_CallApiCallback(MacroAssembler* masm) {
   static_assert(kStackSize % 2 == 0);
   __ Claim(kStackSize, kSystemPointerSize);
 
-  // kHolder.
+  // kHolder
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Str(holder, MemOperand(csp, 0 * kSystemPointerSize));
+  __ Str(holder, MemOperand(csp, FCA::kHolderIndex * kSystemPointerSize));
 #else // defined(__CHERI_PURE_CAPABILITY__)
-  __ Str(holder, MemOperand(sp, 0 * kSystemPointerSize));
+  __ Str(holder, MemOperand(sp, FCA::kHolderIndex * kSystemPointerSize));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // kIsolate.
@@ -6423,7 +6491,11 @@ void Builtins::Generate_CallApiCallback(MacroAssembler* masm) {
   // register containing the slot count.
   MemOperand stack_space_operand =
       ExitFrameStackSlotOperand(FCI::kLengthOffset + kSlotsToDropOnStackSize);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ Add(scratch.X(), argc, Operand(FCA::kArgsLengthWithReceiver));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Add(scratch, argc, Operand(FCA::kArgsLengthWithReceiver));
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Str(scratch, stack_space_operand);
 
   __ RecordComment("v8::FunctionCallback's argument.");
@@ -6481,10 +6553,19 @@ void Builtins::Generate_CallApiGetter(MacroAssembler* masm) {
   //   sp[6 * kSystemPointerSize]: kDataIndex
   //   sp[7 * kSystemPointerSize]: kThisIndex / receiver
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register name_arg = carg_reg_1;
+  Register property_callback_info_arg = carg_reg_2;
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Register name_arg = arg_reg_1;
   Register property_callback_info_arg = arg_reg_2;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register api_function_address = c2;
+#else // defined(__CHERI_PURE_CAPABILITY__)
   Register api_function_address = x2;
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   Register receiver = ApiGetterDescriptor::ReceiverRegister();
   Register holder = ApiGetterDescriptor::HolderRegister();
   Register callback = ApiGetterDescriptor::CallbackRegister();
@@ -6514,8 +6595,13 @@ void Builtins::Generate_CallApiGetter(MacroAssembler* masm) {
   // - These are followed by the property name, which is also pushed below the
   //   exit frame to make the GC aware of it.
   // - Padding
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register should_throw_on_error = czr;
+  Register padding = czr;
+#else   // !__CHERI_PURE_CAPABILITY__
   Register should_throw_on_error = xzr;
   Register padding = xzr;
+#endif  // !__CHERI_PURE_CAPABILITY__
   __ Push(receiver, data, undef, padding, isolate_address, holder,
           should_throw_on_error, name);
 
@@ -6532,16 +6618,28 @@ void Builtins::Generate_CallApiGetter(MacroAssembler* masm) {
   __ RecordComment(
       "Load address of v8::PropertyAccessorInfo::args_ array and name handle.");
   // name_arg = Handle<Name>(&name), name value was pushed to GC-ed stack space.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ Add(name_arg, csp, Operand(kNameStackIndex * kSystemPointerSize));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Add(name_arg, sp, Operand(kNameStackIndex * kSystemPointerSize));
+#endif  // !__CHERI_PURE_CAPABILITY__
   // property_callback_info_arg = v8::PCI::args_ (= &ShouldThrow)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ Add(property_callback_info_arg, csp,
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Add(property_callback_info_arg, sp,
+#endif  // !__CHERI_PURE_CAPABILITY__
          Operand(kPCAStackIndex * kSystemPointerSize));
 
   const int kApiStackSpace = 1;
   static_assert(kApiStackSpace * kSystemPointerSize == sizeof(PCI));
 
   FrameScope frame_scope(masm, StackFrame::MANUAL);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  __ EnterExitFrame(c10, kApiStackSpace, StackFrame::EXIT);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ EnterExitFrame(x10, kApiStackSpace, StackFrame::EXIT);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   __ RecordComment("Create v8::PropertyCallbackInfo object on the stack.");
   // Initialize v8::PropertyCallbackInfo::args_ field.
@@ -6972,8 +7070,8 @@ void Generate_DeoptimizationEntry(MacroAssembler* masm,
 #else // defined(__CHERI_PURE_CAPABILITY__)
     Register is_iterable = temps.AcquireX();
 #endif // defined(__CHERI_PURE_CAPABILITY__)
-    __ Mov(is_iterable, ExternalReference::stack_is_iterable_address(isolate));
     Register one = x4;
+    __ Mov(is_iterable, ExternalReference::stack_is_iterable_address(isolate));
     __ Mov(one, Operand(1));
     __ strb(one, MemOperand(is_iterable));
   }
