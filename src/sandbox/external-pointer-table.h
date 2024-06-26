@@ -83,18 +83,40 @@ struct ExternalPointerTableEntry {
   // external pointer).
   struct Payload {
     Payload(Address pointer, ExternalPointerTag tag)
+#if defined(__CHERI_PURE_CAPABILITY__)
+        : raw_pointer_(pointer), tag_(static_cast<std::underlying_type_t<ExternalPointerTag>>(tag)) {}
+#else   // !__CHERI_PURE_CAPABILITY__
         : encoded_word_(Tag(pointer, tag)) {}
+#endif  // !__CHERI_PURE_CAPABILITY__
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+    Address Untag(ExternalPointerTag tag) const { return raw_pointer_; }
+#else   // !__CHERI_PURE_CAPABILITY__
     Address Untag(ExternalPointerTag tag) const { return encoded_word_ & ~tag; }
 
     static Address Tag(Address pointer, ExternalPointerTag tag) {
       return pointer | tag;
     }
 
+#endif  // !__CHERI_PURE_CAPABILITY__
+
     bool IsTaggedWith(ExternalPointerTag tag) const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      return (tag_ & kExternalPointerTagMask) == static_cast<std::underlying_type_t<ExternalPointerTag>>(tag);
+#else   // !__CHERI_PURE_CAPABILITY__
       return (encoded_word_ & kExternalPointerTagMask) == tag;
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+    void SetMarkBit() { tag_ |= kExternalPointerMarkBit; }
+
+    void ClearMarkBit() { tag_ &= ~kExternalPointerMarkBit; }
+
+    bool HasMarkBitSet() const {
+      return (tag_ & kExternalPointerMarkBit) != 0;
+    }
+#else   // !__CHERI_PURE_CAPABILITY__
     void SetMarkBit() { encoded_word_ |= kExternalPointerMarkBit; }
 
     void ClearMarkBit() { encoded_word_ &= ~kExternalPointerMarkBit; }
@@ -102,13 +124,18 @@ struct ExternalPointerTableEntry {
     bool HasMarkBitSet() const {
       return (encoded_word_ & kExternalPointerMarkBit) != 0;
     }
+#endif  // !__CHERI_PURE_CAPABILITY__
 
     bool ContainsFreelistLink() const {
       return IsTaggedWith(kExternalPointerFreeEntryTag);
     }
 
     uint32_t ExtractFreelistLink() const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      return static_cast<uint32_t>(raw_pointer_);
+#else   // !__CHERI_PURE_CAPABILITY__
       return static_cast<uint32_t>(encoded_word_);
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
 
     bool ContainsEvacuationEntry() const {
@@ -124,14 +151,27 @@ struct ExternalPointerTableEntry {
     }
 
     bool operator==(Payload other) const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      return (tag_ == other.tag_) && (raw_pointer_ == other.raw_pointer_);
+#else   // !__CHERI_PURE_CAPABILITY__
       return encoded_word_ == other.encoded_word_;
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
     bool operator!=(Payload other) const {
+#if defined(__CHERI_PURE_CAPABILITY__)
+      return (tag_ != other.tag_) || (raw_pointer_ != other.raw_pointer_);
+#else   // !__CHERI_PURE_CAPABILITY__
       return encoded_word_ != other.encoded_word_;
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
 
    private:
+#if defined(__CHERI_PURE_CAPABILITY__)
+    Address raw_pointer_;
+    std::underlying_type_t<ExternalPointerTag> tag_;
+#else   // !__CHERI_PURE_CAPABILITY__
     Address encoded_word_;
+#endif  // !__CHERI_PURE_CAPABILITY__
   };
 
   inline Payload GetRawPayload() {
@@ -171,8 +211,9 @@ struct ExternalPointerTableEntry {
 //  When LSan is active, we need "fat" entries, see above.
 static_assert(sizeof(ExternalPointerTableEntry) == 16);
 #elif defined(__CHERI_PURE_CAPABILITY__)
-static_assert(sizeof(ExternalPointerTableEntry) == sizeof(void *));
-#else
+//  On CHERI architectures, we need "fat" entries, see above.
+static_assert(sizeof(ExternalPointerTableEntry) == 2 * sizeof(uintptr_t));
+#else   // !__CHERI_PURE_CAPABILITY__
 //  We expect ExternalPointerTable entries to consist of a single 64-bit word.
 static_assert(sizeof(ExternalPointerTableEntry) == 8);
 #endif

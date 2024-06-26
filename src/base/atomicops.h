@@ -63,7 +63,12 @@ using Atomic32 = int32_t;
 #if defined(__ILP32__)
 using Atomic64 = int64_t;
 #else
+#if defined(__CHERI_PURE_CAPABILITY__)
+using Atomic64 = int64_t;
+using AtomicIntPtr = intptr_t;
+#else   // !__CHERI_PURE_CAPABILITY__
 using Atomic64 = intptr_t;
+#endif  // !__CHERI_PURE_CAPABILITY__
 #endif  // defined(__ILP32__)
 using AtomicIntPtr = intptr_t;
 #endif  // defined(V8_HOST_ARCH_64_BIT)
@@ -76,7 +81,11 @@ using AtomicWord = Atomic64;
 #else
 using AtomicWord = Atomic32;
 #endif
+#if defined(__CHERI_PURE_CAPABILITY__)
+static_assert(sizeof(void*) == sizeof(AtomicIntPtr));
+#else   // !__CHERI_PURE_CAPABILITY__
 static_assert(sizeof(void*) == sizeof(AtomicWord));
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 namespace helper {
 template <typename T>
@@ -125,6 +134,17 @@ inline Atomic32 Relaxed_CompareAndSwap(volatile Atomic32* ptr,
       std::memory_order_relaxed, std::memory_order_relaxed);
   return old_value;
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline AtomicIntPtr Relaxed_CompareAndSwap(volatile AtomicIntPtr* ptr,
+                                           AtomicIntPtr old_value,
+                                           AtomicIntPtr new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_relaxed, std::memory_order_relaxed);
+  return old_value;
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 inline Atomic32 Relaxed_AtomicExchange(volatile Atomic32* ptr,
                                        Atomic32 new_value) {
@@ -194,6 +214,13 @@ inline void Relaxed_Store(volatile Atomic32* ptr, Atomic32 value) {
                              std::memory_order_relaxed);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline void Relaxed_Store(volatile AtomicIntPtr* ptr, AtomicIntPtr value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_relaxed);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 inline void Release_Store(volatile Atomic8* ptr, Atomic8 value) {
   std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
                              std::memory_order_release);
@@ -208,6 +235,14 @@ inline void Release_Store(volatile Atomic32* ptr, Atomic32 value) {
   std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
                              std::memory_order_release);
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline void Release_Store(volatile AtomicIntPtr* ptr, AtomicIntPtr value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_release);
+}
+
+#endif   // __CHERI_PURE_CAPABILITY__
 
 inline void SeqCst_Store(volatile Atomic8* ptr, Atomic8 value) {
   std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
@@ -239,6 +274,13 @@ inline Atomic32 Relaxed_Load(volatile const Atomic32* ptr) {
                                    std::memory_order_relaxed);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline AtomicIntPtr Relaxed_Load(volatile const AtomicIntPtr* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_relaxed);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 inline Atomic8 Acquire_Load(volatile const Atomic8* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
                                    std::memory_order_acquire);
@@ -248,6 +290,13 @@ inline Atomic32 Acquire_Load(volatile const Atomic32* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
                                    std::memory_order_acquire);
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline AtomicIntPtr Acquire_Load(volatile const AtomicIntPtr* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_acquire);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 inline Atomic8 SeqCst_Load(volatile const Atomic8* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
@@ -304,6 +353,16 @@ inline Atomic64 Release_CompareAndSwap(volatile Atomic64* ptr,
   return old_value;
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline AtomicIntPtr Release_CompareAndSwap(volatile AtomicIntPtr* ptr,
+                                       AtomicIntPtr old_value, AtomicIntPtr new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_release, std::memory_order_relaxed);
+  return old_value;
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 inline Atomic64 AcquireRelease_CompareAndSwap(volatile Atomic64* ptr,
                                               Atomic64 old_value,
                                               Atomic64 new_value) {
@@ -312,6 +371,17 @@ inline Atomic64 AcquireRelease_CompareAndSwap(volatile Atomic64* ptr,
       std::memory_order_acq_rel, std::memory_order_acquire);
   return old_value;
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+inline AtomicIntPtr AcquireRelease_CompareAndSwap(volatile AtomicIntPtr* ptr,
+                                                  AtomicIntPtr old_value,
+                                                  AtomicIntPtr new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_acq_rel, std::memory_order_acquire);
+  return old_value;
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 inline void Relaxed_Store(volatile Atomic64* ptr, Atomic64 value) {
   std::atomic_store_explicit(helper::to_std_atomic(ptr), value,

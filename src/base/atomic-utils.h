@@ -35,7 +35,11 @@ class AtomicValue {
   }
 
  private:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static_assert(sizeof(T) <= sizeof(base::AtomicIntPtr));
+#else   // __CHERI_PURE_CAPABILITY__
   static_assert(sizeof(T) <= sizeof(base::AtomicWord));
+#endif  // __CHERI_PURE_CAPABILITY__
 
   template <typename S>
   struct cast_helper {
@@ -234,7 +238,11 @@ class AsAtomicPointerImpl : public AsAtomicImpl<TAtomicStorageType> {
   static bool SetBits(T* addr, T bits, T mask) = delete;
 };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+using AsAtomicPointer = AsAtomicPointerImpl<base::AtomicIntPtr>;
+#else   // !__CHERI_PURE_CAPABILITY__
 using AsAtomicPointer = AsAtomicPointerImpl<base::AtomicWord>;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 template <typename T,
           typename = typename std::enable_if<std::is_unsigned<T>::value>::type>
