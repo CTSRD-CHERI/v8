@@ -19,7 +19,11 @@ class Page;
 
 class MarkBit final {
  public:
+#if defined(__CHERI_PURE_CAPABILITY__)
+  using CellType = size_t;
+#else   // !__CHERI_PIRE_CAPABILITY__
   using CellType = uintptr_t;
+#endif  // !__CHERI_PIRE_CAPABILITY__
   static_assert(sizeof(CellType) == sizeof(base::AtomicWord));
 
   V8_ALLOW_UNUSED static inline MarkBit From(Address);
