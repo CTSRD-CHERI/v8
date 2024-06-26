@@ -8973,7 +8973,11 @@ void CodeStubAssembler::NameDictionaryLookup(
                     std::is_same<Dictionary, NameToIndexHashTable>::value,
                 "Unexpected NameDictionary");
   DCHECK_IMPLIES(var_name_index != nullptr,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                 MachineRepresentation::kWord64 == var_name_index->rep());
+#else   // !__CHERI_PURE_CAPABILITY__
                  MachineType::PointerRepresentation() == var_name_index->rep());
+#endif  // !__CHERI_PURE_CAPABILITY__
   DCHECK_IMPLIES(mode == kFindInsertionIndex, if_found == nullptr);
   Comment("NameDictionaryLookup");
   CSA_DCHECK(this, IsUniqueName(unique_name));
@@ -9114,7 +9118,11 @@ void CodeStubAssembler::NumberDictionaryLookup(
     TNode<NumberDictionary> dictionary, TNode<IntPtrT> intptr_index,
     Label* if_found, TVariable<IntPtrT>* var_entry, Label* if_not_found) {
   CSA_DCHECK(this, IsNumberDictionary(dictionary));
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK_EQ(MachineRepresentation::kWord64, var_entry->rep());
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK_EQ(MachineType::PointerRepresentation(), var_entry->rep());
+#endif  // !__CHERI_PURE_CAPABILITY__
   Comment("NumberDictionaryLookup");
 
   TNode<IntPtrT> capacity =
