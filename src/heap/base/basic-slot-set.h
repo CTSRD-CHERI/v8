@@ -456,7 +456,12 @@ class BasicSlotSet {
 
 #ifdef DEBUG
   size_t* initial_buckets() { return reinterpret_cast<size_t*>(this) - 1; }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kInitialBucketsSize =
+      __builtin_align_up(sizeof(size_t), alignof(max_align_t));
+#else   // !__CHERI_PURE_CAPABILITY__
   static const int kInitialBucketsSize = sizeof(size_t);
+#endif  // !__CHERI_PURE_CAPABILITY__
 #else
   static const int kInitialBucketsSize = 0;
 #endif
