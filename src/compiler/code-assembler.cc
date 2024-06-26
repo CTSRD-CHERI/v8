@@ -440,9 +440,16 @@ void CodeAssembler::Return(TNode<Uint32T> value) {
 
 void CodeAssembler::Return(TNode<WordT> value) {
   DCHECK_EQ(1, raw_assembler()->call_descriptor()->ReturnCount());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK((MachineRepresentation::kWord64 ==
+      raw_assembler()->call_descriptor()->GetReturnType(0).representation()) ||
+      (MachineRepresentation::kWord32 ==
+      raw_assembler()->call_descriptor()->GetReturnType(0).representation()));
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK_EQ(
       MachineType::PointerRepresentation(),
       raw_assembler()->call_descriptor()->GetReturnType(0).representation());
+#endif  // !__CHERI_PURE_CAPABILITY__
   return raw_assembler()->Return(value);
 }
 
