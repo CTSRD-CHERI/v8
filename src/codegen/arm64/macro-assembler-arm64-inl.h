@@ -1016,8 +1016,8 @@ void MacroAssembler::Lsl(const Register& rd, const Register& rn,
     UseScratchRegisterScope temps(this);
     Register temp = temps.AcquireX();
     Gcvalue(rn, temp);
-    lsl(rd, temp, shift);
-    Scvalue(rn, rn, temp);
+    lsl(temp, temp, shift);
+    Scvalue(rd, rd, temp);
     return;
   }
 #endif // defined(__CHERI_PURE_CAPABILITY__)
@@ -1323,7 +1323,12 @@ void MacroAssembler::InitializeRootRegister() {
 }
 
 void MacroAssembler::SmiTag(Register dst, Register src) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK((dst.Is64Bits() && src.Is64Bits()) ||
+	 (dst.Is128Bits() && src.Is128Bits()));
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK(dst.Is64Bits() && src.Is64Bits());
+#endif  // !__CHERI_PURE_CAPABILITY__
   DCHECK(SmiValuesAre32Bits() || SmiValuesAre31Bits());
   Lsl(dst, src, kSmiShift);
 }
@@ -1331,7 +1336,12 @@ void MacroAssembler::SmiTag(Register dst, Register src) {
 void MacroAssembler::SmiTag(Register smi) { SmiTag(smi, smi); }
 
 void MacroAssembler::SmiUntag(Register dst, Register src) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK((dst.Is64Bits() && src.Is64Bits()) ||
+	 (dst.Is128Bits() && src.Is128Bits()));
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK(dst.Is64Bits() && src.Is64Bits());
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (v8_flags.enable_slow_asserts) {
     AssertSmi(src);
   }
@@ -1344,7 +1354,11 @@ void MacroAssembler::SmiUntag(Register dst, Register src) {
 }
 
 void MacroAssembler::SmiUntag(Register dst, const MemOperand& src) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(dst.Is64Bits() || dst.Is128Bits());
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK(dst.Is64Bits());
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (SmiValuesAre32Bits()) {
     if (src.IsImmediateOffset() && src.shift_amount() == 0) {
       // Load value directly from the upper half-word.

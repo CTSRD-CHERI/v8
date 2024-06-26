@@ -797,7 +797,9 @@ void AdjustStackPointerForTailCall(MacroAssembler* masm,
   int current_sp_offset = state->GetSPToFPSlotCount() +
                           StandardFrameConstants::kFixedSlotCountAboveFp;
   int stack_slot_delta = new_slot_above_sp - current_sp_offset;
+#if !defined(__CHERI_PURE_CAPABILITY__)
   DCHECK_EQ(stack_slot_delta % 2, 0);
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (stack_slot_delta > 0) {
     masm->Claim(stack_slot_delta);
     state->IncreaseSPDelta(stack_slot_delta);
@@ -880,7 +882,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     }
     case kArchCallBuiltinPointer: {
       DCHECK(!instr->InputAt(0)->IsImmediate());
+#if defined(__CHERI_PURE_CAPABILITY__)
+      Register builtin_index = i.InputRegisterCapability(0);
+#else  // !__CHERI_PURE_CAPABILITY__
       Register builtin_index = i.InputRegister(0);
+#endif // !__CHERI_PURE_CAPABILITY__
       Register target =
           instr->HasCallDescriptorFlag(CallDescriptor::kFixedTargetRegister)
               ? kJavaScriptCallCodeStartRegister
@@ -1774,13 +1780,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
  #if defined(__CHERI_PURE_CAPABILITY__)
 	if ((instr->OutputAt(0)->IsCapabilityRegister()) ||
             (instr->InputAt(0)->IsCapabilityRegister())) {
-          __ Sub(i.OutputRegisterCapability(),
+           __ Sub(i.OutputRegisterCapability(),
 		 i.InputOrZeroRegisterCapability(0),
                  i.InputOperand2_Capability(1));
 	  return kSuccess;
         }
 #endif // defined(__CHERI_PURE_CAPABILITY__)
-       __ Sub(i.OutputRegister(), i.InputOrZeroRegister64(0),
+        __ Sub(i.OutputRegister(), i.InputOrZeroRegister64(0),
                i.InputOperand2_64(1));
       }
       break;
@@ -1955,7 +1961,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       break;
     case kArm64Cmp:
 #if defined(__CHERI_PURE_CAPABILITY__)
-	if (instr->InputAt(0)->IsCapabilityRegister()) {
+      if (instr->InputAt(0)->IsCapabilityRegister()) {
         __ Cmp(i.InputOrZeroRegisterCapability(0),
 	       i.InputOperand2_Capability(1));
 	return kSuccess;
@@ -2334,7 +2340,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
                                 i.InputRegister(1), i.TempRegister(0));
       break;
     case kArm64LdrDecodeSandboxedPointer:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      __ LoadSandboxedPointerField(i.OutputRegisterCapability(), i.MemoryOperand());
+#else // defined(__CHERI_PURE_CAPABILITY__)
       __ LoadSandboxedPointerField(i.OutputRegister(), i.MemoryOperand());
+#endif // defined(__CHERI_PURE_CAPABILITY__)
       break;
     case kArm64Str:
       EmitOOLTrapIfNeeded(zone(), this, opcode, instr, __ pc_offset());
@@ -3595,8 +3605,10 @@ void CodeGenerator::AssembleConstructFrame() {
   auto call_descriptor = linkage()->GetIncomingDescriptor();
   __ AssertSpAligned();
 
+#if !defined(__CHERI_PURE_CAPABILITY__)
   // The frame has been previously padded in CodeGenerator::FinishFrame().
   DCHECK_EQ(frame()->GetTotalFrameSlotCount() % 2, 0);
+#endif   // !__CHERI_PURE_CAPABILITY__
   int required_slots =
       frame()->GetTotalFrameSlotCount() - frame()->GetFixedSlotCount();
 
@@ -3623,8 +3635,8 @@ void CodeGenerator::AssembleConstructFrame() {
       static_assert(InterpreterFrameConstants::kFixedFrameSize % 16 == 0);
 #else // defined(__CHERI_PURE_CAPABILITY__)
       static_assert(InterpreterFrameConstants::kFixedFrameSize % 16 == 8);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
       DCHECK_EQ(required_slots % 2, 1);
+#endif // defined(__CHERI_PURE_CAPABILITY__)
       __ Prologue();
       // Update required_slots count since we have just claimed one extra slot.
       static_assert(MacroAssembler::kExtraSlotClaimedByPrologue == 1);
@@ -3734,9 +3746,9 @@ void CodeGenerator::AssembleConstructFrame() {
                StackFrame::TypeToMarker(info()->GetOutputStackFrameType()));
 #if defined(__CHERI_PURE_CAPABILITY__)
         __ Push(scratch.C(), padregc);
+        DCHECK_GE(required_slots, 0);
 #else // _CHERI_PURE_CAPABILITY__
         __ Push(scratch, padreg);
-#endif // _CHERI_PURE_CAPABILITY__
         // One of the extra slots has just been claimed when pushing the frame
         // type marker above. We also know that we have at least one slot to
         // claim here, as the typed frame has an odd number of fixed slots, and
@@ -3744,6 +3756,7 @@ void CodeGenerator::AssembleConstructFrame() {
         // {required_slots} to be odd.
         DCHECK_GE(required_slots, 1);
         __ Claim(required_slots - 1);
+#endif // _CHERI_PURE_CAPABILITY__
         break;
       }
 #if V8_ENABLE_WEBASSEMBLY

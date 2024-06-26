@@ -295,11 +295,14 @@ Operand::Operand(Register reg, Shift shift, unsigned shift_amount)
       shift_(shift),
       extend_(NO_EXTEND),
       shift_amount_(shift_amount) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK(reg.Is128Bits() || (shift_amount < kXRegSizeInBits));
+  DCHECK(reg.Is64Bits() || (shift_amount < kCRegSizeInBits));
+  DCHECK(reg.Is32Bits() || (shift_amount < kCRegSizeInBits));
+#else  // !__CHERI_PURE_CAPABILITY__
   DCHECK(reg.Is64Bits() || (shift_amount < kWRegSizeInBits));
   DCHECK(reg.Is32Bits() || (shift_amount < kXRegSizeInBits));
-#if defined(__CHERI_PURE_CAPABILITY__)
-  DCHECK(reg.Is128Bits() || (shift_amount < kCRegSizeInBits));
-#endif // __CHERI_PURE_CAPABILITY__
+#endif // !__CHERI_PURE_CAPABILITY__
   DCHECK_IMPLIES(reg.IsSP(), shift_amount == 0);
 }
 
@@ -487,9 +490,9 @@ MemOperand::MemOperand(Register base, Register regoffset, Shift shift,
 MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
     : base_(base), regoffset_(NoReg), addrmode_(addrmode) {
 #if defined(__CHERI_PURE_CAPABILITY__)
-    DCHECK((base.Is64Bits() || base.Is128Bits()) && !base.IsZero());
+  DCHECK((base.Is64Bits() || base.Is128Bits()) && !base.IsZero());
 #else
-    DCHECK(base.Is64Bits() && !base.IsZero());
+  DCHECK(base.Is64Bits() && !base.IsZero());
 #endif // _CHERI_PURE_CAPABILITY__
 
   if (offset.IsImmediate()) {

@@ -1185,18 +1185,31 @@ void MacroAssembler::Tbz(const Register& rt, unsigned bit_pos, Label* label) {
   DCHECK(allow_macro_instructions());
 
   Label done;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  UseScratchRegisterScope temps(this);
+  Register temp = rt.IsC() ? temps.AcquireX() : NoReg;
+  if (rt.IsC()) {
+    Gcvalue(rt, temp);
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
   bool need_extra_instructions =
       NeedExtraInstructionsOrRegisterBranch(label, TestBranchType);
 
   if (need_extra_instructions) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (rt.IsC()) {
+      tbz(temp, bit_pos, label);
+    } else {
+      tbnz(rt, bit_pos, &done);
+      B(label);
+    }
+#else   // !__CHERI_PURE_CAPABILITY__
     tbnz(rt, bit_pos, &done);
     B(label);
+#endif  // __CHERI_PURE_CAPABILITY__
   } else {
 #if defined(__CHERI_PURE_CAPABILITY__)
     if (rt.IsC()) {
-      UseScratchRegisterScope temps(this);
-      Register temp = temps.AcquireX();
-      Gcvalue(rt, temp);
       tbz(temp, bit_pos, label);
     } else {
       tbz(rt, bit_pos, label);
@@ -1666,7 +1679,11 @@ void MacroAssembler::GenerateTailCallToReturnedCode(
     // argument count.
     SmiTag(kJavaScriptCallArgCountRegister);
     Push(kJavaScriptCallTargetRegister, kJavaScriptCallNewTargetRegister,
+#if defined(__CHERI_PURE_CAPABILITY__)
+         kJavaScriptCallArgCountRegister.C(), padregc);
+#else   // !__CHERI_PURE_CAPABILITY__
          kJavaScriptCallArgCountRegister, padreg);
+#endif  // !__CHERI_PURE_CAPABILITY__
     // Push another copy as a parameter to the runtime call.
     PushArgument(kJavaScriptCallTargetRegister);
 
@@ -1678,7 +1695,11 @@ void MacroAssembler::GenerateTailCallToReturnedCode(
 #endif  // !__CHERI_PURE_CAPABILITY__
 
     // Restore target function, new target and actual argument count.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    Pop(padregc, kJavaScriptCallArgCountRegister.C(),
+#else   // !__CHERI_PURE_CAPABILITY__
     Pop(padreg, kJavaScriptCallArgCountRegister,
+#endif  // !__CHERI_PURE_CAPABILITY__
         kJavaScriptCallNewTargetRegister, kJavaScriptCallTargetRegister);
     SmiUntag(kJavaScriptCallArgCountRegister);
   }
@@ -1727,7 +1748,11 @@ void MacroAssembler::OptimizeCodeOrTailCallOptimizedCodeSlot(
   GenerateTailCallToReturnedCode(Runtime::kFunctionLogNextExecution);
 
   bind(&maybe_has_optimized_code);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register optimized_code_entry = c7;
+#else   // !__CHERI_PURE_CAPABILITY__
   Register optimized_code_entry = x7;
+#endif  // !__CHERI_PURE_CAPABILITY__
   LoadTaggedField(optimized_code_entry,
                   FieldMemOperand(feedback_vector,
                                   FeedbackVector::kMaybeOptimizedCodeOffset));
@@ -3386,10 +3411,10 @@ void MacroAssembler::TruncateDoubleToI(Isolate* isolate, Zone* zone,
 #if V8_ENABLE_WEBASSEMBLY
   if (stub_mode == StubCallMode::kCallWasmRuntimeStub) {
     Call(wasm::WasmCode::kDoubleToI, RelocInfo::WASM_STUB_CALL);
-#else   // !__CHERI_PURE_CAPABILITY__
+#else
   // For balance.
   if (false) {
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // V8_ENABLE_WEBASSEMBLY
   } else {
     CallBuiltin(Builtin::kDoubleToI);
   }
@@ -3456,7 +3481,11 @@ void MacroAssembler::EnterFrame(StackFrame::Type type) {
         fourth_reg = kWasmInstanceRegister;
 #endif  // V8_ENABLE_WEBASSEMBLY
       } else {
+#if defined(__CHERI_PURE_CAPABILITY__)
+        fourth_reg = padregc;
+#else   // !__CHERI_PURE_CAPABILITY__
         fourth_reg = padreg;
+#endif  // !__CHERI_PURE_CAPABILITY__
       }
 #if defined(__CHERI_PURE_CAPABILITY__)
       Push<MacroAssembler::kSignLR>(lr, fp, type_reg.C(), fourth_reg);
@@ -4000,8 +4029,13 @@ void MacroAssembler::RecordWriteField(Register object, int offset,
 void MacroAssembler::DecodeSandboxedPointer(const Register& value) {
   ASM_CODE_COMMENT(this);
 #ifdef V8_ENABLE_SANDBOX
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Mov(value.X(), Operand(value.X(), LSL, kSandboxedPointerShift));
+  Add(value, kPtrComprCageBaseRegister, value);
+#else   // !__CHERI_PURE_CAPABILITY__
   Add(value, kPtrComprCageBaseRegister,
       Operand(value, LSR, kSandboxedPointerShift));
+#endif  // !__CHERI_PURE_CAPABILITY__
 #else
   UNREACHABLE();
 #endif
@@ -4029,10 +4063,11 @@ void MacroAssembler::StoreSandboxedPointerField(
   Register scratch = temps.AcquireX();
 #endif  // !__CHERI_PURE_CAPABILITY__
   Sub(scratch, value, kPtrComprCageBaseRegister);
-  Mov(scratch, Operand(scratch, LSL, kSandboxedPointerShift));
 #if defined(__CHERI_PURE_CAPABILITY__)
+  Mov(scratch.X(), Operand(scratch.X(), LSL, kSandboxedPointerShift));
   Str(scratch.X(), dst_field_operand);
 #else   // !__CHERI_PURE_CAPABILITY__
+  Mov(scratch, Operand(scratch, LSL, kSandboxedPointerShift));
   Str(scratch, dst_field_operand);
 #endif  // !__CHERI_PURE_CAPABILITY__
 #else
@@ -4069,7 +4104,7 @@ void MacroAssembler::LoadExternalPointerField(Register destination,
     static_assert(kExternalPointerIndexShift > kSystemPointerSizeLog2);
     int shift_amount = kExternalPointerIndexShift - kSystemPointerSizeLog2;
 #if defined(__CHERI_PURE_CAPABILITY__)
-    Mov(destination.X(), Operand(destination, LSR, shift_amount));
+    Mov(destination.X(), Operand(destination.X(), LSR, shift_amount));
     Ldr(destination, MemOperand(external_table, destination.X()));
     // TODO(gcjenkinson): Check that the tag matches
 #else   // !__CHERI_PURE_CAPABILITY__
