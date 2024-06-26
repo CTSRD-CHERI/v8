@@ -23,14 +23,24 @@ class BaselineAssembler::ScratchRegisterScope {
     if (!assembler_->scratch_register_scope_) {
       // If we haven't opened a scratch scope yet, for the first one add a
       // couple of extra registers.
+#if defined(__CHERI_PURE_CAPABILITY__)
+      wrapped_scope_.Include(c14, c15);
+      wrapped_scope_.Include(c19);
+#else   // !__CHERI_PURE_CAPABILITY__
       wrapped_scope_.Include(x14, x15);
       wrapped_scope_.Include(x19);
+#endif  // !__CHERI_PURE_CAPABILITY__
     }
     assembler_->scratch_register_scope_ = this;
   }
   ~ScratchRegisterScope() { assembler_->scratch_register_scope_ = prev_scope_; }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register AcquireScratch() { return wrapped_scope_.AcquireC(); }
+  Register AcquireScratchX() { return wrapped_scope_.AcquireX(); }
+#else
   Register AcquireScratch() { return wrapped_scope_.AcquireX(); }
+#endif // __CHERI_PURE_CAPABILITY__
 
  private:
   BaselineAssembler* assembler_;
@@ -613,21 +623,33 @@ void BaselineAssembler::EmitReturn(MacroAssembler* masm) {
     Label skip_interrupt_label;
     __ AddToInterruptBudgetAndJumpIfNotExceeded(weight, &skip_interrupt_label);
     __ masm()->SmiTag(params_size);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    __ masm()->Push(params_size.C(), kInterpreterAccumulatorRegister);
+#else   // !__CHERI_PURE_CAPABILITY__
     __ masm()->Push(params_size, kInterpreterAccumulatorRegister);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
     __ LoadContext(kContextRegister);
     __ LoadFunction(kJSFunctionRegister);
     __ masm()->PushArgument(kJSFunctionRegister);
     __ CallRuntime(Runtime::kBytecodeBudgetInterrupt_Sparkplug, 1);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+    __ masm()->Pop(kInterpreterAccumulatorRegister, params_size.C());
+#else   // !__CHERI_PURE_CAPABILITY__
     __ masm()->Pop(kInterpreterAccumulatorRegister, params_size);
+#endif  // !__CHERI_PURE_CAPABILITY__
     __ masm()->SmiUntag(params_size);
 
   __ Bind(&skip_interrupt_label);
   }
 
   BaselineAssembler::ScratchRegisterScope temps(&basm);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Register actual_params_size = temps.AcquireScratchX();
+#else   // !__CHERI_PURE_CAPABILITY__
   Register actual_params_size = temps.AcquireScratch();
+#endif  // !__CHERI_PURE_CAPABILITY__
   // Compute the size of the actual parameters + receiver (in bytes).
   __ Move(actual_params_size,
           MemOperand(fp, StandardFrameConstants::kArgCOffset));
