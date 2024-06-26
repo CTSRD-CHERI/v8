@@ -319,14 +319,23 @@ void V8::DisposePlatform() {
 
 v8::Platform* V8::GetCurrentPlatform() {
   v8::Platform* platform = reinterpret_cast<v8::Platform*>(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      base::Relaxed_Load(reinterpret_cast<base::AtomicIntPtr*>(&platform_)));
+#else   // !__CHERI_PURE_CAPABILITY__
       base::Relaxed_Load(reinterpret_cast<base::AtomicWord*>(&platform_)));
+#endif  // !__CHERI_PURE_CAPABILITY__
   DCHECK(platform);
   return platform;
 }
 
 void V8::SetPlatformForTesting(v8::Platform* platform) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  base::Relaxed_Store(reinterpret_cast<base::AtomicIntPtr*>(&platform_),
+                      reinterpret_cast<base::AtomicIntPtr>(platform));
+#else   // !__CHERI_PURE_CAPABILITY__
   base::Relaxed_Store(reinterpret_cast<base::AtomicWord*>(&platform_),
                       reinterpret_cast<base::AtomicWord>(platform));
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 void V8::SetSnapshotBlob(StartupData* snapshot_blob) {
