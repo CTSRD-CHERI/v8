@@ -115,7 +115,12 @@ TEST(SandboxTest, PageAllocation) {
     size_t length = allocation_granularity * kAllocatinSizesInPages[i];
     size_t alignment = allocation_granularity;
     Address ptr = vas->AllocatePages(VirtualAddressSpace::kNoHint, length,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                                     alignment, PagePermissions::kNoAccess,
+                                     PagePermissions::kNoAccess);
+#else   // !__CHERI_PURE_CAPABILITY__
                                      alignment, PagePermissions::kNoAccess);
+#endif  // !__CHERI_PURE_CAPABILITY__
     EXPECT_NE(ptr, kNullAddress);
     EXPECT_TRUE(sandbox.Contains(ptr));
     allocations.push_back(ptr);

@@ -779,7 +779,12 @@ class VirtualAddressSpace {
   static constexpr Address kNoHint = 0;
   virtual V8_WARN_UNUSED_RESULT Address
   AllocatePages(Address hint, size_t size, size_t alignment,
+#if defined(__CHERI_PURE_CAPABILITY__)
+                PagePermissions permissions,
+                PagePermissions max_permissions) = 0;
+#else   // !__CHERI_PURE_CAPABILITY__
                 PagePermissions permissions) = 0;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   /**
    * Frees previously allocated pages.

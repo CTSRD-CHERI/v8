@@ -56,7 +56,15 @@ void ExternalEntityTable<Entry>::InitializeTable(Isolate* isolate) {
 
   Address buffer_start = root_space->AllocatePages(
       VirtualAddressSpace::kNoHint, reservation_size,
+#if defined(__CHERI_PURE_CAPABILITY__)
+      // As the entity table is writing capability values to the allocated
+      // pages in must be mapped with kReadWrite as there is currently
+      // no mechanism to control the cap write protection.
+      root_space->allocation_granularity(), PagePermissions::kReadWrite,
+      PagePermissions::kReadWrite);
+#else   // !__CHERI_PURE_CAPABILITY__
       root_space->allocation_granularity(), PagePermissions::kNoAccess);
+#endif  // !__CHERI_PURE_CAPABILITY__
   if (!buffer_start) {
     V8::FatalProcessOutOfMemory(
         isolate,
