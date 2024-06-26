@@ -619,6 +619,12 @@ ALIAS_REGISTER(VRegister, fp_scratch2, d31);
 #undef ALIAS_REGISTER
 
 // Arm64 calling convention
+#if defined(__CHERI_PURE_CAPABILITY__)
+constexpr Register carg_reg_1 = c0;
+constexpr Register carg_reg_2 = c1;
+constexpr Register carg_reg_3 = c2;
+constexpr Register carg_reg_4 = c3;
+#endif   // __CHERI_PURE_CAPABILITY__
 constexpr Register arg_reg_1 = x0;
 constexpr Register arg_reg_2 = x1;
 constexpr Register arg_reg_3 = x2;

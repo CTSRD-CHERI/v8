@@ -490,9 +490,9 @@ MemOperand::MemOperand(Register base, Register regoffset, Shift shift,
 MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
     : base_(base), regoffset_(NoReg), addrmode_(addrmode) {
 #if defined(__CHERI_PURE_CAPABILITY__)
-    DCHECK((base.Is64Bits() || base.Is128Bits()) && !base.IsZero());
+  DCHECK((base.Is64Bits() || base.Is128Bits()) && !base.IsZero());
 #else
-    DCHECK(base.Is64Bits() && !base.IsZero());
+  DCHECK(base.Is64Bits() && !base.IsZero());
 #endif // _CHERI_PURE_CAPABILITY__
 
   if (offset.IsImmediate()) {
