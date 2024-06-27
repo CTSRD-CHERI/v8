@@ -3588,7 +3588,13 @@ void CodeGenerator::FinishFrame(Frame* frame) {
   if (saved_count != 0) {
     frame->AllocateSavedCalleeRegisterSlots(saved_count);
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Needed for frame()->GetTotalFrameSlotCount() % 2 == 0 on CHERI systems
+  // since capabilities are 16 bytes each.
+  frame->AlignFrame(32);
+#else   // !__CHERI_PURE_CAPABILITY__
   frame->AlignFrame(16);
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 void CodeGenerator::AssembleConstructFrame() {
