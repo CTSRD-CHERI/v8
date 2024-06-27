@@ -39,8 +39,13 @@ const char* StringsStorage::GetCopy(const char* src) {
     entry->key = dst.begin();
     string_size_ += len;
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  entry->value =
+      reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(entry->value) + 1);
+#else // !__CHERI_PURE_CAPABILITY__
   entry->value =
       reinterpret_cast<void*>(reinterpret_cast<size_t>(entry->value) + 1);
+#endif // __CHERI_PURE_CAPABILITY__
   return reinterpret_cast<const char*>(entry->key);
 }
 
