@@ -3493,7 +3493,11 @@ void MacroAssembler::EnterFrame(StackFrame::Type type) {
         fourth_reg = kWasmInstanceRegister;
 #endif  // V8_ENABLE_WEBASSEMBLY
       } else {
+#ifdef __CHERI_PURE_CAPABILITY__
+        fourth_reg = padregc;
+#else // !__CHERI_PURE_CAPABILITY__
         fourth_reg = padreg;
+#endif // __CHERI_PURE_CAPABILITY__
       }
 #if defined(__CHERI_PURE_CAPABILITY__)
       Push<MacroAssembler::kSignLR>(lr, fp, type_reg.C(), fourth_reg);
