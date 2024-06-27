@@ -94,7 +94,6 @@ class V8_EXPORT_PRIVATE MemoryChunkLayout {
     FIELD(ActiveSystemPages*, ActiveSystemPages),
 #if defined(__CHERI_PURE_CAPABILITY__)
     FIELD(size_t, AllocatedLabSize),
-    FIELD(size_t, Padding2),
 #else   // !__CHERI_PURE_CAPABILITY__
     FIELD(size_t, AllocatedLabSize),
 #endif  // !__CHERI_PURE_CAPABILITY__
