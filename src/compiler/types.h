@@ -426,7 +426,11 @@ class V8_EXPORT_PRIVATE Type {
   PROPER_BITSET_TYPE_LIST(DEFINE_TYPE_CONSTRUCTOR)
 #undef DEFINE_TYPE_CONSTRUCTOR
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  Type() : payload_(uintptr_t{0}) {}
+#else // !__CHERI_PURE_CAPABILITY__
   Type() : payload_(uint64_t{0}) {}
+#endif // __CHERI_PURE_CAPABILITY__
 
   static Type SignedSmall() { return NewBitset(BitsetType::SignedSmall()); }
   static Type UnsignedSmall() { return NewBitset(BitsetType::UnsignedSmall()); }
@@ -454,7 +458,11 @@ class V8_EXPORT_PRIVATE Type {
 
   // Predicates.
   bool IsNone() const { return payload_ == None().payload_; }
+#ifdef __CHERI_PURE_CAPABILITY__
+  bool IsInvalid() const { return payload_ == uintptr_t{0}; }
+#else // !__CHERI_PURE_CAPABILITY__
   bool IsInvalid() const { return payload_ == uint64_t{0}; }
+#endif // __CHERI_PURE_CAPABILITY__
 
   bool Is(Type that) const {
     return payload_ == that.payload_ || this->SlowIs(that);
@@ -536,7 +544,11 @@ class V8_EXPORT_PRIVATE Type {
   explicit Type(bitset bits) : payload_(bits | uint64_t{1}) {}
 
   Type(TypeBase* type_base)  // NOLINT(runtime/explicit)
+#ifdef __CHERI_PURE_CAPABILITY__
+      : payload_(reinterpret_cast<uintptr_t>(type_base)) {}
+#else // !__CHERI_PURE_CAPABILITY__
       : payload_(reinterpret_cast<uint64_t>(type_base)) {}
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Internal inspection.
   bool IsKind(TypeBase::Kind kind) const {
@@ -555,7 +567,12 @@ class V8_EXPORT_PRIVATE Type {
 
   bitset AsBitset() const {
     DCHECK(IsBitset());
+#ifdef __CHERI_PURE_CAPABILITY__
+    return static_cast<bitset>(static_cast<ptraddr_t>(payload_)) ^
+           uint64_t { 1 };
+#else // !__CHERI_PURE_CAPABILITY__
     return static_cast<bitset>(payload_) ^ uint64_t { 1 };
+#endif // __CHERI_PURE_CAPABILITY__
   }
 
   const UnionType* AsUnion() const;
@@ -591,7 +608,11 @@ class V8_EXPORT_PRIVATE Type {
 
   // If LSB is set, the payload is a bitset; if LSB is clear, the payload is
   // a pointer to a subtype of the TypeBase class.
+#ifdef __CHERI_PURE_CAPABILITY__
+  uintptr_t payload_;
+#else // !__CHERI_PURE_CAPABILITY__
   uint64_t payload_;
+#endif // __CHERI_PURE_CAPABILITY__
 };
 
 inline size_t hash_value(Type type) { return type.payload_; }
