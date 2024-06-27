@@ -838,6 +838,26 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(AnyCompressed)           \
   V(Simd256)
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define MACHINE_REPRESENTATION_LIST(V) \
+  V(kFloat32)                          \
+  V(kFloat64)                          \
+  V(kSimd128)                          \
+  V(kWord8)                            \
+  V(kWord16)                           \
+  V(kWord32)                           \
+  V(kWord64)                           \
+  V(kMapWord)                          \
+  V(kTaggedSigned)                     \
+  V(kTaggedPointer)                    \
+  V(kTagged)                           \
+  V(kCompressedPointer)                \
+  V(kSandboxedPointer)                 \
+  V(kCompressed)                       \
+  V(kSimd256)                          \
+  V(kCapability64)                     \
+  V(kCapability32)
+#else // !__CHERI_PURE_CAPABILITY__
 #define MACHINE_REPRESENTATION_LIST(V) \
   V(kFloat32)                          \
   V(kFloat64)                          \
@@ -854,6 +874,7 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(kSandboxedPointer)                 \
   V(kCompressed)                       \
   V(kSimd256)
+#endif
 
 #ifdef V8_TARGET_ARCH_64_BIT
 
