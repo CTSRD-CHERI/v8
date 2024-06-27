@@ -3352,7 +3352,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
 #if defined(__CHERI_PURE_CAPABILITY__)
   __ Ldrh(x2,
           FieldMemOperand(c2, SharedFunctionInfo::kFormalParameterCountOffset));
-  __ InvokeFunctionCode(c2, no_reg, x2, x0, InvokeType::kJump);
+  __ InvokeFunctionCode(c1, no_reg, x2, x0, InvokeType::kJump);
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ Ldrh(x2,
           FieldMemOperand(x2, SharedFunctionInfo::kFormalParameterCountOffset));
