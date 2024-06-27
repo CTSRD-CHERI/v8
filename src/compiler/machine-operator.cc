@@ -1701,7 +1701,8 @@ MachineOperatorBuilder::MachineOperatorBuilder(
       flags_(flags),
       alignment_requirements_(alignmentRequirements) {
   DCHECK(word == MachineRepresentation::kWord32 ||
-         word == MachineRepresentation::kWord64);
+         word == MachineRepresentation::kWord64 ||
+         word == MachineRepresentation::kCapability64);
 }
 
 const Operator* MachineOperatorBuilder::UnalignedLoad(LoadRepresentation rep) {
