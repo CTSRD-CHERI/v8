@@ -1068,6 +1068,11 @@ void InstructionSelector::VisitStore(Node* node) {
       case 3:
         approx_rep = MachineRepresentation::kWord64;
         break;
+#ifdef __CHERI_PURE_CAPABILITY__
+      case 4:
+        approx_rep = MachineRepresentation::kCapability64;
+        break;
+#endif // __CHERI_PURE_CAPABILITY__
       default:
         UNREACHABLE();
     }
