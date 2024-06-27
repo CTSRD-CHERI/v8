@@ -959,6 +959,10 @@ static MachineRepresentation FilterRepresentation(MachineRepresentation rep) {
     case MachineRepresentation::kCompressedPointer:
     case MachineRepresentation::kCompressed:
     case MachineRepresentation::kSandboxedPointer:
+#ifdef __CHERI_PURE_CAPABILITY__
+    case MachineRepresentation::kCapability64:
+    case MachineRepresentation::kCapability32:
+#endif
       return rep;
     case MachineRepresentation::kNone:
     case MachineRepresentation::kMapWord:
