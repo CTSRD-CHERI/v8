@@ -4365,7 +4365,11 @@ void MacroAssembler::Abort(AbortReason reason) {
       // InterpreterEntryTrampoline and InterpreterEntryTrampolineForProfiling
       // when v8_flags.debug_code is enabled.
       UseScratchRegisterScope temps(this);
+#ifdef __CHERI_PURE_CAPABILITY__
+      Register scratch = temps.AcquireC();
+#else
       Register scratch = temps.AcquireX();
+#endif
       LoadEntryFromBuiltin(Builtin::kAbort, scratch);
       Call(scratch);
     } else {
