@@ -3315,7 +3315,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
         FrameScope scope(masm, StackFrame::INTERNAL);
         __ SmiTag(x0);
 #if defined(__CHERI_PURE_CAPABILITY__)
-        __ Push(padreg, c0, c1, cp);
+        __ Push(padregc, c0, c1, cp);
 #else // defined(__CHERI_PURE_CAPABILITY__)
         __ Push(padreg, x0, x1, cp);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
