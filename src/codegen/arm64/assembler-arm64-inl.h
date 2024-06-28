@@ -1046,22 +1046,39 @@ Instr Assembler::ImmAddSub(int imm) {
 }
 
 Instr Assembler::ImmS(unsigned imms, unsigned reg_size) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK((reg_size == kCRegSizeInBits && is_uint6(imms)) ||
+         ((reg_size == kXRegSizeInBits) && is_uint6(imms)) ||
+         ((reg_size == kWRegSizeInBits) && is_uint5(imms)));
+#else
   DCHECK(((reg_size == kXRegSizeInBits) && is_uint6(imms)) ||
          ((reg_size == kWRegSizeInBits) && is_uint5(imms)));
+#endif
   USE(reg_size);
   return imms << ImmS_offset;
 }
 
 Instr Assembler::ImmR(unsigned immr, unsigned reg_size) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(((reg_size == kCRegSizeInBits) && is_uint6(immr)) ||
+         ((reg_size == kXRegSizeInBits) && is_uint6(immr)) ||
+         ((reg_size == kWRegSizeInBits) && is_uint5(immr)));
+#else
   DCHECK(((reg_size == kXRegSizeInBits) && is_uint6(immr)) ||
          ((reg_size == kWRegSizeInBits) && is_uint5(immr)));
+#endif
   USE(reg_size);
   DCHECK(is_uint6(immr));
   return immr << ImmR_offset;
 }
 
 Instr Assembler::ImmSetBits(unsigned imms, unsigned reg_size) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK((reg_size == kCRegSizeInBits) || (reg_size == kWRegSizeInBits) ||
+         (reg_size == kXRegSizeInBits));
+#else
   DCHECK((reg_size == kWRegSizeInBits) || (reg_size == kXRegSizeInBits));
+#endif
   DCHECK(is_uint6(imms));
   DCHECK((reg_size == kXRegSizeInBits) || is_uint6(imms + 3));
   USE(reg_size);
@@ -1069,9 +1086,17 @@ Instr Assembler::ImmSetBits(unsigned imms, unsigned reg_size) {
 }
 
 Instr Assembler::ImmRotate(unsigned immr, unsigned reg_size) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK((reg_size == kCRegSizeInBits) || (reg_size == kWRegSizeInBits) ||
+         (reg_size == kXRegSizeInBits));
+  DCHECK(((reg_size == kCRegSizeInBits) && is_uint6(immr)) ||
+         ((reg_size == kXRegSizeInBits) && is_uint6(immr)) ||
+         ((reg_size == kWRegSizeInBits) && is_uint5(immr)));
+#else
   DCHECK((reg_size == kWRegSizeInBits) || (reg_size == kXRegSizeInBits));
   DCHECK(((reg_size == kXRegSizeInBits) && is_uint6(immr)) ||
          ((reg_size == kWRegSizeInBits) && is_uint5(immr)));
+#endif
   USE(reg_size);
   return immr << ImmRotate_offset;
 }
@@ -1082,7 +1107,12 @@ Instr Assembler::ImmLLiteral(int imm19) {
 }
 
 Instr Assembler::BitN(unsigned bitn, unsigned reg_size) {
+#ifdef __CHERI_PURE_CAPABILITY__
   DCHECK((reg_size == kWRegSizeInBits) || (reg_size == kXRegSizeInBits));
+#else
+  DCHECK((reg_size == kCRegSizeInBits) || (reg_size == kWRegSizeInBits) ||
+         (reg_size == kXRegSizeInBits));
+#endif
   DCHECK((reg_size == kXRegSizeInBits) || (bitn == 0));
   USE(reg_size);
   return bitn << BitN_offset;
