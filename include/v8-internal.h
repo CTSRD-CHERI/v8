@@ -92,9 +92,18 @@ template <>
 struct SmiTagging<4> {
   enum { kSmiShiftSize = 0, kSmiValueSize = 31 };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr int32_t kInt32AllBitsSet = int32_t{-1};
+  static constexpr uint32_t kUint32AllBitsSet =
+      static_cast<uint32_t>(kInt32AllBitsSet);
+  static constexpr int32_t kSmiMinValue =
+      static_cast<int32_t>(kUint32AllBitsSet << (kSmiValueSize - 1));
+  static constexpr int32_t kSmiMaxValue = -(kSmiMinValue + 1);
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kSmiMinValue =
       static_cast<intptr_t>(kUintptrAllBitsSet << (kSmiValueSize - 1));
   static constexpr intptr_t kSmiMaxValue = -(kSmiMinValue + 1);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   V8_INLINE static int SmiToInt(Address value) {
     int shift_bits = kSmiTagSize + kSmiShiftSize;
@@ -117,9 +126,18 @@ template <>
 struct SmiTagging<8> {
   enum { kSmiShiftSize = 31, kSmiValueSize = 32 };
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr int64_t kInt64AllBitsSet = int64_t{-1};
+  static constexpr uint64_t kUint64AllBitsSet =
+      static_cast<uint64_t>(kInt64AllBitsSet);
+  static constexpr int64_t kSmiMinValue =
+      static_cast<int64_t>(kUint64AllBitsSet << (kSmiValueSize - 1));
+  static constexpr int64_t kSmiMaxValue = -(kSmiMinValue + 1);
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr intptr_t kSmiMinValue =
       static_cast<intptr_t>(kUintptrAllBitsSet << (kSmiValueSize - 1));
   static constexpr intptr_t kSmiMaxValue = -(kSmiMinValue + 1);
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   V8_INLINE static int SmiToInt(Address value) {
     int shift_bits = kSmiTagSize + kSmiShiftSize;
