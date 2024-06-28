@@ -48,10 +48,18 @@ void FreeSpace::set_next(FreeSpace next) {
     TaggedField<Smi, kNextOffset>::Relaxed_Store(*this, Smi::zero());
     return;
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  ptrdiff_t diff_to_next = next.ptr() - ptr();
+#else   // !__CHERI_PURE_CAPABILITY__
   intptr_t diff_to_next = next.ptr() - ptr();
+#endif  // !__CHERI_PURE_CAPABILITY__
   DCHECK(IsAligned(diff_to_next, kObjectAlignment));
   TaggedField<Smi, kNextOffset>::Relaxed_Store(
+#if defined(__CHERI_PURE_CAPABILITY__)
+      *this, Smi::FromInt(diff_to_next / kObjectAlignment));
+#else   // !__CHERI_PURE_CAPABILITY__
       *this, Smi::FromIntptr(diff_to_next / kObjectAlignment));
+#endif  // !__CHERI_PURE_CAPABILITY__
 #else
   TaggedField<Object, kNextOffset>::Relaxed_Store(*this, next);
 #endif  // V8_EXTERNAL_CODE_SPACE
