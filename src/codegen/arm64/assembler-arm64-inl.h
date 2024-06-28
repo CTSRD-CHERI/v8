@@ -296,9 +296,9 @@ Operand::Operand(Register reg, Shift shift, unsigned shift_amount)
       extend_(NO_EXTEND),
       shift_amount_(shift_amount) {
 #if defined(__CHERI_PURE_CAPABILITY__)
-  DCHECK(reg.Is128Bits() || (shift_amount < kXRegSizeInBits));
-  DCHECK(reg.Is64Bits() || (shift_amount < kCRegSizeInBits));
-  DCHECK(reg.Is32Bits() || (shift_amount < kCRegSizeInBits));
+  DCHECK_IMPLIES(reg.Is128Bits(), (shift_amount < kXRegSizeInBits));
+  DCHECK_IMPLIES(reg.Is64Bits(), (shift_amount < kXRegSizeInBits));
+  DCHECK_IMPLIES(reg.Is32Bits(), (shift_amount < kXRegSizeInBits));
 #else  // !__CHERI_PURE_CAPABILITY__
   DCHECK(reg.Is64Bits() || (shift_amount < kWRegSizeInBits));
   DCHECK(reg.Is32Bits() || (shift_amount < kXRegSizeInBits));
