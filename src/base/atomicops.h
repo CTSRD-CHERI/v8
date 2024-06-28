@@ -330,6 +330,14 @@ inline Atomic64 SeqCst_AtomicExchange(volatile Atomic64* ptr,
                                        std::memory_order_seq_cst);
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+inline AtomicIntPtr SeqCst_AtomicExchange(volatile AtomicIntPtr* ptr,
+                                      AtomicIntPtr new_value) {
+  return std::atomic_exchange_explicit(helper::to_std_atomic(ptr), new_value,
+                                       std::memory_order_seq_cst);
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 inline Atomic64 Relaxed_AtomicIncrement(volatile Atomic64* ptr,
                                         Atomic64 increment) {
   return static_cast<ssize_t>(increment) +
@@ -398,12 +406,19 @@ inline void SeqCst_Store(volatile Atomic64* ptr, Atomic64 value) {
                              std::memory_order_seq_cst);
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+inline void SeqCst_Store(volatile AtomicIntPtr* ptr, AtomicIntPtr value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_seq_cst);
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 inline Atomic64 Relaxed_Load(volatile const Atomic64* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
                                    std::memory_order_relaxed);
 }
 
-inline Atomic64 Acquire_Load(volatile const Atomic64* ptr) {
+inline AtomicIntPtr Acquire_Load(volatile const Atomic64* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
                                    std::memory_order_acquire);
 }
@@ -412,6 +427,13 @@ inline Atomic64 SeqCst_Load(volatile const Atomic64* ptr) {
   return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
                                    std::memory_order_seq_cst);
 }
+
+#ifdef __CHERI_PURE_CAPABILITY__
+inline AtomicIntPtr SeqCst_Load(volatile const AtomicIntPtr* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_seq_cst);
+}
+#endif // __CHERI_PURE_CAPABILITY__
 
 #endif  // defined(V8_HOST_ARCH_64_BIT)
 

@@ -175,14 +175,22 @@ class V8_EXPORT_PRIVATE V8_NODISCARD StackGuard final {
     }
     void set_jslimit(uintptr_t limit) {
       return base::Relaxed_Store(&jslimit_,
+#ifdef __CHERI_PURE_CAPABILITY__
+                                 static_cast<base::AtomicIntPtr>(limit));
+#else
                                  static_cast<base::AtomicWord>(limit));
+#endif
     }
     uintptr_t climit() {
       return base::bit_cast<uintptr_t>(base::Relaxed_Load(&climit_));
     }
     void set_climit(uintptr_t limit) {
       return base::Relaxed_Store(&climit_,
+#ifdef __CHERI_PURE_CAPABILITY__
+                                 static_cast<base::AtomicIntPtr>(limit));
+#else
                                  static_cast<base::AtomicWord>(limit));
+#endif
     }
 
     InterruptsScope* interrupt_scopes_ = nullptr;
