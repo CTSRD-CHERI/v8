@@ -11345,7 +11345,11 @@ TNode<IntPtrT> CodeStubAssembler::TryToIntptr(
 #if V8_TARGET_ARCH_64_BIT
     // We can't rely on Is64() alone because 32-bit compilers rightly complain
     // about kMaxSafeIntegerUint64 not fitting into an intptr_t.
+#ifdef __CHERI_PURE_CAPABILITY__
+    DCHECK(Is128());
+#else
     DCHECK(Is64());
+#endif
     // TODO(jkummerow): Investigate whether we can drop support for
     // negative indices.
     GotoIfNot(IsInRange(int_value, static_cast<intptr_t>(-kMaxSafeInteger),

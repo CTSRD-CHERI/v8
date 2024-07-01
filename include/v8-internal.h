@@ -195,6 +195,7 @@ const int kSmiMaxValue = static_cast<int>(PlatformSmiTagging::kSmiMaxValue);
 constexpr bool SmiValuesAre31Bits() { return kSmiValueSize == 31; }
 constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
 constexpr bool Is64() { return kApiSystemPointerSize == sizeof(int64_t); }
+constexpr bool Is128() { return kApiSystemPointerSize == 16; }
 
 V8_INLINE static constexpr Address IntToSmi(int value) {
   return (static_cast<Address>(value) << (kSmiTagSize + kSmiShiftSize)) |
