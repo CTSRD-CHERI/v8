@@ -1843,7 +1843,6 @@ V8_EXPORT_PRIVATE void SeqString::SeqStringVerify(Isolate* isolate) {
 #else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   auto padding = reinterpret_cast<char*>(address() + sz.data_size);
 #endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
-  PrintF("sz.padding_size = %d\n", sz.padding_size);
   CHECK(sz.padding_size <= kTaggedSize);
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   CHECK(sz.cheri_padding_size <= kTaggedSize);
