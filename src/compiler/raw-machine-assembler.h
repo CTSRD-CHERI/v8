@@ -597,11 +597,19 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
         value);
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define INTPTR_BINOP(prefix, name)                           \
+  Node* IntPtr##name(Node* a, Node* b) {                     \
+    return kSystemPointerSize >= 8 ? prefix##64##name(a, b)  \
+                                   : prefix##32##name(a, b); \
+  }
+#else
 #define INTPTR_BINOP(prefix, name)                           \
   Node* IntPtr##name(Node* a, Node* b) {                     \
     return kSystemPointerSize == 8 ? prefix##64##name(a, b)  \
                                    : prefix##32##name(a, b); \
   }
+#endif
 
   INTPTR_BINOP(Int, Add)
   INTPTR_BINOP(Int, AddWithOverflow)
@@ -621,11 +629,19 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
 
 #undef INTPTR_BINOP
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define UINTPTR_BINOP(prefix, name)                          \
+  Node* UintPtr##name(Node* a, Node* b) {                    \
+    return kSystemPointerSize >= 8 ? prefix##64##name(a, b)  \
+                                   : prefix##32##name(a, b); \
+  }
+#else
 #define UINTPTR_BINOP(prefix, name)                          \
   Node* UintPtr##name(Node* a, Node* b) {                    \
     return kSystemPointerSize == 8 ? prefix##64##name(a, b)  \
                                    : prefix##32##name(a, b); \
   }
+#endif
 
   UINTPTR_BINOP(Uint, LessThan)
   UINTPTR_BINOP(Uint, LessThanOrEqual)
