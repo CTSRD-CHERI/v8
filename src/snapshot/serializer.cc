@@ -1190,7 +1190,12 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
       // make the snapshot content deterministic.
       SeqString::DataAndPaddingSizes sizes =
           SeqString::cast(*object_).GetDataAndPaddingSizes();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      DCHECK_EQ(bytes_to_output, sizes.data_size - base + sizes.padding_size +
+                                     sizes.cheri_padding_size);
+#else
       DCHECK_EQ(bytes_to_output, sizes.data_size - base + sizes.padding_size);
+#endif
       int data_bytes_to_output = sizes.data_size - base;
       sink_->PutRaw(reinterpret_cast<uint8_t*>(object_start + base),
                     data_bytes_to_output, "SeqStringData");
