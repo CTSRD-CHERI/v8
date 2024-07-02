@@ -93,8 +93,14 @@ class BasicSlotSet {
     }
 #endif
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    v8::base::AlignedFree(reinterpret_cast<uint8_t*>(
+        RoundDown(reinterpret_cast<uintptr_t>(slot_set) - kInitialBucketsSize,
+                  kSystemPointerSize)));
+#else
     v8::base::AlignedFree(reinterpret_cast<uint8_t*>(slot_set) -
                           kInitialBucketsSize);
+#endif
   }
 
   constexpr static size_t BucketsForSize(size_t size) {
