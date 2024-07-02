@@ -458,6 +458,10 @@ class ImplementationVisitor {
   VisitResult Visit(Expression* expr);
   const Type* Visit(Statement* stmt);
 
+  static bool IsInternal(const Field& f) {
+    return f.name_and_type.name.rfind("__", 0) == 0;
+  }
+
   static bool IsInternal(const std::string& name) {
     return name.rfind("__", 0) == 0;
   }

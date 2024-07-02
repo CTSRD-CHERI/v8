@@ -1810,23 +1810,44 @@ SeqString::DataAndPaddingSizes SeqString::GetDataAndPaddingSizes() const {
 SeqString::DataAndPaddingSizes SeqOneByteString::GetDataAndPaddingSizes()
     const {
   int data_size = SeqString::kHeaderSize + length() * kOneByteSize;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int cheri_padding_size = AddedCheriPadding();
+  int padding_size = SizeFor(length()) - data_size - cheri_padding_size;
+  return DataAndPaddingSizes{data_size, padding_size, cheri_padding_size};
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   int padding_size = SizeFor(length()) - data_size;
   return DataAndPaddingSizes{data_size, padding_size};
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
 }
 
 SeqString::DataAndPaddingSizes SeqTwoByteString::GetDataAndPaddingSizes()
     const {
   int data_size = SeqString::kHeaderSize + length() * base::kUC16Size;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int cheri_padding_size = AddedCheriPadding();
+  int padding_size = SizeFor(length()) - data_size - cheri_padding_size;
+  return DataAndPaddingSizes{data_size, padding_size, cheri_padding_size};
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   int padding_size = SizeFor(length()) - data_size;
   return DataAndPaddingSizes{data_size, padding_size};
+#endif  // __CHERI_PURE_CAPABILITY__ && V8_COMPRESS_POINTERS
 }
 
 #ifdef VERIFY_HEAP
 V8_EXPORT_PRIVATE void SeqString::SeqStringVerify(Isolate* isolate) {
   TorqueGeneratedSeqString<SeqString, String>::SeqStringVerify(isolate);
   DataAndPaddingSizes sz = GetDataAndPaddingSizes();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  auto padding =
+      reinterpret_cast<char*>(address() + sz.data_size + sz.cheri_padding_size);
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   auto padding = reinterpret_cast<char*>(address() + sz.data_size);
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+  PrintF("sz.padding_size = %d\n", sz.padding_size);
   CHECK(sz.padding_size <= kTaggedSize);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  CHECK(sz.cheri_padding_size <= kTaggedSize);
+#endif
   for (int i = 0; i < sz.padding_size; ++i) {
     CHECK_EQ(padding[i], 0);
   }
@@ -1835,9 +1856,21 @@ V8_EXPORT_PRIVATE void SeqString::SeqStringVerify(Isolate* isolate) {
 
 void SeqString::ClearPadding() {
   DataAndPaddingSizes sz = GetDataAndPaddingSizes();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  DCHECK_EQ(address() + sz.data_size + sz.cheri_padding_size + sz.padding_size,
+            address() + Size());
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   DCHECK_EQ(address() + sz.data_size + sz.padding_size, address() + Size());
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
   if (sz.padding_size == 0) return;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // XXX(cheri): Should we zero the CHERI padding here too?
+  memset(
+      reinterpret_cast<void*>(address() + sz.data_size + sz.cheri_padding_size),
+      0, sz.padding_size);
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   memset(reinterpret_cast<void*>(address() + sz.data_size), 0, sz.padding_size);
+#endif  // __CHERI_PURE_CAPABILITY__ && V8_COMPRESS_POINTERS
 }
 
 uint16_t ConsString::Get(

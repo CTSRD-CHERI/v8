@@ -711,8 +711,17 @@ class SeqString : public TorqueGeneratedSeqString<SeqString, String> {
   struct DataAndPaddingSizes {
     const int data_size;
     const int padding_size;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    const int cheri_padding_size;
+#endif // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
     bool operator==(const DataAndPaddingSizes& other) const {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      return data_size == other.data_size &&
+             padding_size == other.padding_size &&
+             cheri_padding_size == other.cheri_padding_size;
+#else // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
       return data_size == other.data_size && padding_size == other.padding_size;
+#endif // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
     }
   };
   DataAndPaddingSizes GetDataAndPaddingSizes() const;

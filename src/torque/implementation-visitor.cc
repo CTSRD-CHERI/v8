@@ -1488,7 +1488,7 @@ void ImplementationVisitor::InitializeClass(
   }
 
   for (const Field& f : class_type->fields()) {
-    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+    if (ImplementationVisitor::IsInternal(f)) continue;
     VisitResult initializer_value =
         initializer_results.field_value_map.at(f.name_and_type.name);
     LocationReference field =
@@ -1567,7 +1567,7 @@ VisitResult ImplementationVisitor::GenerateArrayLength(
   std::map<std::string, LocalValue> bindings;
   for (Field f : class_type->ComputeAllFields()) {
     if (f.index) break;
-    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+    if (ImplementationVisitor::IsInternal(f)) continue;
     const std::string& fieldname = f.name_and_type.name;
     VisitResult value = initializer_results.field_value_map.at(fieldname);
     bindings.insert(
@@ -4186,6 +4186,24 @@ void CppClassGenerator::GenerateClass() {
   } else if (type_->ShouldGenerateBodyDescriptor() ||
              (!type_->IsAbstract() &&
               !type_->IsSubtypeOf(TypeOracle::GetJSObjectType()))) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    {
+      // Add a helper to determine how much padding we have on CHERI systems.
+      cpp::Function f(&c, "AddedCheriPadding");
+      f.SetReturnType("int32_t");
+      f.SetFlags(cpp::Function::kStatic | cpp::Function::kConstexpr |
+                 cpp::Function::kV8Inline);
+      f.PrintInlineDefinition(hdr_, [&](std::ostream& stream) {
+        stream << "    int32_t size = 0;\n";
+        for (const Field& field : type_->ComputeAllFields()) {
+          if (ImplementationVisitor::IsInternal(field)) {
+            stream << "    size += 1;\n";
+          }
+        }
+        stream << "    return size;\n";
+      });
+    }
+#endif // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
     cpp::Function f(&c, "SizeFor");
     f.SetReturnType("int32_t");
     f.SetFlags(cpp::Function::kStatic | cpp::Function::kConstexpr |
@@ -4200,6 +4218,12 @@ void CppClassGenerator::GenerateClass() {
       }
       stream << "    int32_t size = kHeaderSize;\n";
       for (const Field& field : type_->ComputeAllFields()) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+        if (ImplementationVisitor::IsInternal(field)) {
+          stream << "   size += 1;\n";
+          continue;
+        }
+#endif  // __CHERI_PURE_CAPABILITY__ && V8_COMPRESS_POINTERS
         if (field.index) {
           auto index_name_and_type =
               *ExtractSimpleFieldArraySize(*type_, field.index->expr);
@@ -4274,7 +4298,7 @@ void CppClassGenerator::GenerateCppObjectDefinitionAsserts() {
   hdr_ << "\n";
 
   for (auto f : type_->fields()) {
-    if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+    if (ImplementationVisitor::IsInternal(f)) continue;
     std::string field = "k" + CamelifyString(f.name_and_type.name) + "Offset";
     std::string type = f.name_and_type.type->SimpleName();
     hdr_ << "  static_assert(" << field << " == D::" << field << ",\n"
@@ -4558,7 +4582,7 @@ void CppClassGenerator::EmitLoadFieldStatement(
     std::vector<const Field*>& struct_fields) {
   const Field& innermost_field =
       struct_fields.empty() ? class_field : *struct_fields.back();
-  if (ImplementationVisitor::IsInternal(innermost_field.name_and_type.name))
+  if (ImplementationVisitor::IsInternal(innermost_field))
     return;
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
@@ -4628,7 +4652,7 @@ void CppClassGenerator::EmitStoreFieldStatement(
     std::vector<const Field*>& struct_fields) {
   const Field& innermost_field =
       struct_fields.empty() ? class_field : *struct_fields.back();
-  if (ImplementationVisitor::IsInternal(innermost_field.name_and_type.name))
+  if (ImplementationVisitor::IsInternal(innermost_field))
     return;
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
@@ -4778,7 +4802,7 @@ void ImplementationVisitor::GenerateClassDefinitions(
         std::stringstream parameters;
         for (const Field& f : type->ComputeAllFields()) {
           if (f.name_and_type.name == "map") continue;
-          if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+          if (ImplementationVisitor::IsInternal(f)) continue;
           if (!f.index) {
             std::string type_string =
                 f.name_and_type.type->HandlifiedCppTypeName();
@@ -4829,7 +4853,7 @@ void ImplementationVisitor::GenerateClassDefinitions(
 
         for (const Field& f : type->ComputeAllFields()) {
           if (f.name_and_type.name == "map") continue;
-          if (ImplementationVisitor::IsInternal(f.name_and_type.name)) continue;
+          if (ImplementationVisitor::IsInternal(f)) continue;
           if (!f.index) {
             factory_impl << "  result.TorqueGeneratedClass::set_"
                          << SnakeifyString(f.name_and_type.name) << "(";
