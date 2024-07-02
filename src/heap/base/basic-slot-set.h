@@ -55,11 +55,18 @@ class BasicSlotSet {
     // faster access in the write barrier. The number of buckets is needed for
     // calculating the size of this data structure.
     size_t buckets_size = buckets * sizeof(Bucket*);
-    size_t size = kInitialBucketsSize + buckets_size;
+    size_t size = kInitialBucketsSize + buckets_size + kSystemPointerSize;
     void* allocation = v8::base::AlignedAlloc(size, kSystemPointerSize);
     CHECK(allocation);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    BasicSlotSet* slot_set = reinterpret_cast<BasicSlotSet*>(RoundUp(
+        reinterpret_cast<uintptr_t>(reinterpret_cast<uint8_t*>(allocation) +
+                                    kInitialBucketsSize),
+        kSystemPointerSize));
+#else
     BasicSlotSet* slot_set = reinterpret_cast<BasicSlotSet*>(
         reinterpret_cast<uint8_t*>(allocation) + kInitialBucketsSize);
+#endif
     DCHECK(
         IsAligned(reinterpret_cast<uintptr_t>(slot_set), kSystemPointerSize));
 #ifdef DEBUG

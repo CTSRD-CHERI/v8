@@ -439,7 +439,12 @@ class ReadOnlySpaceObjectIterator : public ObjectIterator {
       }
       HeapObject obj = HeapObject::FromAddress(cur_addr_);
       const int obj_size = obj.Size();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      cur_addr_ += obj_size;
+      cur_addr_ = RoundUp(cur_addr_, kSystemPointerSize);
+#else
       cur_addr_ += ALIGN_TO_ALLOCATION_ALIGNMENT(obj_size);
+#endif
       DCHECK_LE(cur_addr_, cur_end_);
       if (!obj.IsFreeSpaceOrFiller()) {
         DCHECK_OBJECT_SIZE(obj_size);
