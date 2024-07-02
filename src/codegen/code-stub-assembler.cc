@@ -2651,11 +2651,7 @@ TNode<BigInt> CodeStubAssembler::BigIntFromInt32Pair(TNode<IntPtrT> low,
 }
 
 TNode<BigInt> CodeStubAssembler::BigIntFromInt64(TNode<IntPtrT> value) {
-#ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK(Is64() || Is128());
-#else
   DCHECK(Is64());
-#endif
   TVARIABLE(BigInt, var_result);
   Label done(this), if_positive(this), if_negative(this), if_zero(this);
   GotoIf(IntPtrEqual(value, IntPtrConstant(0)), &if_zero);
@@ -2740,11 +2736,7 @@ TNode<BigInt> CodeStubAssembler::BigIntFromUint32Pair(TNode<UintPtrT> low,
 }
 
 TNode<BigInt> CodeStubAssembler::BigIntFromUint64(TNode<UintPtrT> value) {
-#ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK(Is64() || Is128());
-#else
   DCHECK(Is64());
-#endif
   TVARIABLE(BigInt, var_result);
   Label done(this), if_zero(this);
   GotoIf(IntPtrEqual(value, IntPtrConstant(0)), &if_zero);
@@ -11363,11 +11355,7 @@ TNode<IntPtrT> CodeStubAssembler::TryToIntptr(
 #if V8_TARGET_ARCH_64_BIT
     // We can't rely on Is64() alone because 32-bit compilers rightly complain
     // about kMaxSafeIntegerUint64 not fitting into an intptr_t.
-#ifdef __CHERI_PURE_CAPABILITY__
-    DCHECK(Is128());
-#else
     DCHECK(Is64());
-#endif
     // TODO(jkummerow): Investigate whether we can drop support for
     // negative indices.
     GotoIfNot(IsInRange(int_value, static_cast<intptr_t>(-kMaxSafeInteger),
