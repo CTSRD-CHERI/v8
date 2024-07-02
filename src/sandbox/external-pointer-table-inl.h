@@ -220,10 +220,9 @@ uint32_t ExternalPointerTable::HandleToIndex(
   // By design the tagging scheme  invalidates the pointer, unlike with
   // conventional architectures once a capability is invalidated it can't
   // restored by removing the tag. Therefore, as with LSAN a "fat" entry
-  // stores the tag seperately (which wih padding is 16 bytes as with LSAN).
+  // stores the tag seperately (which with padding is 32 bytes).
   index /= 2;
-#endif   // !__CHERI_PURE_CAPABILITY__
-#if defined(LEAK_SANITIZER)
+#elif defined(LEAK_SANITIZER)
   // When LSan is active, we use "fat" entries that also store the raw pointer
   // to that LSan can find live references. However, we do this transparently:
   // we simply multiply the handle by two so that `(handle >> index_shift) * 8`
@@ -243,7 +242,9 @@ ExternalPointerHandle ExternalPointerTable::IndexToHandle(
     uint32_t index) const {
   ExternalPointerHandle handle = index << kExternalPointerIndexShift;
   DCHECK_EQ(index, handle >> kExternalPointerIndexShift);
-#if defined(LEAK_SANITIZER)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  handle *= 2;
+#elif defined(LEAK_SANITIZER)
   handle *= 2;
 #endif  // LEAK_SANITIZER
   return handle;
