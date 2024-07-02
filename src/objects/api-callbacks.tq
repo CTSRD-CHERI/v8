@@ -61,4 +61,7 @@ extern class AccessorInfo extends HeapObject {
   flags: AccessorInfoFlags;
   @if(TAGGED_SIZE_8_BYTES) optional_padding: uint32;
   @ifnot(TAGGED_SIZE_8_BYTES) optional_padding: void;
+  @if(CHERI_PURECAP) optional_padding_one: uint32;
+  @if(CHERI_PURECAP) optional_padding_two: uint32;
+  @if(CHERI_PURECAP) optional_padding_three: uint32;
 }
