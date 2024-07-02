@@ -1762,7 +1762,7 @@ RUNTIME_FUNCTION(Runtime_NewRegExpWithBacktrackLimit) {
 RUNTIME_FUNCTION(Runtime_Is64Bit) {
   SealHandleScope shs(isolate);
   DCHECK_EQ(0, args.length());
-  return isolate->heap()->ToBoolean(kSystemPointerSize == 8);
+  return isolate->heap()->ToBoolean(kSystemPointerAddrSize == 8);
 }
 
 RUNTIME_FUNCTION(Runtime_BigIntMaxLengthBits) {

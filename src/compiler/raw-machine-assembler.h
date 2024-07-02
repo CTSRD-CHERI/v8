@@ -88,7 +88,11 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   }
   Node* IntPtrConstant(intptr_t value) {
     // TODO(dcarney): mark generated code as unserializable if value != 0.
+#ifdef __CHERI_PURE_CAPABILITY__
+    return kSystemPointerSize >= 8 ? Int64Constant(value)
+#else
     return kSystemPointerSize == 8 ? Int64Constant(value)
+#endif
                                    : Int32Constant(static_cast<int>(value));
   }
   Node* RelocatableIntPtrConstant(intptr_t value, RelocInfo::Mode rmode);
@@ -660,7 +664,11 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   }
 
   Node* IntPtrAbsWithOverflow(Node* a) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    return kSystemPointerSize >= 8 ? Int64AbsWithOverflow(a)
+#else
     return kSystemPointerSize == 8 ? Int64AbsWithOverflow(a)
+#endif
                                    : Int32AbsWithOverflow(a);
   }
 

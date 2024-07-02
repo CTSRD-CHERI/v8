@@ -174,7 +174,7 @@ PURE_ASSEMBLER_MACH_BINOP_LIST(PURE_BINOP_DEF, PURE_BINOP_DEF_TNODE)
 
 TNode<BoolT> GraphAssembler::UintPtrLessThanOrEqual(TNode<UintPtrT> left,
                                                     TNode<UintPtrT> right) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? Uint64LessThanOrEqual(TNode<Uint64T>::UncheckedCast(left),
                                      TNode<Uint64T>::UncheckedCast(right))
              : Uint32LessThanOrEqual(TNode<Uint32T>::UncheckedCast(left),
@@ -183,27 +183,27 @@ TNode<BoolT> GraphAssembler::UintPtrLessThanOrEqual(TNode<UintPtrT> left,
 
 TNode<UintPtrT> GraphAssembler::UintPtrAdd(TNode<UintPtrT> left,
                                            TNode<UintPtrT> right) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? TNode<UintPtrT>::UncheckedCast(Int64Add(left, right))
              : TNode<UintPtrT>::UncheckedCast(Int32Add(left, right));
 }
 TNode<UintPtrT> GraphAssembler::UintPtrSub(TNode<UintPtrT> left,
                                            TNode<UintPtrT> right) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? TNode<UintPtrT>::UncheckedCast(Int64Sub(left, right))
              : TNode<UintPtrT>::UncheckedCast(Int32Sub(left, right));
 }
 
 TNode<UintPtrT> GraphAssembler::UintPtrDiv(TNode<UintPtrT> left,
                                            TNode<UintPtrT> right) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? TNode<UintPtrT>::UncheckedCast(Uint64Div(left, right))
              : TNode<UintPtrT>::UncheckedCast(Uint32Div(left, right));
 }
 
 TNode<UintPtrT> GraphAssembler::ChangeUint32ToUintPtr(
     SloppyTNode<Uint32T> value) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? TNode<UintPtrT>::UncheckedCast(ChangeUint32ToUint64(value))
              : TNode<UintPtrT>::UncheckedCast(value);
 }

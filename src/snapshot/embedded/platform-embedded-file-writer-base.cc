@@ -16,7 +16,7 @@ namespace v8 {
 namespace internal {
 
 DataDirective PointerSizeDirective() {
-  if (kSystemPointerSize == 8) {
+  if (kSystemPointerAddrSize == 8) {
     return kQuad;
   } else {
     CHECK_EQ(4, kSystemPointerSize);

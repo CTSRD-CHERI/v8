@@ -39,7 +39,7 @@ static NodeVector::iterator FindInsertionPoint(BasicBlock* block) {
 
 static const Operator* IntPtrConstant(CommonOperatorBuilder* common,
                                       intptr_t value) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? common->Int64Constant(value)
              : common->Int32Constant(static_cast<int32_t>(value));
 }

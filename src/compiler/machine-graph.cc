@@ -71,7 +71,7 @@ Node* MachineGraph::RelocatableInt64Constant(int64_t value,
 
 Node* MachineGraph::RelocatableIntPtrConstant(intptr_t value,
                                               RelocInfo::Mode rmode) {
-  return kSystemPointerSize == 8
+  return kSystemPointerAddrSize == 8
              ? RelocatableInt64Constant(value, rmode)
              : RelocatableInt32Constant(static_cast<int>(value), rmode);
 }

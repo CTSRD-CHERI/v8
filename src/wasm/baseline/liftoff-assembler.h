@@ -979,7 +979,7 @@ class LiftoffAssembler : public MacroAssembler {
   inline void emit_u32_to_uintptr(Register dst, Register src);
 
   void emit_ptrsize_add(Register dst, Register lhs, Register rhs) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_add(LiftoffRegister(dst), LiftoffRegister(lhs),
                    LiftoffRegister(rhs));
     } else {
@@ -987,7 +987,7 @@ class LiftoffAssembler : public MacroAssembler {
     }
   }
   void emit_ptrsize_sub(Register dst, Register lhs, Register rhs) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_sub(LiftoffRegister(dst), LiftoffRegister(lhs),
                    LiftoffRegister(rhs));
     } else {
@@ -995,7 +995,7 @@ class LiftoffAssembler : public MacroAssembler {
     }
   }
   void emit_ptrsize_and(Register dst, Register lhs, Register rhs) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_and(LiftoffRegister(dst), LiftoffRegister(lhs),
                    LiftoffRegister(rhs));
     } else {
@@ -1003,7 +1003,7 @@ class LiftoffAssembler : public MacroAssembler {
     }
   }
   void emit_ptrsize_shri(Register dst, Register src, int amount) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_shri(LiftoffRegister(dst), LiftoffRegister(src), amount);
     } else {
       emit_i32_shri(dst, src, amount);
@@ -1011,7 +1011,7 @@ class LiftoffAssembler : public MacroAssembler {
   }
 
   void emit_ptrsize_addi(Register dst, Register lhs, intptr_t imm) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_addi(LiftoffRegister(dst), LiftoffRegister(lhs), imm);
     } else {
       emit_i32_addi(dst, lhs, static_cast<int32_t>(imm));
@@ -1020,7 +1020,7 @@ class LiftoffAssembler : public MacroAssembler {
 
   void emit_ptrsize_set_cond(Condition condition, Register dst,
                              LiftoffRegister lhs, LiftoffRegister rhs) {
-    if (kSystemPointerSize == 8) {
+    if (kSystemPointerAddrSize == 8) {
       emit_i64_set_cond(condition, dst, lhs, rhs);
     } else {
       emit_i32_set_cond(condition, dst, lhs.gp(), rhs.gp());

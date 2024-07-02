@@ -2881,7 +2881,7 @@ void WasmLiftoffSetupFrame::Iterate(RootVisitor* v) const {
     if (param == wasm::kWasmI32) {
       num_int_params++;
     } else if (param == wasm::kWasmI64) {
-      num_int_params += kSystemPointerSize == 8 ? 1 : 2;
+      num_int_params += kSystemPointerAddrSize == 8 ? 1 : 2;
     } else if (param.is_reference()) {
       num_ref_params++;
     }
