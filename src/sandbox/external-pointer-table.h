@@ -97,12 +97,12 @@ struct ExternalPointerTableEntry {
     static Address Tag(Address pointer, ExternalPointerTag tag) {
       return pointer | tag;
     }
-
 #endif  // !__CHERI_PURE_CAPABILITY__
 
     bool IsTaggedWith(ExternalPointerTag tag) const {
 #if defined(__CHERI_PURE_CAPABILITY__)
-      return (tag_ & kExternalPointerTagMask) == static_cast<std::underlying_type_t<ExternalPointerTag>>(tag);
+      return (tag_ & kExternalPointerTagMask) == static_cast<uintptr_t>(
+              static_cast<std::underlying_type_t<ExternalPointerTag>>(tag));
 #else   // !__CHERI_PURE_CAPABILITY__
       return (encoded_word_ & kExternalPointerTagMask) == tag;
 #endif  // !__CHERI_PURE_CAPABILITY__
@@ -167,8 +167,15 @@ struct ExternalPointerTableEntry {
 
    private:
 #if defined(__CHERI_PURE_CAPABILITY__)
+    // On CHERI architectures invalidating the pointer through tagging results
+    // in an invalidated capability (that can't be restored, and there is no
+    // obvious way to rederive the capability). Storing the pointer and the
+    // tag seperated exposes the capability to type confusion attacks.
+    // However, it should be noted the SW sandbox design is in conflict with
+    // HW protections offered by CHERI and would likely be signifciantly
+    // redesigned in a comprehensive porting activity. 
     Address raw_pointer_;
-    std::underlying_type_t<ExternalPointerTag> tag_;
+    uintptr_t tag_;
 #else   // !__CHERI_PURE_CAPABILITY__
     Address encoded_word_;
 #endif  // !__CHERI_PURE_CAPABILITY__
