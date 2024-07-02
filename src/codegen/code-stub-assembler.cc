@@ -2651,7 +2651,11 @@ TNode<BigInt> CodeStubAssembler::BigIntFromInt32Pair(TNode<IntPtrT> low,
 }
 
 TNode<BigInt> CodeStubAssembler::BigIntFromInt64(TNode<IntPtrT> value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(Is64() || Is128());
+#else
   DCHECK(Is64());
+#endif
   TVARIABLE(BigInt, var_result);
   Label done(this), if_positive(this), if_negative(this), if_zero(this);
   GotoIf(IntPtrEqual(value, IntPtrConstant(0)), &if_zero);
@@ -2736,7 +2740,11 @@ TNode<BigInt> CodeStubAssembler::BigIntFromUint32Pair(TNode<UintPtrT> low,
 }
 
 TNode<BigInt> CodeStubAssembler::BigIntFromUint64(TNode<UintPtrT> value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(Is64() || Is128());
+#else
   DCHECK(Is64());
+#endif
   TVARIABLE(BigInt, var_result);
   Label done(this), if_zero(this);
   GotoIf(IntPtrEqual(value, IntPtrConstant(0)), &if_zero);
