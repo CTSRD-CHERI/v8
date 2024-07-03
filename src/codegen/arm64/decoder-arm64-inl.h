@@ -1132,7 +1132,7 @@ void Decoder<V>::DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(Instruct
 
 template <typename V>
 void Decoder<V>::DecodeMorelloLoadStoreUnscaledImmediateViaAlternateBase(Instruction* instr) {
-  DCHECK_EQ(0x02, instr->Bits(31, 24)); // [1110  0010][op1][V][imm9][op2][Rn][Rd]
+  DCHECK_EQ(0xE2, instr->Bits(31, 24)); // [1110  0010][op1][V][imm9][op2][Rn][Rd]
   if (instr->Bits(23, 22) == 0x00) {
     if (instr->Bit(21 == 0)) {
       V::VisitUnimplemented(instr);
