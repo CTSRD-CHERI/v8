@@ -308,6 +308,7 @@ void Isolate::SetEmbeddedBlob(const uint8_t* code, uint32_t code_size,
   current_embedded_blob_data_.store(data, std::memory_order_relaxed);
   current_embedded_blob_data_size_.store(data_size, std::memory_order_relaxed);
 
+#ifndef __CHERI_PURE_CAPABILITY__
 #ifdef DEBUG
   // Verify that the contents of the embedded blob are unchanged from
   // serialization-time, just to ensure the compiler isn't messing with us.
@@ -328,6 +329,7 @@ void Isolate::SetEmbeddedBlob(const uint8_t* code, uint32_t code_size,
     }
   }
 #endif  // DEBUG
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 void Isolate::ClearEmbeddedBlob() {
