@@ -388,7 +388,11 @@ size_t Heap::MaxOldGenerationSize(uint64_t physical_memory) {
   constexpr bool x64_bit = Heap::kHeapLimitMultiplier >= 2;
   if (v8_flags.huge_max_old_generation_size && x64_bit &&
       (physical_memory + 512 * MB) / GB >= 16) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    DCHECK_EQ(max_size / GB, 4);
+#else   // !__CHERI_PURE_CAPABILITY__
     DCHECK_EQ(max_size / GB, 2);
+#endif  // !__CHERI_PURE_CAPABILITY__
     max_size *= 2;
   }
   return std::min(max_size, AllocatorLimitOnMaxOldGenerationSize());
