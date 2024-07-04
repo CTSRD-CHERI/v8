@@ -14,8 +14,13 @@ namespace v8 {
 namespace internal {
 
 struct BaseControllerTrait {
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static constexpr size_t kMinSize = 128ul * Heap::kHeapLimitMultiplier * MB;
+  static constexpr size_t kMaxSize = 1024ul * Heap::kHeapLimitMultiplier * MB;
+#else   // !__CHERI_PURE_CAPABILITY__
   static constexpr size_t kMinSize = 128u * Heap::kHeapLimitMultiplier * MB;
   static constexpr size_t kMaxSize = 1024u * Heap::kHeapLimitMultiplier * MB;
+#endif  // !__CHERI_PURE_CAPABILITY__
 
   static constexpr double kMinGrowingFactor = 1.1;
   static constexpr double kMaxGrowingFactor = 4.0;
