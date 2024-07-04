@@ -4037,6 +4037,17 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   embedded_blob_code_ = heap_.code_range_->RemapEmbeddedBuiltins(
       this, embedded_blob_code_, embedded_blob_code_size_);
   CHECK_NOT_NULL(embedded_blob_code_);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // Update the current_embedded_blob_code_ value to match the
+  // embedded_blob_code_. Without this change the check that they are the same
+  // in ClearEmbeddedBlob fails. Its is unclear why this issue is not
+  // triggering on other builds but it may be flags that aren't set on
+  // other builds. This is assumed to be a bug until further analysis
+  // can bottom out the issue.
+  SetEmbeddedBlob(embedded_blob_code_, embedded_blob_code_size_,
+                  embedded_blob_data_, embedded_blob_data_size_);
+  sticky_embedded_blob_code_ = embedded_blob_code_;
+#endif  // !__CHERI_PURE_CAPABILITY__
   // The un-embedded code blob is already a part of the registered code range
   // so it's not necessary to register it again.
 }
