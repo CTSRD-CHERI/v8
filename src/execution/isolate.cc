@@ -318,6 +318,7 @@ void Isolate::SetEmbeddedBlob(const uint8_t* code, uint32_t code_size,
         "indicates that the embedded blob has been modified since compilation "
         "time.");
   }
+#if !defined(__CHERI_PURE_CAPABILITY__)
   if (v8_flags.text_is_readable) {
     if (d.EmbeddedBlobCodeHash() != d.CreateEmbeddedBlobCodeHash()) {
       FATAL(
@@ -327,6 +328,7 @@ void Isolate::SetEmbeddedBlob(const uint8_t* code, uint32_t code_size,
           "within builtin code.");
     }
   }
+#endif  // !__CHERI_PURE_CAPABILITY__
 #endif  // DEBUG
 }
 
