@@ -142,7 +142,9 @@ Address ExternalCodeCompressionScheme::PrepareCageBaseAddress(
 Address ExternalCodeCompressionScheme::GetPtrComprCageBaseAddress(
     PtrComprCageBase cage_base) {
   Address base = cage_base.address();
-#if !defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__)
+  V8_ASSUME((base & ~(kMinExpectedOSPageSize - 1)) == base);
+#else   // !__CHERI_PURE_CAPABILITY__
   V8_ASSUME((base & kPtrComprCageBaseMask) == base);
 #endif  // !__CHERI_PURE_CAPABILITY__
   base = reinterpret_cast<Address>(V8_ASSUME_ALIGNED(
@@ -175,7 +177,7 @@ V8_CONST Address ExternalCodeCompressionScheme::base() {
   // casting to an Address). To increase our chances we additionally encode the
   // same information in this V8_ASSUME.
 #if defined(__CHERI_PURE_CAPABILITY__)
-  V8_ASSUME((base & (kMinExpectedOSPageSize - 1)) == base);
+  V8_ASSUME((base & ~(kMinExpectedOSPageSize - 1)) == base);
 #else   // !__CHERI_PURE_CAPABILITY__
   V8_ASSUME((base & kPtrComprCageBaseMask) == base);
 #endif  // !__CHERI_PURE_CAPABILITY__
@@ -193,7 +195,9 @@ Tagged_t ExternalCodeCompressionScheme::CompressObject(Address tagged) {
   // invalid pointers need to be compressed with CompressAny.
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
 #if defined(__CHERI_PURE_CAPABILITY__)
-  V8_ASSUME((tagged & (kMinExpectedOSPageSize - 1)) == base() || HAS_SMI_TAG(tagged));
+  // TODO(gcjenkinson): What check is needed for the tagged/base values.
+  V8_ASSUME((DecompressTagged(base(), static_cast<Tagged_t>(tagged)) == tagged) ||
+            HAS_SMI_TAG(tagged));
 #else   // !__CHERI_PURE_CAPABILITY__)
   V8_ASSUME((tagged & kPtrComprCageBaseMask) == base() || HAS_SMI_TAG(tagged));
 #endif  // !__CHERI_PURE_CAPABILITY__
