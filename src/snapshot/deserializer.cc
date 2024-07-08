@@ -583,6 +583,7 @@ AllocationType SpaceToAllocation(SnapshotSpace space) {
 template <typename IsolateT>
 Handle<HeapObject> Deserializer<IsolateT>::ReadObject(SnapshotSpace space) {
   const int size_in_tagged = source_.GetInt();
+  DCHECK_NE(size_in_tagged, 0);
   const int size_in_bytes = size_in_tagged * kTaggedSize;
 
   // The map can't be a forward ref. If you want the map to be a forward ref,
@@ -627,6 +628,9 @@ Handle<HeapObject> Deserializer<IsolateT>::ReadObject(SnapshotSpace space) {
   //     before fields with objects.
   //     - We ensure this is the case by DCHECKing on object allocation that the
   //       previously allocated object has a valid size (see `Allocate`).
+  //
+  // XXX(cheri): We are allocating a potential of 15 extra bytes here if the
+  // serializer pads out the bytes_to_output to manipulate it in kTaggedSize.
   HeapObject raw_obj =
       Allocate(allocation, size_in_bytes, HeapObject::RequiredAlignment(*map));
   raw_obj.set_map_after_allocation(*map);
@@ -1063,6 +1067,7 @@ int Deserializer<IsolateT>::ReadVariableRawData(uint8_t data,
   // become misaligned.
   DCHECK_EQ(decltype(slot_accessor.slot())::kSlotDataSize, kTaggedSize);
   int size_in_tagged = source_.GetInt();
+  DCHECK_NE(size_in_tagged, 0);
   // TODO(leszeks): Only copy slots when there are Smis in the serialized
   // data.
   source_.CopySlots(slot_accessor.slot().location(), size_in_tagged);
@@ -1182,7 +1187,8 @@ int Deserializer<IsolateT>::ReadFixedRawData(uint8_t data,
 
   // Deserialize raw data of fixed length from 1 to 32 times kTaggedSize.
   int size_in_tagged = FixedRawDataWithSize::Decode(data);
-#if defined(__CHERI_PURE_CAPABILITY__)
+  DCHECK_NE(size_in_tagged, 0);
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_COMPRESS_POINTERS)
 // On CHERI architectures a capability is twice the size of the integer
 // pointer size of the native architecture.
   static_assert(TSlot::kSlotDataSize == kTaggedSize ||
@@ -1247,9 +1253,8 @@ HeapObject Deserializer<IsolateT>::Allocate(AllocationType allocation, int size,
     // On CHERI systems, we can end up in a situation where we need to pad out
     // the space before the filler object, so the filler might occupy more
     // space.
-    DCHECK_LE(object_size,
-              RoundUp(previous_allocation_size_ + kSystemPointerSize + 1,
-                      kSystemPointerSize));
+    DCHECK_LE(object_size, RoundUp(previous_allocation_size_ + kTaggedSize + 1,
+                                   kTaggedSize));
 #else
     DCHECK_LE(object_size, previous_allocation_size_);
 #endif

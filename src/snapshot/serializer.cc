@@ -21,6 +21,7 @@
 #include "src/snapshot/embedded/embedded-data.h"
 #include "src/snapshot/serializer-deserializer.h"
 #include "src/snapshot/serializer-inl.h"
+#include "src/utils/memcopy.h"
 
 namespace v8 {
 namespace internal {
@@ -297,7 +298,9 @@ void Serializer::PutSmiRoot(FullObjectSlot slot) {
   static_assert(decltype(slot)::kSlotDataSize == sizeof(Address));
   static_assert(decltype(slot)::kSlotDataSize == kSystemPointerSize);
   static constexpr int bytes_to_output = decltype(slot)::kSlotDataSize;
+  DCHECK(IsAligned(bytes_to_output, kTaggedSize));
   static constexpr int size_in_tagged = bytes_to_output >> kTaggedSizeLog2;
+  DCHECK_GT(size_in_tagged, 0);
   sink_.Put(FixedRawDataWithSize::Encode(size_in_tagged), "Smi");
 
   Address raw_value = Smi::cast(*slot).ptr();
@@ -1034,6 +1037,9 @@ void Serializer::ObjectSerializer::OutputExternalReference(
     // references verbatim.
     CHECK(serializer_->allow_unknown_external_references_for_testing());
     CHECK(IsAligned(target_size, kTaggedSize));
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    CHECK_GE(target_size, kTaggedSize);
+#endif
     CHECK_LE(target_size, kFixedRawDataCount * kTaggedSize);
     if (sandboxify) {
       CHECK_EQ(target_size, kSystemPointerSize);
@@ -1044,6 +1050,7 @@ void Serializer::ObjectSerializer::OutputExternalReference(
       // Encode as FixedRawData instead of RawExternalReference as the target
       // may be less than kSystemPointerSize large.
       int size_in_tagged = target_size >> kTaggedSizeLog2;
+      DCHECK_GT(size_in_tagged, 0);
       sink_->Put(FixedRawDataWithSize::Encode(size_in_tagged), "FixedRawData");
       sink_->PutRaw(reinterpret_cast<uint8_t*>(&target), target_size,
                     "raw pointer");
@@ -1138,16 +1145,26 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
   int base = bytes_processed_so_far_;
   int up_to_offset = static_cast<int>(up_to - object_start);
   int to_skip = up_to_offset - bytes_processed_so_far_;
-  int bytes_to_output = RoundUp(to_skip, kSystemPointerSize);
+  int bytes_to_output = to_skip;
+  bool needs_special_handling = false;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int tagged_to_output;
+  if (bytes_to_output < kTaggedSize && bytes_to_output != 0) {
+    needs_special_handling = true;
+    tagged_to_output = 1;
+  } else {
+    DCHECK(IsAligned(bytes_to_output, kTaggedSize));
+    tagged_to_output = bytes_to_output / kTaggedSize;
+  }
+#else
   DCHECK(IsAligned(bytes_to_output, kTaggedSize));
   int tagged_to_output = bytes_to_output / kTaggedSize;
+#endif
   bytes_processed_so_far_ += to_skip;
   DCHECK_GE(to_skip, 0);
   if (bytes_to_output != 0) {
-#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
-    DCHECK(to_skip == bytes_to_output);
-#endif
     if (tagged_to_output <= kFixedRawDataCount) {
+      DCHECK_GT(tagged_to_output, 0);
       sink_->Put(FixedRawDataWithSize::Encode(tagged_to_output),
                  "FixedRawData");
     } else {
@@ -1164,6 +1181,7 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
       // The bytecode age field can be changed by GC concurrently.
       static_assert(BytecodeArray::kBytecodeAgeSize == kUInt16Size);
       uint16_t field_value = 0;
+      DCHECK_NE(needs_special_handling, true);
       OutputRawWithCustomField(sink_, object_start, base, bytes_to_output,
                                BytecodeArray::kBytecodeAgeOffset,
                                sizeof(field_value),
@@ -1173,6 +1191,7 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
       // concurrently.
       const auto field_value = DescriptorArrayMarkingState::kInitialGCState;
       static_assert(sizeof(field_value) == DescriptorArray::kSizeOfRawGcState);
+      DCHECK_NE(needs_special_handling, true);
       OutputRawWithCustomField(sink_, object_start, base, bytes_to_output,
                                DescriptorArray::kRawGcStateOffset,
                                sizeof(field_value),
@@ -1181,6 +1200,7 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
       // instruction_start field contains a raw value that will be recomputed
       // after deserialization, so write zeros to keep the snapshot
       // deterministic.
+      DCHECK_NE(needs_special_handling, true);
       static uint8_t field_value[kSystemPointerSize] = {0};
       OutputRawWithCustomField(sink_, object_start, base, bytes_to_output,
                                Code::kInstructionStartOffset,
@@ -1188,6 +1208,7 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
     } else if (object_->IsSeqString()) {
       // SeqStrings may contain padding. Serialize the padding bytes as 0s to
       // make the snapshot content deterministic.
+      DCHECK_NE(needs_special_handling, true);
       SeqString::DataAndPaddingSizes sizes =
           SeqString::cast(*object_).GetDataAndPaddingSizes();
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
@@ -1199,10 +1220,24 @@ void Serializer::ObjectSerializer::OutputRawData(Address up_to) {
       int data_bytes_to_output = sizes.data_size - base;
       sink_->PutRaw(reinterpret_cast<uint8_t*>(object_start + base),
                     data_bytes_to_output, "SeqStringData");
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      sink_->PutN(sizes.padding_size + sizes.cheri_padding_size, 0,
+                  "SeqStringPadding");
+#else
       sink_->PutN(sizes.padding_size, 0, "SeqStringPadding");
+#endif
     } else {
-      sink_->PutRaw(reinterpret_cast<uint8_t*>(object_start + base),
-                    bytes_to_output, "Bytes");
+      if (needs_special_handling) {
+        DCHECK_LT(bytes_to_output, kTaggedSize);
+        alignas(kTaggedSize) uint8_t fake_object[kTaggedSize] = {0};
+        CopyBytes(fake_object, reinterpret_cast<uint8_t*>(object_start + base),
+                  bytes_to_output);
+        sink_->PutRaw(reinterpret_cast<uint8_t*>(fake_object), kTaggedSize,
+                      "Bytes");
+      } else {
+        sink_->PutRaw(reinterpret_cast<uint8_t*>(object_start + base),
+                      bytes_to_output, "Bytes");
+      }
     }
   }
 }
