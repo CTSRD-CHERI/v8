@@ -47,12 +47,12 @@ struct MemoryChunk {
 #if defined(__CHERI_PURE_CAPABILITY__)
   static constexpr ptraddr_t kFlagsOffset = kSizetSize;
   static constexpr ptraddr_t kHeapOffset = kSizetSize + kSizetSize;
-  static constexpr ptraddr_t kInWritableSharedSpaceBit = uintptr_t{1} << 0;
-  static constexpr ptraddr_t kFromPageBit = uintptr_t{1} << 3;
-  static constexpr ptraddr_t kToPageBit = uintptr_t{1} << 4;
-  static constexpr ptraddr_t kMarkingBit = uintptr_t{1} << 5;
-  static constexpr ptraddr_t kReadOnlySpaceBit = uintptr_t{1} << 6;
-  static constexpr ptraddr_t kIsExecutableBit = uintptr_t{1} << 19;
+  static constexpr ptraddr_t kInWritableSharedSpaceBit = ptraddr_t{1} << 0;
+  static constexpr ptraddr_t kFromPageBit = ptraddr_t{1} << 3;
+  static constexpr ptraddr_t kToPageBit = ptraddr_t{1} << 4;
+  static constexpr ptraddr_t kMarkingBit = ptraddr_t{1} << 5;
+  static constexpr ptraddr_t kReadOnlySpaceBit = ptraddr_t{1} << 6;
+  static constexpr ptraddr_t kIsExecutableBit = ptraddr_t{1} << 19;
 #else    // !__CHERI_PURE_CAPABILITY__
   static constexpr uintptr_t kFlagsOffset = kSizetSize;
   static constexpr uintptr_t kHeapOffset = kSizetSize + kUIntptrSize;
@@ -79,7 +79,7 @@ struct MemoryChunk {
   V8_INLINE bool InYoungGeneration() const {
     if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
 #if defined(__CHERI_PURE_CAPABILITY__)
-    constexpr size_t kYoungGenerationMask = kFromPageBit | kToPageBit;
+    constexpr ptraddr_t kYoungGenerationMask = kFromPageBit | kToPageBit;
 #else    // !__CHERI_PURE_CAPABILITY__
     constexpr uintptr_t kYoungGenerationMask = kFromPageBit | kToPageBit;
 #endif   // !__CHERI_PURE_CAPABILITY__
@@ -89,15 +89,20 @@ struct MemoryChunk {
   // Checks whether chunk is either in young gen or shared heap.
   V8_INLINE bool IsYoungOrSharedChunk() const {
     if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    constexpr ptraddr_t kYoungOrSharedChunkMask =
+#else    // !__CHERI_PURE_CAPABILITY__
     constexpr uintptr_t kYoungOrSharedChunkMask =
+#endif   // !__CHERI_PURE_CAPABILITY__
         kFromPageBit | kToPageBit | kInWritableSharedSpaceBit;
     return GetFlags() & static_cast<size_t>(kYoungOrSharedChunkMask);
   }
 
-  V8_INLINE uintptr_t GetFlags() const {
 #if defined(__CHERI_PURE_CAPABILITY__)
-    return *reinterpret_cast<const size_t*>(reinterpret_cast<Address>(this) +
+  V8_INLINE ptraddr_t GetFlags() const {
+    return *reinterpret_cast<const ptraddr_t*>(reinterpret_cast<Address>(this) +
 #else    // !__CHERI_PURE_CAPABILITY__
+  V8_INLINE uintptr_t GetFlags() const {
     return *reinterpret_cast<const uintptr_t*>(reinterpret_cast<Address>(this) +
 #endif   // !__CHERI_PURE_CAPABILITY__
                                                kFlagsOffset);
