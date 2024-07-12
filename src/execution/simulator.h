@@ -103,7 +103,12 @@ class GeneratedCode {
   using Signature = Return(Args...);
 
   static GeneratedCode FromAddress(Isolate* isolate, Address addr) {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    const ptraddr_t c64_bit = 1;
+    return GeneratedCode(isolate, reinterpret_cast<Signature*>(addr | c64_bit));
+#else
     return GeneratedCode(isolate, reinterpret_cast<Signature*>(addr));
+#endif // defined(__CHERI_PURE_CAPABILITY__)
   }
 
   static GeneratedCode FromBuffer(Isolate* isolate, uint8_t* buffer) {
