@@ -19,7 +19,12 @@ V8_INLINE Address ReadSandboxedPointerField(Address field_address,
   SandboxedPointer_t sandboxed_pointer =
       base::ReadUnalignedValue<SandboxedPointer_t>(field_address);
 
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  ptraddr_t offset = sandboxed_pointer >> kSandboxedPointerShift;
+#else   // !__CHERI_PURE_CAPABILITY__
   Address offset = sandboxed_pointer >> kSandboxedPointerShift;
+#endif  // !__CHERI_PURE_CAPABILITY__
   Address pointer = cage_base.address() + offset;
   return pointer;
 #else
