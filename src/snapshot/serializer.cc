@@ -664,6 +664,7 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
   int length = string->length();
   Map map;
   int content_size;
+  int cheri_padding_size;
   int allocation_size;
   const uint8_t* resource;
   // Find the map and size for the imaginary sequential string.
@@ -673,12 +674,14 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
                        : roots.one_byte_string_map();
     allocation_size = SeqOneByteString::SizeFor(length);
     content_size = length * kCharSize;
+    cheri_padding_size = SeqOneByteString::AddedCheriPadding();
     resource = reinterpret_cast<const uint8_t*>(
         Handle<ExternalOneByteString>::cast(string)->resource()->data());
   } else {
     map = internalized ? roots.internalized_string_map() : roots.string_map();
     allocation_size = SeqTwoByteString::SizeFor(length);
     content_size = length * kShortSize;
+    cheri_padding_size = SeqTwoByteString::AddedCheriPadding();
     resource = reinterpret_cast<const uint8_t*>(
         Handle<ExternalTwoByteString>::cast(string)->resource()->data());
   }
@@ -706,8 +709,13 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
 
   // Since the allocation size is rounded up to object alignment, there
   // maybe left-over bytes that need to be padded.
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int padding_size = allocation_size - SeqString::kHeaderSize - content_size +
+                     cheri_padding_size;
+#else
   int padding_size = allocation_size - SeqString::kHeaderSize - content_size;
   DCHECK(0 <= padding_size && padding_size < kObjectAlignment);
+#endif
   for (int i = 0; i < padding_size; i++) {
     sink_->Put(static_cast<uint8_t>(0), "StringPadding");
   }
