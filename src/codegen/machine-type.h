@@ -165,8 +165,13 @@ class MachineType {
     return representation() == MachineRepresentation::kCompressedPointer;
   }
   constexpr static MachineRepresentation TaggedRepresentation() {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return (kTaggedSize == 4) ? MachineRepresentation::kCapability32
+                              : MachineRepresentation::kCapability64;
+#else
     return (kTaggedSize == 4) ? MachineRepresentation::kWord32
                               : MachineRepresentation::kWord64;
+#endif
   }
   constexpr static MachineRepresentation PointerRepresentation() {
 #if defined(__CHERI_PURE_CAPABILITY__)
