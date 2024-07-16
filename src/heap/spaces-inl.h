@@ -229,7 +229,11 @@ AllocationResult SpaceWithLinearArea::AllocateFastAligned(
     AllocationAlignment alignment, AllocationOrigin origin) {
   Address top = allocation_info_.top();
   int filler_size = Heap::GetFillToAlign(top, alignment);
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int aligned_size_in_bytes = RoundUp(size_in_bytes + filler_size, kTaggedSize);
+#else
   int aligned_size_in_bytes = size_in_bytes + filler_size;
+#endif
 
   if (!allocation_info_.CanIncrementTop(aligned_size_in_bytes)) {
     return AllocationResult::Failure();

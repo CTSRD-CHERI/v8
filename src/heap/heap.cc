@@ -3017,7 +3017,7 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
 #endif
     case kTaggedAligned:
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-      return kSystemPointerSize;
+      return kTaggedSize;
 #else
       return 0;
 #endif
@@ -3037,10 +3037,11 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
 int Heap::GetFillToAlign(Address address, AllocationAlignment alignment) {
   if (V8_COMPRESS_POINTERS_8GB_BOOL) return 0;
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  if (alignment == kTaggedAligned) {
+  if (alignment == kTaggedAligned &&
+      (address & static_cast<size_t>(kTaggedAlignmentMask)) != 0) {
     Address aligned_addr = AlignToCapSize(address);
     ptrdiff_t how_much = aligned_addr - address;
-    return how_much;
+    return how_much > kTaggedSize ? how_much : how_much + kTaggedSize;
   }
   if (alignment == kCodeAligned &&
       (address & static_cast<size_t>(kCodeAlignmentMask)) != 0) {
@@ -3172,21 +3173,22 @@ void CreateFillerObjectAtImpl(Heap* heap, Address addr, int size,
   // should be avoided in this mode.
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   if (!IsAligned(addr, kTaggedSize)) {
-    Address aligned_addr = AlignToCapSize(addr);
+    Address aligned_addr = RoundUp(addr, kTaggedSize);
     size_t bytes_before_filler = aligned_addr - addr;
     DCHECK(IsAligned(addr, kIntSize));
-    for (int i = 0; i < bytes_before_filler / kIntSize; i++) {
+    for (auto i = 0; i < bytes_before_filler / kIntSize; i++) {
       Memory<int>(addr + i * kIntSize) = heap->ZapValue();
     }
     addr = aligned_addr;
     size -= bytes_before_filler;
-    if (size == 0) size = kTaggedSize;
+    DCHECK_GE(size, kTaggedSize);
+    DCHECK(IsAligned(size, kTaggedSize));
   }
 #endif
   HeapObject filler = HeapObject::FromAddress(addr);
   ReadOnlyRoots roots(heap);
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  DCHECK(IsAligned(filler.address(), kSystemPointerSize));
+  DCHECK(IsAligned(filler.address(), kTaggedSize));
 #endif
   if (size == kTaggedSize) {
     filler.set_map_after_allocation(roots.unchecked_one_pointer_filler_map(),

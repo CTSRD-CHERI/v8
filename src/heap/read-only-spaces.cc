@@ -595,12 +595,21 @@ HeapObject ReadOnlySpace::TryAllocateLinearlyAligned(
   Address current_top = top_;
   int filler_size = Heap::GetFillToAlign(current_top, alignment);
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  Address new_top =
+      RoundUp(current_top + filler_size + size_in_bytes, kTaggedSize);
+#else
   Address new_top = current_top + filler_size + size_in_bytes;
+#endif
   if (new_top > limit_) return HeapObject();
 
   // Allocation always occurs in the last chunk for RO_SPACE.
   BasicMemoryChunk* chunk = pages_.back();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  int allocated_size = RoundUp(filler_size + size_in_bytes, kTaggedSize);
+#else
   int allocated_size = filler_size + size_in_bytes;
+#endif
   accounting_stats_.IncreaseAllocatedBytes(allocated_size, chunk);
   chunk->IncreaseAllocatedBytes(allocated_size);
 
