@@ -137,7 +137,11 @@ void EmbeddedFileWriter::WriteCodeSection(PlatformEmbeddedFileWriterBase* w,
   w->Comment(
       "The embedded blob code section starts here. It contains the builtin");
   w->Comment("instruction streams.");
+#if defined(__CHERI_PURE_CAPABILITY__)
+  w->SectionRoData();
+#else   // !__CHERI_PURE_CAPABILITY__
   w->SectionText();
+#endif  // !__CHERI_PURE_CAPABILITY__
 
 #if V8_TARGET_ARCH_IA32 || V8_TARGET_ARCH_X64
   // UMA needs an exposed function-type label at the start of the embedded

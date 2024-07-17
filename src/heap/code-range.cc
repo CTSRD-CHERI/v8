@@ -377,7 +377,7 @@ uint8_t* CodeRange::RemapEmbeddedBuiltins(Isolate* isolate,
           hint, allocate_code_size, kAllocatePageSize,
 #if defined(__CHERI_PURE_CAPABILITY__)
           PageAllocator::kNoAccess,
-          PageAllocator::kNoAccess));
+          PageAllocator::kReadWriteExecute));
 #else
           PageAllocator::kNoAccess));
 #endif // __CHERI_PURE_CAPABILITY__

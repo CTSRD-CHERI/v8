@@ -124,11 +124,19 @@ void PlatformEmbeddedFileWriterGeneric::DeclareFunctionBegin(const char* name,
       target_arch_ == EmbeddedTargetArch::kArm64) {
     // ELF format binaries on ARM use ".type <function name>, %function"
     // to create a DWARF subprogram entry.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    fprintf(fp_, ".type %s, %%object\n", name);
+#else   // !__CHERI_PURE_CAPABILITY__
     fprintf(fp_, ".type %s, %%function\n", name);
+#endif  // !__CHERI_PURE_CAPABILITY__
   } else {
     // Other ELF Format binaries use ".type <function name>, @function"
     // to create a DWARF subprogram entry.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    fprintf(fp_, ".type %s, @object\n", name);
+#else   // !__CHERI_PURE_CAPABILITY__
     fprintf(fp_, ".type %s, @function\n", name);
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
   fprintf(fp_, ".size %s, %u\n", name, size);
 }
