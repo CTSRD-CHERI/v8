@@ -28,7 +28,7 @@ ExternalProject_Add(
   build
   SOURCE_DIR     ${CMAKE_SOURCE_DIR}/build
   GIT_REPOSITORY https://github.com/chromium-cheri/build.git
-  GIT_TAG        1dc31f9c0094506d0a2b2d3f33afbda418bcdf73
+  GIT_TAG        9a86e31a61f262071edd37ac24e05515c2764fd3
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
