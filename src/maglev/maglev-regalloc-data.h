@@ -48,7 +48,7 @@ struct RegisterStateFlags {
   const bool is_initialized = false;
   const bool is_merge = false;
 
-  explicit constexpr operator uintptr_t() const {
+  explicit constexpr operator size_t() const {
     return (is_initialized ? 1 << kIsInitializedShift : 0) |
            (is_merge ? 1 << kIsMergeShift : 0);
   }
