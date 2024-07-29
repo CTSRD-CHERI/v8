@@ -24,6 +24,8 @@ namespace internal {
   V(ConditionalSelectCap)                \
   V(GetField1)                           \
   V(LoadStoreCapUnscaledOffsetNormal)    \
+  V(LoadStoreCapUnscaledOffsetAlternate) \
+  V(LoadStoreUnscaledOffsetAlternate)    \
   V(LoadStoreCapUnsignedOffsetCapNormal) \
   V(LoadStoreCapRegisterOffsetNormal)    \
   V(LoadStorePostCapIndex)               \
