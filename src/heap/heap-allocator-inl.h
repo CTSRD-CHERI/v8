@@ -110,7 +110,7 @@ V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult HeapAllocator::AllocateRaw(
           DCHECK(AllowCodeAllocation::IsAllowed());
           CodePageHeaderModificationScope header_modification_scope(
               "Code allocation needs header access.");
-#ifdef __CHERI_PURE_CAPABILITY__
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
           allocation = code_space()->AllocateRaw(
               size_in_bytes, AllocationAlignment::kCodeAligned);
 #else

@@ -677,14 +677,18 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
                        : roots.one_byte_string_map();
     allocation_size = SeqOneByteString::SizeFor(length);
     content_size = length * kCharSize;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     cheri_padding_size = SeqOneByteString::AddedCheriPadding();
+#endif
     resource = reinterpret_cast<const uint8_t*>(
         Handle<ExternalOneByteString>::cast(string)->resource()->data());
   } else {
     map = internalized ? roots.internalized_string_map() : roots.string_map();
     allocation_size = SeqTwoByteString::SizeFor(length);
     content_size = length * kShortSize;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
     cheri_padding_size = SeqTwoByteString::AddedCheriPadding();
+#endif
     resource = reinterpret_cast<const uint8_t*>(
         Handle<ExternalTwoByteString>::cast(string)->resource()->data());
   }
