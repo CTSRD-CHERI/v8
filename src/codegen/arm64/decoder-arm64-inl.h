@@ -1133,31 +1133,11 @@ void Decoder<V>::DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(Instruct
 template <typename V>
 void Decoder<V>::DecodeMorelloLoadStoreUnscaledImmediateViaAlternateBase(Instruction* instr) {
   DCHECK_EQ(0xE2, instr->Bits(31, 24)); // [1110  0010][op1][V][imm9][op2][Rn][Rd]
-  if (instr->Bits(23, 22) == 0x00) {
-    if (instr->Bit(21 == 0)) {
-      V::VisitUnimplemented(instr);
-    } else {
-      V::VisitUnimplemented(instr);
-    }
-  } else if (instr->Bits(23, 22) == 0x01) {
-    if (instr->Bit(21 == 0)) {
-      V::VisitUnimplemented(instr);
-    } else {
-      V::VisitUnimplemented(instr);
-    }
-  } else if (instr->Bits(23, 22) == 0x10) {
-    if (instr->Bit(21 == 0)) {
-      V::VisitUnimplemented(instr);
-    } else {
-      V::VisitUnimplemented(instr);
-    }
+  if (instr->Bits(11, 10) == 0x03 && instr->Bit(23) == 0) {
+    // op1: 1x, op2: 11 LDUR STUR cap
+    V::VisitLoadStoreCapUnscaledOffsetAlternate(instr);
   } else {
-    DCHECK_EQ(0x03, instr->Bits(23, 22));
-    if (instr->Bit(21 == 0)) {
-      V::VisitUnimplemented(instr);
-    } else {
-      V::VisitUnimplemented(instr);
-    }
+    V::VisitLoadStoreUnscaledOffsetAlternate(instr); 
   }
 }
 

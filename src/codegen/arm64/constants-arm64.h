@@ -1069,15 +1069,21 @@ constexpr LoadLiteralOp LDR_d_lit = LoadLiteralFixed | 0x44000000;
 using LoadStoreUnscaledOffsetOp = uint32_t;
 #if defined(__CHERI_PURE_CAPABILITY__)
 constexpr LoadStoreUnscaledOffsetOp
-    LoadStoreCapUnscaledOffsetAlternativeFixed = 0xE2000000;
+    LoadStoreUnscaledOffsetAlternateFixed = 0xE2000000;
 constexpr LoadStoreUnscaledOffsetOp
-    LoadStoreCapUnscaledOffsetAlternativeFMask = 0xFF000000;
+    LoadStoreUnscaledOffsetAlternateFMask = 0xFF000000;
 constexpr LoadStoreUnscaledOffsetOp
-    LoadStoreCapUnscaledOffsetAlternativeMask = 0xFFC00600;
+    LoadStoreUnscaledOffsetAlternateMask = 0xFFC00C00;
 constexpr LoadStoreUnscaledOffsetOp
-    LoadCapUnscaledOffsetAlternative = 0x00C00C00;
+    LoadStoreCapUnscaledOffsetAlternateFixed = 0xE2000000;
 constexpr LoadStoreUnscaledOffsetOp
-    StoreCapUnscaledOffsetAlternative = 0x00800C00;
+    LoadStoreCapUnscaledOffsetAlternateFMask = 0xFF000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetAlternateMask = 0xFFC00C00;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadCapUnscaledOffsetAlternate = 0x00C00C00;
+constexpr LoadStoreUnscaledOffsetOp
+    StoreCapUnscaledOffsetAlternate = 0x00800C00;
 constexpr LoadStoreUnscaledOffsetOp
     LoadStoreCapUnscaledOffsetNormalFixed = 0xA2000000;
 constexpr LoadStoreUnscaledOffsetOp
@@ -1104,31 +1110,47 @@ constexpr LoadStoreUnscaledOffsetOp
     LoadStoreCapUnscaledOffsetIntegerWord = 0x00800000;
 
 // 4.4.92 LDUR (capability, alternative base)
-constexpr LoadStoreUnscaledOffsetOp LDRU_c_capability_alternative =
-  LoadStoreCapUnscaledOffsetAlternativeFixed | LoadCapUnscaledOffsetAlternative;
+constexpr LoadStoreUnscaledOffsetOp LDUR_c_alternate =
+  LoadStoreUnscaledOffsetAlternateFixed | LoadCapUnscaledOffsetAlternate;
 // 4.4.93 LDUR (capability, normal base)
-constexpr LoadStoreUnscaledOffsetOp LDRU_c_normal =
+constexpr LoadStoreUnscaledOffsetOp LDUR_c_normal =
   LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetNormal;
 // 4.4.148 STUR (capability, normal base)
-constexpr LoadStoreUnscaledOffsetOp STRU_c_normal =
+constexpr LoadStoreUnscaledOffsetOp STUR_c_normal =
   LoadStoreCapUnscaledOffsetNormalFixed | StoreCapUnscaledOffsetNormal;
-// 4.4.94 LDUR (integer)
-constexpr LoadStoreUnscaledOffsetOp LDRU_c_integer_w =
-  LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetInteger |
-  LoadStoreCapUnscaledOffsetIntegerWord;
-constexpr LoadStoreUnscaledOffsetOp LDRU_c_integer_d =
-  LoadStoreCapUnscaledOffsetNormalFixed | LoadCapUnscaledOffsetInteger |
-  LoadStoreCapUnscaledOffsetIntegerDoubleword;
 // 4.4.147 STUR (capability, alternative base)
-constexpr LoadStoreUnscaledOffsetOp STRU_c_capability_alternative =
-  LoadStoreCapUnscaledOffsetAlternativeFixed | StoreCapUnscaledOffsetAlternative;
-// 4.4.149 STUR (integer)
-constexpr LoadStoreUnscaledOffsetOp STRU_c_integer_w = LoadStoreCapUnscaledOffsetNormalFixed |
-                                                       StoreCapUnscaledOffsetInteger |
-						       LoadStoreCapUnscaledOffsetIntegerWord;
-constexpr LoadStoreUnscaledOffsetOp STRU_c_integer_d = LoadStoreCapUnscaledOffsetNormalFixed |
-                                                       StoreCapUnscaledOffsetInteger |
-						       LoadStoreCapUnscaledOffsetIntegerWord;
+constexpr LoadStoreUnscaledOffsetOp STUR_c_alternate =
+  LoadStoreUnscaledOffsetAlternateFixed | StoreCapUnscaledOffsetAlternate;
+#define LS_UNSCALED_ALTERNATE_LIST(V) \
+  V(STURB, w, 0x00000000);   \
+  V(STURH, w, 0x00400000);   \
+  V(STUR, w, 0x00800000);    \
+  V(STUR, x, 0x00C00000);    \
+  V(LDURB, w, 0x00000400);   \
+  V(LDURH, w, 0x00400400);   \
+  V(LDUR, w, 0x00800400);    \
+  V(LDUR, x, 0x00C00400);    \
+  V(LDURSB, x, 0x00000800);  \
+  V(LDURSH, x, 0x00400800);  \
+  V(LDURSW, x, 0x00800800);  \
+  V(LDURSB, w, 0x00000C00);  \
+  V(LDURSH, w, 0x00400C00);  \
+  V(STUR, b, 0x00200000);    \
+  V(STUR, h, 0x00600000);    \
+  V(STUR, s, 0x00A00000);    \
+  V(STUR, d, 0x00E00000);    \
+  V(STUR, q, 0x00200800);    \
+  V(LDUR, b, 0x00200400);    \
+  V(LDUR, h, 0x00600400);    \
+  V(LDUR, s, 0x00A00400);    \
+  V(LDUR, d, 0x00E00400);    \
+  V(LDUR, q, 0x00200C00)
+#define LS_UNSCALED_ALTERNATE(A, B, C) \
+  constexpr LoadStoreUnscaledOffsetOp A##_##B##_alternate = \
+    LoadStoreUnscaledOffsetAlternateFixed | C
+LS_UNSCALED_ALTERNATE_LIST(LS_UNSCALED_ALTERNATE);
+#undef LS_UNSCALED_ALTERNATE
+#undef LS_UNSCALED_ALTERNATE_LIST
 #endif   // __CHERI_PURE_CAPABILITY__
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFixed = 0x38000000;
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFMask = 0x3B200C00;
