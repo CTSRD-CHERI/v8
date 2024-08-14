@@ -27,6 +27,7 @@ class BitField final {
   static_assert(size < 8 * sizeof(U));   // Otherwise shifts by {size} are UB.
   static_assert(shift + size <= 8 * sizeof(U));
   static_assert(size > 0);
+  static_assert(!std::is_pointer<U>::value);
 
   using FieldType = T;
 
