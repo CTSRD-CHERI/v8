@@ -795,13 +795,6 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // The case where src == dst is not supported.
   // The function may corrupt its register arguments. The registers must not
   // alias each other.
-  enum CopyDoubleWordsMode {
-    kDstLessThanSrc,
-    kSrcLessThanDst,
-    kDstLessThanSrcAndReverse
-  };
-  void CopyDoubleWords(Register dst, Register src, Register count,
-                       CopyDoubleWordsMode mode = kDstLessThanSrc);
 #if defined(__CHERI_PURE_CAPABILITY__)
   enum CopyCapabilitiesMode {
     kCapDstLessThanSrc,
@@ -810,6 +803,14 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   };
   void CopyCapabilities(Register dst, Register src, Register count,
                         CopyCapabilitiesMode mode = kCapDstLessThanSrc);
+#else
+  enum CopyDoubleWordsMode {
+    kDstLessThanSrc,
+    kSrcLessThanDst,
+    kDstLessThanSrcAndReverse
+  };
+  void CopyDoubleWords(Register dst, Register src, Register count,
+                       CopyDoubleWordsMode mode = kDstLessThanSrc);
 #endif // __CHERI_PURE_CAPABILITY__
 
   // Calculate the address of a double word-sized slot at slot_offset from the
