@@ -1234,10 +1234,11 @@ class V8_EXPORT_PRIVATE Constant final {
 
   int64_t ToInt64() const {
     if (type() == kInt32) return ToInt32();
-    DCHECK_EQ(kInt64, type());
 #if defined(__CHERI_PURE_CAPABILITY__)
+    DCHECK(kInt64 == type() || kIntPtr == type());
     return static_cast<uint64_t>(value_);
 #else    // __CHERI_PURE_CAPABILITY__
+    DCHECK(kInt64 == type());
     return value_;
 #endif   // __CHERI_PURE_CAPABILITY__
   }
