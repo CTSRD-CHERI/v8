@@ -460,8 +460,10 @@ void Serializer::ObjectSerializer::SerializePrologue(SnapshotSpace space,
   } else {
     sink_->Put(NewObject::Encode(space), "NewObject");
 
-    DCHECK(IsAligned(size, kObjectAlignment));
     // TODO(leszeks): Skip this when the map has a fixed size.
+    if (!IsAligned(size, kObjectAlignment)) {
+      size = RoundUp(size, kObjectAlignment);
+    }
     sink_->PutInt(size >> kObjectAlignmentBits, "ObjectSizeInWords");
 
     // Until the space for the object is allocated, it is considered "pending".
