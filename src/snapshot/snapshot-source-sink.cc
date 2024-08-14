@@ -18,7 +18,12 @@ void SnapshotByteSink::PutN(int number_of_bytes, const uint8_t v,
   data_.insert(data_.end(), number_of_bytes, v);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+void SnapshotByteSink::PutInt(uintptr_t _integer, const char* description) {
+  uint64_t integer = static_cast<uint64_t>(_integer);
+#else
 void SnapshotByteSink::PutInt(uintptr_t integer, const char* description) {
+#endif
   DCHECK_LT(integer, 1 << 30);
   integer <<= 2;
   int bytes = 1;
