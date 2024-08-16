@@ -906,7 +906,7 @@ void Generate_JSEntryVariant(MacroAssembler* masm, StackFrame::Type type,
       EntryFrameConstants::kCalleeSavedRegisterBytesPushedAfterFpLrPair == 0);
   static_assert(EntryFrameConstants::kOffsetToCalleeSavedRegisters == 0);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Mov(fp, csp);
+  __ Mov(cfp, csp);
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ Mov(fp, sp);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
@@ -963,7 +963,7 @@ void Generate_JSEntryVariant(MacroAssembler* masm, StackFrame::Type type,
   __ Csel(x11, xzr, StackFrame::OUTERMOST_JSENTRY_FRAME, ne);
   __ B(ne, &done);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Str(fp, MemOperand(c12));
+  __ Str(cfp, MemOperand(c12));
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ Str(fp, MemOperand(x12));
 #endif // defined(__CHERI_PURE_CAPABILITY__)
