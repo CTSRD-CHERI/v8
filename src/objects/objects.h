@@ -725,15 +725,19 @@ class Object : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
   template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
                                                  std::is_enum<T>::value,
                                              int>::type = 0>
-  inline T ReadFieldAlignUp(size_t offset, size_t alignment = alignof(max_align_t)) const {
-    return ReadMaybeUnalignedValue<T>(__builtin_align_up(field_address(offset), alignment));
+  inline T ReadFieldAlignUp(size_t offset,
+                            size_t alignment = alignof(max_align_t)) const {
+    return ReadMaybeUnalignedValue<T>(
+        __builtin_align_up(field_address(offset), alignment));
   }
 
   template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
                                                  std::is_enum<T>::value,
                                              int>::type = 0>
-  inline void WriteFieldAlignUp(size_t offset, T value, size_t alignment = alignof(max_align_t)) const {
-    return WriteMaybeUnalignedValue<T>(__builtin_align_up(field_address(offset), alignment), value);
+  inline void WriteFieldAlignUp(size_t offset, T value,
+                                size_t alignment = alignof(max_align_t)) const {
+    return WriteMaybeUnalignedValue<T>(
+        __builtin_align_up(field_address(offset), alignment), value);
   }
 
 #endif    //__CHERI_PURE_CAPABILITY__
