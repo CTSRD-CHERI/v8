@@ -29,3 +29,13 @@ clang_base_path                       = "/usr/local64"
 extra_cxxflags                        = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
 extra_cflags                          = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
 extra_ldflags                         = "-mabi=purecap"
+
+cppgc_enable_young_generation         = true
+arm_control_flow_integrity            = "none"
+cppgc_enable_caged_heap               = true
+v8_annotate_torque_ir                 = true
+v8_enable_slow_dchecks                = true
+v8_enable_snapshot_code_comments      = false # broken on purecap
+v8_verify_deterministic_mksnapshot    = false # broken on purecap
+v8_value_deserializer_hard_fail       = true
+v8_enable_verify_csa                  = false # broken on purecap
