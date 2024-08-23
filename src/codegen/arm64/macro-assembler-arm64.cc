@@ -314,6 +314,12 @@ void MacroAssembler::PrepareC64Jump(const Register& cd) {
   UseScratchRegisterScope temps(this);
   Label not_sentry, done;
   Register tempC = temps.AcquireC();
+  // Check if we need to set the C64 bit.
+  Gcvalue(cd, tempC.X());
+  And(tempC.X(), tempC.X(), 1);
+  Cmp(tempC.X(), 1);
+  B(eq, &done);
+  // We need to OR the C64 bit.
   Gcseal(cd, tempC.X());
   Cmp(tempC.X(), xzr);
   B(eq, &not_sentry);
