@@ -844,8 +844,8 @@ void CodeGenerator::AssembleCodeStartRegisterCheck() {
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   __ ComputeCodeStartAddress(scratch);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Orr(scratch, scratch, 0x1);
-  __ Orr(kJavaScriptCallCodeStartRegister, kJavaScriptCallCodeStartRegister, 0x1);
+  __ PrepareC64Jump(scratch);
+  __ PrepareC64Jump(kJavaScriptCallCodeStartRegister);
   __ Cmp(scratch, kJavaScriptCallCodeStartRegister);
 #else // defined(__CHERI_PURE_CAPABILITY__)
   __ cmp(scratch, kJavaScriptCallCodeStartRegister);

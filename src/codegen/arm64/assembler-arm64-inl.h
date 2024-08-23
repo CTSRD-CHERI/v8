@@ -1101,6 +1101,12 @@ Instr Assembler::ImmRotate(unsigned immr, unsigned reg_size) {
   return immr << ImmRotate_offset;
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+Instr Assembler::ImmSealForm(Cheri::SealImmediateForm form) {
+  return form << 13;
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 Instr Assembler::ImmLLiteral(int imm19) {
   CHECK(is_int19(imm19));
   return truncate_to_int19(imm19) << ImmLLiteral_offset;
@@ -1108,12 +1114,12 @@ Instr Assembler::ImmLLiteral(int imm19) {
 
 Instr Assembler::BitN(unsigned bitn, unsigned reg_size) {
 #ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK((reg_size == kWRegSizeInBits) || (reg_size == kXRegSizeInBits));
-#else
   DCHECK((reg_size == kCRegSizeInBits) || (reg_size == kWRegSizeInBits) ||
          (reg_size == kXRegSizeInBits));
-#endif
+#else
+  DCHECK((reg_size == kWRegSizeInBits) || (reg_size == kXRegSizeInBits));
   DCHECK((reg_size == kXRegSizeInBits) || (bitn == 0));
+#endif
   USE(reg_size);
   return bitn << BitN_offset;
 }

@@ -134,7 +134,7 @@ void MacroAssembler::Orr(const Register& rd, const Register& rn,
     Scvalue(rd, rd, temp);
     return;
   }
-#endif // __CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, ORR);
 }
 
@@ -264,10 +264,57 @@ void MacroAssembler::Gcvalue(const Register& cs, const Register& rd) {
   gcvalue(cs, rd);
 }
 
+void MacroAssembler::Gclen(const Register& cs, const Register& rd) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cs.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  gclen(cs, rd);
+}
+
+void MacroAssembler::Gcbase(const Register& cs, const Register& rd) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cs.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  gcbase(cs, rd);
+}
+
+void MacroAssembler::Gcseal(const Register& cs, const Register& rd) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cs.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  gcseal(cs, rd);
+}
+
 void MacroAssembler::Scvalue(const Register& cd, const Register& cn,
                              const Register& rm) {
   DCHECK(allow_macro_instructions());
   scvalue(cd, cn, rm);
+}
+
+void MacroAssembler::Scbndse(const Register& cd, const Register& cn,
+                             const Register& rm) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(rm.Is64Bits());
+  scbndse(cd, cn, rm);
+}
+
+void MacroAssembler::Build(const Register& cd, const Register& cn,
+                           const Register& cm) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(cm.Is128Bits());
+  build(cd, cn, cm);
+}
+
+void MacroAssembler::Seal(const Register& cd, const Register& cn, Cheri::SealImmediateForm form) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK_NE(form & 0b11, 0);
+  seal(cd, cn, form);
 }
 
 void MacroAssembler::Subsc(const Register& rd, const Register& cn,

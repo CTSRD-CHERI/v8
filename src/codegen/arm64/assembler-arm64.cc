@@ -1429,7 +1429,7 @@ void Assembler::LoadStorePairCap(const Register& ct, const Register& ct2,
   }
   Emit(addrmodeop | memop);
 }
-#endif // __CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
 
 // Memory instructions.
 void Assembler::ldrb(const Register& rt, const MemOperand& src) {
@@ -1470,22 +1470,38 @@ void Assembler::cpy(const Register& cd, const Register& cn) {
 }
 
 void Assembler::cselc(const Register& cd, const Register& cn,
-		      const Register& cm, Condition cond) {
+                      const Register& cm, Condition cond) {
   DCHECK(cd.SizeInBits() == cn.SizeInBits());
   DCHECK(cd.SizeInBits() == cm.SizeInBits());
   Emit(CSEL_c | Cm(cm) | Cond(cond) | Cn(cn) | Cd(cd));
 }
 
-void Assembler::gcvalue(const Register& cn, const Register& rd)
-{
+void Assembler::gcvalue(const Register& cn, const Register& rd) {
   DCHECK(cn.Is128Bits());
   DCHECK(rd.Is64Bits());
   Emit(GCVALUE | CnCSP(cn) | Rd(rd));
 }
 
+void Assembler::gclen(const Register& cn, const Register& rd) {
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  Emit(GCLEN | CnCSP(cn) | Rd(rd));
+}
+
+void Assembler::gcbase(const Register& cn, const Register& rd) {
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  Emit(GCBASE | CnCSP(cn) | Rd(rd));
+}
+
+void Assembler::gcseal(const Register& cn, const Register& rd) {
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  Emit(GCSEAL | CnCSP(cn) | Rd(rd));
+}
+
 void Assembler::subsc(const Register& rd, const Register& cn,
-                      const Operand& operand)
-{
+                      const Operand& operand) {
   DCHECK(rd.Is64Bits());
   DCHECK(cn.Is128Bits());
   DCHECK(operand.reg().IsC());
@@ -1498,11 +1514,32 @@ bool Assembler::IsImmAddSubCapability(int64_t immediate) {
 }
 
 void Assembler::scvalue(const Register& cd, const Register& cn,
-			const Register& rm)
-{
+                        const Register& rm) {
   DCHECK(cn.Is128Bits() && cd.Is128Bits());
   DCHECK(rm.Is64Bits());
   Emit(SCVALUE | Rm(rm) | CdCSP(cd) | CnCSP(cn));
+}
+
+void Assembler::scbndse(const Register& cd, const Register& cn,
+                        const Register& rm) {
+  DCHECK(cn.Is128Bits() && cd.Is128Bits());
+  DCHECK(rm.Is64Bits());
+  Emit(SCBNDSE | Rm(rm) | CdCSP(cd) | CnCSP(cn));
+}
+
+void Assembler::build(const Register& cd, const Register& cn, const Register& cm) {
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(cm.Is128Bits());
+  Emit(BUILD | Cm(cm) | CnCSP(cn) | CdCSP(cd));
+}
+
+void Assembler::seal(const Register& cd, const Register& cn,
+                     Cheri::SealImmediateForm form) {
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK_NE(form & 0b11, 0);
+  Emit(SEAL | ImmSealForm(form) | CnCSP(cn) | CdCSP(cd));
 }
 #endif // __CHERI_PURE_CAPABILITY__
 

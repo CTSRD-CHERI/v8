@@ -3033,6 +3033,20 @@ using GetField1Op = uint32_t;
 constexpr GetField1Op GetField1Fixed = 0xC2C01000;
 constexpr GetField1Op GetField1FMask = 0xFFFF1C00;
 constexpr GetField1Op GetField1Mask = 0xFFFFFC00;
+// 4.4.52 GCBASE
+// Get the Base field of a capability calculates the base field of a capability
+// and writes it to the destination register.
+constexpr GetField1Op GCBASE = GetField1Fixed | 0x00000000;
+// 4.4.54 GCLEN
+// Get the Length of a capability calculates the length of a capability from the
+// limit and the base of that capability and writes the result to the
+// destination register.
+constexpr GetField1Op GCLEN = GetField1Fixed | 0x00002000;
+// 4.4.58 GCSEAL
+// Get the sealed status of a capability writes zero to the destination register
+// if the ObjectType field of the source Capability register is zero and writes
+// one otherwise.
+constexpr GetField1Op GCSEAL = GetField1Fixed | 0x0000A000;
 // 4.4.61 GCVALUE
 // Get the Value field of a capability gets the range of the Value field of
 // a capability and writes the result to the destination register.
@@ -3042,11 +3056,40 @@ using SetField1Op = uint32_t;
 constexpr SetField1Op SetField1Fixed = 0xC2C00000;
 constexpr SetField1Op SetField1FMask = 0xFFE09C00;
 constexpr SetField1Op SetField1Mask = 0xFFE0FC00;
+// 4.4.116 SCBNDSE (register)
+// Set Bounds derives Capability Bounds using the source Capability register and
+// a length from a 64-bit register and writes the result to the destination
+// Capability register. If the bounds cannot be set exactly, this instruction
+// clears the Capability Tag. If the source capability is sealed, the Capability
+// Tag written to the destination Capability register is cleared.
+constexpr SetField1Op SCBNDSE = SetField1Fixed | 0x00002000;
 // 4.4.120 SCVALUE
 // Set value field of a capability, writes the source Capability register
 // to the destination Capability register with the Value field set to a
 // value based on a 64-bit general-purpose register.
 constexpr SetField1Op SCVALUE = SetField1Fixed | 0x00004000;
+// 4.4.19 BUILD
+// Build capability from untagged and possibly sealed bit pattern interprets and
+// treats an untagged and possibly sealed bit pattern as a capability, checks
+// this capability against a testing capability and based on the result, writes
+// the built capability to the destination Capability register.
+constexpr SetField1Op BUILD = SetField1Fixed | 0x00000400;
+
+using SealImmediateOp = uint32_t;
+// 4.4.122 SEAL (immediate)
+// Seal capability (immediate) seals a capability by setting the ObjectType of
+// that capability to nonzero, and writes the result to the destination
+// Capability register. An operand of rb seals for use with a register based
+// branch, lpb for a load pair and branch and lb for a load and branch.
+constexpr SealImmediateOp SEAL = 0xC2C31000;
+
+namespace Cheri {
+using SealImmediateForm = uint32_t;
+constexpr SealImmediateForm kSealFormRb = 0b01;
+constexpr SealImmediateForm kSealFormLpb = 0b10;
+constexpr SealImmediateForm kSealFormLb = 0b11;
+}
+
 #endif   // __CHERI_PURE_CAPABILITY__
 
 }  // namespace internal

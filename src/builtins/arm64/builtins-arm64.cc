@@ -1918,7 +1918,7 @@ void Builtins::Generate_InterpreterEntryTrampoline(
   __ Ldr(kJavaScriptCallCodeStartRegister,
          MemOperand(kInterpreterDispatchTableRegister, x1));
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Orr(kJavaScriptCallCodeStartRegister, kJavaScriptCallCodeStartRegister, 0x1);
+  __ PrepareC64Jump(kJavaScriptCallCodeStartRegister);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   __ Call(kJavaScriptCallCodeStartRegister);
 
@@ -2266,7 +2266,7 @@ static void Generate_InterpreterEnterBytecode(MacroAssembler* masm) {
   Label return_from_bytecode_dispatch;
   __ Adr(lr, &return_from_bytecode_dispatch);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Orr(lr, lr, 0x1);
+  __ PrepareC64Jump(lr);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
   // Dispatch to the target bytecode.
@@ -2351,7 +2351,7 @@ static void Generate_InterpreterEnterBytecode(MacroAssembler* masm) {
 #if defined(__CHERI_PURE_CAPABILITY__)
     temps.Exclude(c17);
     __ Add(c17, c1, Operand(interpreter_entry_return_pc_offset.value()));
-    __ Orr(c17, c17, 0x1);
+    __ PrepareC64Jump(c17);
     __ Br(c17);
 #else // defined(__CHERI_PURE_CAPABILITY__)
     temps.Exclude(x17);
@@ -2552,7 +2552,7 @@ void Generate_OSREntry(MacroAssembler* masm, Register entry_address,
   Label jump;
   __ Adr(lr, &jump);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  __ Orr(lr, lr, 0x1);
+  __ PrepareC64Jump(lr);
 #endif // defined(__CHERI_PURE_CAPABILITY__)
   __ Ret();
 
@@ -2566,7 +2566,7 @@ void Generate_OSREntry(MacroAssembler* masm, Register entry_address,
   } else {
     __ Add(c17, entry_address, offset);
   }
-  __ Orr(c17, c17, 0x1);
+  __ PrepareC64Jump(c17);
   __ Br(c17);
 #else // defined(__CHERI_PURE_CAPABILITY__)
     __ Mov(x17, entry_address);
@@ -6067,7 +6067,7 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
   __ Mov(c17, ER::Create(IsolateAddressId::kPendingHandlerEntrypointAddress,
                          masm->isolate()));
   __ Ldr(c17, MemOperand(c17));
-  __ Orr(c17, c17, 0x1);
+  __ PrepareC64Jump(c17);
   __ Br(c17);
 #else // defined(__CHERI_PURE_CAPABILITY__)
   temps.Exclude(x17);
@@ -7098,7 +7098,7 @@ void Generate_DeoptimizationEntry(MacroAssembler* masm,
   Register continuation = c17;
   __ Ldr(continuation, MemOperand(last_output_frame,
                                    FrameDescription::continuation_offset()));
-  __ Orr(continuation, continuation, 0x1);
+  __ PrepareC64Jump(continuation);
   __ Ldr(lr, MemOperand(last_output_frame, FrameDescription::pc_offset()));
 #else // defined(__CHERI_PURE_CAPABILITY__)
   temps.Exclude(x17);

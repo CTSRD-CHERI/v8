@@ -87,7 +87,7 @@ Handle<Code> BuildPlaceholder(Isolate* isolate, Builtin builtin) {
     FrameScope frame_scope(&masm, StackFrame::NO_FRAME_TYPE);
     // The contents of placeholder don't matter, as long as they don't create
     // embedded constants or external references.
-    masm.Move(kJavaScriptCallCodeStartRegister, Smi::zero());
+    masm.Move(kJavaScriptCallCodeStartRegister.X(), Smi::zero());
     masm.Call(kJavaScriptCallCodeStartRegister);
   }
   CodeDesc desc;

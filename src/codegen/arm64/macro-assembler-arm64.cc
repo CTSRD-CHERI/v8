@@ -307,6 +307,36 @@ void MacroAssembler::LogicalMacro(const Register& rd, const Register& rn,
   }
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+void MacroAssembler::PrepareC64Jump(const Register& cd) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.IsC());
+  UseScratchRegisterScope temps(this);
+  Label not_sentry, done;
+  Register tempC = temps.AcquireC();
+  Gcseal(cd, tempC.X());
+  Cmp(tempC.X(), xzr);
+  B(eq, &not_sentry);
+  // not_sentry == false => we have a sentry. Need to re-derive the capability
+  // from the PCC. We do this by overriding the original value of the register
+  // in order to avoid needing another temporary C-register and ease register
+  // pressure.
+  Orr(cd.X(), cd.X(), 0x1);
+  adr(tempC, 0);  // Get the PCC
+  Scvalue(tempC, tempC, cd.X());
+  Seal(cd, tempC, Cheri::kSealFormRb);
+  B(&done);
+  bind(&not_sentry);
+  // not_sentry == true => we don't have a sentry. Simply OR the address and
+  // Scvalue it.
+  Gcvalue(cd, tempC.X());
+  Orr(tempC.X(), tempC.X(), 0x1);
+  Scvalue(cd, cd, tempC.X());
+  bind(&done);
+}
+#endif
+
+
 void MacroAssembler::Mov(const Register& rd, uint64_t imm) {
   DCHECK(allow_macro_instructions());
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -321,12 +351,20 @@ void MacroAssembler::Mov(const Register& rd, uint64_t imm) {
   // a Mov of an immediate to a cap register but its hard to
   // determine why or where it comes from.
   if (rd.IsC()) {
-    UseScratchRegisterScope temps(this);
-    Register temp = temps.AcquireX();
-    Gcvalue(rd, temp);
-    Mov(temp, imm);
-    Scvalue(rd, rd, temp);
-    return;
+    if (imm == 0) {
+      Mov(rd, czr);
+      return;
+    } else {
+      UseScratchRegisterScope temps(this);
+      Register t1 = temps.AcquireX();
+      Gcseal(rd, t1);
+      Cmp(t1, xzr);
+      Check(ne, AbortReason::kUnexpectedSealedCapability);
+      Gcvalue(rd, t1);
+      Mov(t1, imm);
+      Scvalue(rd, rd, t1);
+      return;
+    }
   }
 #endif   // __CHERI_PURE_CAPABILITY__
 
@@ -2624,7 +2662,7 @@ void MacroAssembler::Jump(Register target, Condition cond) {
   Label done;
   if (cond != al) B(NegateCondition(cond), &done);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  Orr(target, target, 0x1);
+  PrepareC64Jump(target);
 #endif   // __CHERI_PURE_CAPABILITY__
   Br(target);
   Bind(&done);
@@ -2792,7 +2830,7 @@ void MacroAssembler::LoadEntryFromBuiltinIndex(Register builtin_index,
     Ldr(target, MemOperand(target, IsolateData::builtin_entry_table_offset()));
   }
 #if defined(__CHERI_PURE_CAPABILITY__)
-  Orr(target, target, 0x1);
+  PrepareC64Jump(target);
 #endif   // __CHERI_PURE_CAPABILITY__
 }
 
@@ -2800,7 +2838,7 @@ void MacroAssembler::LoadEntryFromBuiltin(Builtin builtin,
                                           Register destination) {
   Ldr(destination, EntryFromBuiltinAsOperand(builtin));
 #if defined(__CHERI_PURE_CAPABILITY__)
-  Orr(destination, destination, 0x1);
+  PrepareC64Jump(destination);
 #endif  // !__CHERI_PURE_CAPABILITY__
 }
 
@@ -2891,7 +2929,7 @@ void MacroAssembler::TailCallBuiltin(Builtin builtin, Condition cond) {
     case BuiltinCallJumpMode::kAbsolute: {
       Ldr(temp, Operand(BuiltinEntry(builtin), RelocInfo::OFF_HEAP_TARGET));
 #if defined(__CHERI_PURE_CAPABILITY__)
-      Orr(temp, temp, 0x1);
+      PrepareC64Jump(temp);
 #endif   // __CHERI_PURE_CAPABILITY__
       Jump(temp, cond);
       break;
@@ -4730,8 +4768,7 @@ void MacroAssembler::ComputeCodeStartAddress(const Register& rd) {
   // We can use adr to load a pc relative location.
   adr(rd, -pc_offset());
 #if defined(__CHERI_PURE_CAPABILITY__)
-  // TODO(gcjenkinson): Is this needed
-  Orr(rd, rd, 0x1);
+  PrepareC64Jump(rd);
 #endif  // !__CHERI_PURE_CAPABILITY__
 }
 

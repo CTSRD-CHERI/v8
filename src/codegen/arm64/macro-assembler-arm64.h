@@ -231,6 +231,9 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
   inline void InitializeRootRegister();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  void PrepareC64Jump(const Register& cd);
+#endif
   void Mov(const Register& rd, const Operand& operand,
            DiscardMoveMode discard_mode = kDontDiscardForSameWReg);
   void Mov(const Register& rd, uint64_t imm);
@@ -889,7 +892,14 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Cmpc(const Register& cn, const Operand& operand);
   inline void Cpy(const Register& cd, const Register& cn);
   inline void Gcvalue(const Register& cn, const Register& rd);
+  inline void Gcbase(const Register& cn, const Register& rd);
+  inline void Gclen(const Register& cn, const Register& rd);
+  inline void Gcseal(const Register& cn, const Register& rd);
   inline void Scvalue(const Register& cd, const Register& cn, const Register& rm);
+  inline void Scbndse(const Register& cd, const Register& cn, const Register& rm);
+  inline void Build(const Register& cd, const Register& cn, const Register& cm);
+  inline void Seal(const Register& cd, const Register& cn,
+                   Cheri::SealImmediateForm form);
   inline void Subsc(const Register& cd, const Register& cn,
                     const Operand& operand);
 #endif // __CHERI_PURE_CAPABILITY__

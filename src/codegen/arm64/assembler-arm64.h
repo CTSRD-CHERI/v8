@@ -832,9 +832,22 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
             const MemOperand& src);
   // Load a capability value field
   void gcvalue(const Register& cd, const Register& rd);
+  // Load a capability base field
+  void gcbase(const Register& cd, const Register& rd);
+  // Load a capability length field
+  void gclen(const Register& cd, const Register& rd);
+  // Load a capability sealed flag
+  void gcseal(const Register& cd, const Register& rd);
   // Store a capability value field
   void scvalue(const Register& cd, const Register& cn,
 	       const Register& rm);
+  // Set capability bounds exact
+  void scbndse(const Register& cd, const Register& cn, const Register& rm);
+  // Build a capability from a bit pattern.
+  void build(const Register& cd, const Register& cn, const Register& cm);
+  // Seal a capability using an immediate form.
+  void seal(const Register& cd, const Register& cn,
+            Cheri::SealImmediateForm form);
 #endif // __CHERI_PURE_CAPABILITY__
 
   // Load word with sign extension.
@@ -2868,6 +2881,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline static Instr ImmR(unsigned immr, unsigned reg_size);
   inline static Instr ImmSetBits(unsigned imms, unsigned reg_size);
   inline static Instr ImmRotate(unsigned immr, unsigned reg_size);
+#ifdef __CHERI_PURE_CAPABILITY__
+  inline static Instr ImmSealForm(Cheri::SealImmediateForm form);
+#endif
   inline static Instr ImmLLiteral(int imm19);
   inline static Instr BitN(unsigned bitn, unsigned reg_size);
   inline static Instr ShiftDP(Shift shift);
