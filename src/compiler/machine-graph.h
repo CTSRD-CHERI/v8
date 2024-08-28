@@ -47,6 +47,10 @@ class V8_EXPORT_PRIVATE MachineGraph : public NON_EXPORTED_BASE(ZoneObject) {
   Node* Uint64Constant(uint64_t value) {
     return Int64Constant(base::bit_cast<int64_t>(value));
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Node* Capability32Constant(intptr_t value);
+  Node* Capability64Constant(intptr_t value);
+#endif
 
   // Creates a Int32Constant/Int64Constant node, depending on the word size of
   // the target machine.

@@ -88,8 +88,13 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   }
   Node* IntPtrConstant(intptr_t value) {
     // TODO(dcarney): mark generated code as unserializable if value != 0.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return kSystemPointerAddrSize == 8 ? Capability64Constant(value)
+                                       : Capability32Constant(value);
+#else
     return kSystemPointerAddrSize == 8 ? Int64Constant(value)
                                        : Int32Constant(static_cast<int>(value));
+#endif
   }
   Node* RelocatableIntPtrConstant(intptr_t value, RelocInfo::Mode rmode);
   Node* Int32Constant(int32_t value) {
@@ -126,6 +131,14 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   Node* Projection(int index, Node* a) {
     return AddNode(common()->Projection(index), a);
   }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Node* Capability32Constant(intptr_t value) {
+    return AddNode(common()->Capability32Constant(value));
+  }
+  Node* Capability64Constant(intptr_t value) {
+    return AddNode(common()->Capability64Constant(value));
+  }
+#endif
 
   // Memory Operations.
   Node* Load(MachineType type, Node* base) {

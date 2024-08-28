@@ -339,6 +339,12 @@ class OperandGenerator {
         return Constant(OpParameter<int32_t>(node->op()));
       case IrOpcode::kInt64Constant:
         return Constant(OpParameter<int64_t>(node->op()));
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case IrOpcode::kCapability32Constant:
+        return Constant(OpParameter<intptr_t>(node->op()));
+      case IrOpcode::kCapability64Constant:
+        return Constant(OpParameter<intptr_t>(node->op()));
+#endif
       case IrOpcode::kTaggedIndexConstant: {
         // Unencoded index value.
         intptr_t value =

@@ -565,6 +565,10 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
 
   const Operator* Int32Constant(int32_t);
   const Operator* Int64Constant(int64_t);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  const Operator* Capability32Constant(intptr_t);
+  const Operator* Capability64Constant(intptr_t);
+#endif
   const Operator* TaggedIndexConstant(int32_t value);
   const Operator* Float32Constant(float);
   const Operator* Float64Constant(double);

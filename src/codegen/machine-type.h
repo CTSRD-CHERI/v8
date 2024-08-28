@@ -183,10 +183,18 @@ class MachineType {
 #endif // __CHERI_PURE_CAPABILITY__
   }
   constexpr static MachineType UintPtr() {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return Pointer();
+#else // defined(__CHERI_PURE_CAPABILITY__)
     return (kSystemPointerSize == 4) ? Uint32() : Uint64();
+#endif // __CHERI_PURE_CAPABILITY__
   }
   constexpr static MachineType IntPtr() {
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return Pointer();
+#else // defined(__CHERI_PURE_CAPABILITY__)
     return (kSystemPointerSize == 4) ? Int32() : Int64();
+#endif // __CHERI_PURE_CAPABILITY__
   }
   constexpr static MachineType Int8() {
     return MachineType(MachineRepresentation::kWord8, MachineSemantic::kInt32);

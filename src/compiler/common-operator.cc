@@ -1242,6 +1242,25 @@ const Operator* CommonOperatorBuilder::Int64Constant(int64_t value) {
       value);                                     // parameter
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+const Operator* CommonOperatorBuilder::Capability32Constant(intptr_t value) {
+  return zone()->New<Operator1<intptr_t>>(               // --
+      IrOpcode::kCapability32Constant, Operator::kPure,  // opcode
+      "Capability32Constant",                            // name
+      0, 0, 0, 1, 0, 0,                                  // counts
+      value);                                            // parameter
+}
+
+
+const Operator* CommonOperatorBuilder::Capability64Constant(intptr_t value) {
+  return zone()->New<Operator1<intptr_t>>(               // --
+      IrOpcode::kCapability64Constant, Operator::kPure,  // opcode
+      "Capability64Constant",                            // name
+      0, 0, 0, 1, 0, 0,                                  // counts
+      value);                                            // parameter
+}
+#endif
+
 const Operator* CommonOperatorBuilder::TaggedIndexConstant(int32_t value) {
   return zone()->New<Operator1<int32_t>>(               // --
       IrOpcode::kTaggedIndexConstant, Operator::kPure,  // opcode
