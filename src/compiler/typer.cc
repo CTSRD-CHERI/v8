@@ -888,6 +888,12 @@ Type Typer::Visitor::TypeInt32Constant(Node* node) { return Type::Machine(); }
 
 Type Typer::Visitor::TypeInt64Constant(Node* node) { return Type::Machine(); }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+Type Typer::Visitor::TypeCapability32Constant(Node* node) { return Type::Machine(); }
+
+Type Typer::Visitor::TypeCapability64Constant(Node* node) { return Type::Machine(); }
+#endif
+
 Type Typer::Visitor::TypeTaggedIndexConstant(Node* node) { UNREACHABLE(); }
 
 Type Typer::Visitor::TypeRelocatableInt32Constant(Node* node) { UNREACHABLE(); }

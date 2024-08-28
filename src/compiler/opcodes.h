@@ -33,6 +33,19 @@
   V(Throw)                 \
   V(End)
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+#define MACHINE_LEVEL_CONSTANT_OP_LIST(V) \
+  V(Int32Constant)                        \
+  V(Int64Constant)                        \
+  V(Capability32Constant)                 \
+  V(Capability64Constant)                 \
+  V(TaggedIndexConstant)                  \
+  V(Float32Constant)                      \
+  V(Float64Constant)                      \
+  V(CompressedHeapConstant)               \
+  V(RelocatableInt32Constant)             \
+  V(RelocatableInt64Constant)
+#else
 #define MACHINE_LEVEL_CONSTANT_OP_LIST(V) \
   V(Int32Constant)                        \
   V(Int64Constant)                        \
@@ -42,6 +55,7 @@
   V(CompressedHeapConstant)               \
   V(RelocatableInt32Constant)             \
   V(RelocatableInt64Constant)
+#endif
 
 #define JS_LEVEL_CONSTANT_OP_LIST(V) \
   V(ExternalConstant)                \

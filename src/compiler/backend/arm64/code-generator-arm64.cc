@@ -290,6 +290,10 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
         }
 #endif  // V8_ENABLE_WEBASSEMBLY
         return Operand(constant.ToInt64());
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case Constant::kIntPtr:
+        return Operand(constant.ToIntPtr());
+#endif
       case Constant::kFloat32:
         return Operand::EmbeddedNumber(constant.ToFloat32());
       case Constant::kFloat64:
