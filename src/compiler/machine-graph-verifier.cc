@@ -183,6 +183,9 @@ class MachineRepresentationInferrer {
             representation_vector_[node->id()] =
                 MachineRepresentation::kCompressedPointer;
             break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+          case IrOpcode::kCapAdd:
+#endif
           case IrOpcode::kExternalConstant:
             representation_vector_[node->id()] =
                 MachineType::PointerRepresentation();
@@ -525,6 +528,10 @@ class MachineRepresentationChecker {
             CheckValueInputRepresentationIs(
                 node, 1, MachineType::PointerRepresentation());
             break;
+          case IrOpcode::kStorePair:
+            CheckValueInputIsTaggedOrPointer(node, 0);
+            CheckValueInputIsTaggedOrPointer(node, 1);
+            break;
           case IrOpcode::kWord32AtomicPairAdd:
           case IrOpcode::kWord32AtomicPairSub:
           case IrOpcode::kWord32AtomicPairAnd:
@@ -676,6 +683,13 @@ class MachineRepresentationChecker {
           case IrOpcode::kFrameState:
           case IrOpcode::kStaticAssert:
             break;
+#if defined(__CHERI_PURE_CAPABILITY__)
+          case IrOpcode::kCapAdd:
+            CheckValueInputIsTaggedOrPointer(node, 0);
+            CheckValueInputRepresentationIs(
+                node, 1, MachineType::PointerRepresentation());
+            break;
+#endif
           default:
             if (node->op()->ValueInputCount() != 0) {
               std::stringstream str;
@@ -692,12 +706,22 @@ class MachineRepresentationChecker {
 
  private:
   static bool Is32() {
+#if defined (__CHERI_PURE_CAPABILITY__)
+    return MachineType::PointerRepresentation() ==
+           MachineRepresentation::kCapability32;
+#else
     return MachineType::PointerRepresentation() ==
            MachineRepresentation::kWord32;
+#endif
   }
   static bool Is64() {
+#if defined (__CHERI_PURE_CAPABILITY__)
+    return MachineType::PointerRepresentation() ==
+           MachineRepresentation::kCapability64;
+#else
     return MachineType::PointerRepresentation() ==
            MachineRepresentation::kWord64;
+#endif
   }
 
   void CheckValueInputRepresentationIs(Node const* node, int index,
@@ -705,6 +729,30 @@ class MachineRepresentationChecker {
     Node const* input = node->InputAt(index);
     MachineRepresentation input_representation =
         inferrer_->GetRepresentation(input);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    switch (input_representation) {
+      case MachineRepresentation::kWord32:
+        if (representation == MachineRepresentation::kCapability32) {
+          return;
+        }
+        break;
+      case MachineRepresentation::kWord64:
+        if (representation == MachineRepresentation::kCapability64) {
+          return;
+        }
+        break;
+      case MachineRepresentation::kCapability32:
+        if (representation == MachineRepresentation::kWord32) {
+          return;
+        }
+        break;
+      case MachineRepresentation::kCapability64:
+        if (representation == MachineRepresentation::kWord64) {
+          return;
+        }
+        break;
+  }
+#endif
     if (input_representation != representation) {
       std::stringstream str;
       str << "TypeError: node #" << node->id() << ":" << *node->op()
@@ -792,11 +840,18 @@ class MachineRepresentationChecker {
       case MachineRepresentation::kWord8:
       case MachineRepresentation::kWord16:
       case MachineRepresentation::kWord32:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability32:
+#endif
         if (Is32()) {
           return;
         }
         break;
       case MachineRepresentation::kWord64:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability64:
+
+#endif
         if (Is64()) {
           return;
         }
@@ -886,6 +941,9 @@ class MachineRepresentationChecker {
         inferrer_->GetRepresentation(input);
     switch (input_representation) {
       case MachineRepresentation::kWord64:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability64:
+#endif
         return;
       case MachineRepresentation::kNone: {
         std::ostringstream str;
@@ -991,12 +1049,25 @@ class MachineRepresentationChecker {
       case MachineRepresentation::kWord8:
       case MachineRepresentation::kWord16:
       case MachineRepresentation::kWord64:
+#if defined(__CHERI_PURE_CAPABILITY__)
+      return (actual == MachineRepresentation::kCapability64 ||
+              actual == expected);
+#else
         return expected == actual;
+#endif
       case MachineRepresentation::kWord32:
         return (actual == MachineRepresentation::kBit ||
                 actual == MachineRepresentation::kWord8 ||
                 actual == MachineRepresentation::kWord16 ||
                 actual == MachineRepresentation::kWord32);
+#if defined(__CHERI_PURE_CAPABILITY__)
+      case MachineRepresentation::kCapability32:
+      return (actual == MachineRepresentation::kWord32 ||
+              actual == expected);
+      case MachineRepresentation::kCapability64:
+      return (actual == MachineRepresentation::kWord64 ||
+              actual == expected);
+#endif
       case MachineRepresentation::kNone:
         UNREACHABLE();
     }
