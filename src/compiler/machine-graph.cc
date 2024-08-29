@@ -40,23 +40,13 @@ Node* MachineGraph::Capability64Constant(intptr_t value) {
 #endif
 
 Node* MachineGraph::IntPtrConstant(intptr_t value) {
-#if defined(__CHERI_PURE_CAPABILITY__)
-  return machine()->Is32() ? Capability32Constant(value)
-                           : Capability64Constant(value);
-#else
   return machine()->Is32() ? Int32Constant(static_cast<int32_t>(value))
                            : Int64Constant(static_cast<int64_t>(value));
-#endif
 }
 
 Node* MachineGraph::UintPtrConstant(uintptr_t value) {
-#if defined(__CHERI_PURE_CAPABILITY__)
-  return machine()->Is32() ? Capability32Constant(static_cast<intptr_t>(value))
-                           : Capability64Constant(static_cast<intptr_t>(value));
-#else
   return machine()->Is32() ? Uint32Constant(static_cast<uint32_t>(value))
                            : Uint64Constant(static_cast<uint64_t>(value));
-#endif
 }
 
 Node* MachineGraph::TaggedIndexConstant(intptr_t value) {
