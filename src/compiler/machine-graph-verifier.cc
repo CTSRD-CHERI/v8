@@ -185,6 +185,8 @@ class MachineRepresentationInferrer {
             break;
 #if defined(__CHERI_PURE_CAPABILITY__)
           case IrOpcode::kCapAdd:
+          case IrOpcode::kCapability32Constant:
+          case IrOpcode::kCapability64Constant:
 #endif
           case IrOpcode::kExternalConstant:
             representation_vector_[node->id()] =
