@@ -4374,7 +4374,7 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
       if (rt.IsC()) {
         Emit(LoadStoreCapUnsignedOffsetCapNormalFixed |
 	     memop | ImmLSUnsigned(offset >> size));
-	return;
+        return;
       }
 #endif // __CHERI_PURE_CAPABILITY__
       Emit(LoadStoreUnsignedOffsetFixed | memop |
@@ -4386,7 +4386,7 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
       if (rt.IsC()) {
         Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop |
 	     ImmLS(offset));
-	return;
+        return;
       }
 #endif // __CHERI_PURE_CAPABILITY__
       Emit(LoadStoreUnscaledOffsetFixed | memop | ImmLS(offset));
@@ -4427,7 +4427,7 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
 #if defined(__CHERI_PURE_CAPABILITY__)
         if (rt.IsC()) {
           unsigned size = CalcLSDataSize(op);
-          Emit(LoadStorePreCapIndexFixed | memop | ImmLS(offset >>size));
+          Emit(LoadStorePreCapIndexFixed | memop | ImmLS(offset >> size));
           return;
 	}
 #endif // __CHERI_PURE_CAPABILITY__
