@@ -3846,7 +3846,7 @@ void MacroAssembler::CompareInstanceType(Register map, Register type_reg,
                                          InstanceType type) {
   ASM_CODE_COMMENT(this);
   Ldrh(type_reg, FieldMemOperand(map, Map::kInstanceTypeOffset));
-  Cmp(type_reg, type);
+  Cmp(type_reg.W(), type);
 }
 
 // Sets condition flags based on comparison, and returns type in type_reg.

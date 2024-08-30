@@ -4384,8 +4384,11 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
       // Use the unscaled addressing mode.
 #if defined(__CHERI_PURE_CAPABILITY__)
       if (rt.IsC()) {
-        Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop |
-	     ImmLS(offset));
+        if (op == LDRH_w) {
+          Emit(LoadStoreCapUnscaledOffsetC64Fixed | memop | ImmLS(offset));
+        } else {
+          Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop | ImmLS(offset));
+        }
         return;
       }
 #endif // __CHERI_PURE_CAPABILITY__

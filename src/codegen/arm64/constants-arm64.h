@@ -1091,6 +1091,12 @@ constexpr LoadStoreUnscaledOffsetOp
 constexpr LoadStoreUnscaledOffsetOp
     LoadStoreCapUnscaledOffsetNormalMask = 0xFFE00C00;
 constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetC64Fixed = 0x78000000;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetC64FMask = 0xFF200C00;
+constexpr LoadStoreUnscaledOffsetOp
+    LoadStoreCapUnscaledOffsetC64Mask = 0xFFE00C00;
+constexpr LoadStoreUnscaledOffsetOp
     LoadCapUnscaledOffsetNormal = 0x00400000;
 constexpr LoadStoreUnscaledOffsetOp
     StoreCapUnscaledOffsetNormal = 0x00000000;
