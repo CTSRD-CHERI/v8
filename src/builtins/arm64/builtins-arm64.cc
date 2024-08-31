@@ -3444,16 +3444,7 @@ void Generate_PushBoundArguments(MacroAssembler* masm) {
       __ LoadStackLimit(x10, StackLimitKind::kRealStackLimit);
       // Make x10 the space we have left. The stack might already be overflowed
       // here which will cause x10 to become negative.
-#if defined(__CHERI_PURE_CAPABILITY__)
-      {
-        UseScratchRegisterScope temps(masm);
-        Register temp = temps.AcquireX();
-        __ Gcvalue(csp, temp);
-        __ Sub(x10, temp, x10);
-      }
-#else // defined(__CHERI_PURE_CAPABILITY__)
       __ Sub(x10, sp, x10);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
       // Check if the arguments will overflow the stack.
 #if defined(__CHERI_PURE_CAPABILITY__)
       __ Cmp(x10, Operand(bound_argc, LSL, kSystemPointerSizeLog2));
