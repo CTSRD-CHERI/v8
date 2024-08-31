@@ -16,7 +16,7 @@ Address CheckObjectType(Address raw_value, Address raw_type,
 #ifdef DEBUG
   ObjectType type = static_cast<ObjectType>(Smi(raw_type).value());
   String location = String::cast(Object(raw_location));
-  const char* expected;
+  const char* expected = "Undefined (SWITCH CASE MISSING)";
 
   if (HAS_WEAK_HEAP_OBJECT_TAG(raw_value)) {
     if (type == ObjectType::kHeapObjectReference) return Smi::FromInt(0).ptr();
