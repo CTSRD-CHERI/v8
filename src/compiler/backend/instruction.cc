@@ -606,6 +606,10 @@ std::ostream& operator<<(std::ostream& os, const Constant& constant) {
       return os << constant.ToInt32();
     case Constant::kInt64:
       return os << constant.ToInt64() << "l";
+#ifdef __CHERI_PURE_CAPABILITY__
+    case Constant::kIntPtr:
+      return os << constant.ToIntPtr() << " (cap)";
+#endif  // __CHERI_PURE_CAPABILITY__
     case Constant::kFloat32:
       return os << constant.ToFloat32() << "f";
     case Constant::kFloat64:
