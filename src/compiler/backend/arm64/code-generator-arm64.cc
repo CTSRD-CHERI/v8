@@ -3757,6 +3757,7 @@ void CodeGenerator::AssembleConstructFrame() {
 #if defined(__CHERI_PURE_CAPABILITY__)
         __ Push(scratch.C(), padregc);
         DCHECK_GE(required_slots, 0);
+        if (required_slots > 1) __ Claim(required_slots - 1);
 #else // _CHERI_PURE_CAPABILITY__
         __ Push(scratch, padreg);
         // One of the extra slots has just been claimed when pushing the frame
