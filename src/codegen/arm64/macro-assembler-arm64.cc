@@ -358,7 +358,7 @@ void MacroAssembler::Mov(const Register& rd, uint64_t imm) {
   // determine why or where it comes from.
   if (rd.IsC()) {
     if (imm == 0) {
-      Mov(rd, czr);
+      Mov(rd.X(), xzr);
       return;
     } else {
       UseScratchRegisterScope temps(this);
