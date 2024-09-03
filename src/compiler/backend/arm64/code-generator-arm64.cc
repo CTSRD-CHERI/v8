@@ -4257,8 +4257,8 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
             (destination->IsCapabilityRegister())) {
           __ Mov(g.ToRegister(destination).C(), g.ToRegister(source).C());
           return;
-	}
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+        }
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
         __ Mov(g.ToRegister(destination), g.ToRegister(source));
       } else if (source->IsFloatRegister() || source->IsDoubleRegister()) {
         __ Mov(g.ToDoubleRegister(destination), g.ToDoubleRegister(source));
@@ -4273,9 +4273,9 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       if (source->IsRegister()) {
 #if defined(__CHERI_PURE_CAPABILITY__)
         // As the stack slots are capability width, perform
-	// a capability width store.
+        // a capability width store.
         __ Str(g.ToRegister(source).C(), dst);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
       } else {
         VRegister src = g.ToDoubleRegister(source);
         if (source->IsFloatRegister() || source->IsDoubleRegister()) {
@@ -4292,9 +4292,9 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       if (destination->IsRegister()) {
 #if defined(__CHERI_PURE_CAPABILITY__)
         // As the stack slots are capability width, perform
-	// a capability width load.
+        // a capability width load.
         __ Ldr(g.ToRegister(destination).C(), src);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
       } else {
         VRegister dst = g.ToDoubleRegister(destination);
         if (destination->IsFloatRegister() || destination->IsDoubleRegister()) {
@@ -4320,7 +4320,7 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
         Register temp = scope.AcquireC();
         __ Ldr(temp, src);
         __ Str(temp, dst);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
       } else {
         UseScratchRegisterScope scope(masm());
         Register temp = scope.AcquireX();
@@ -4333,11 +4333,11 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       Constant src = g.ToConstant(source);
       if (destination->IsRegister()) {
 #if defined(__CHERI_PURE_CAPABILITY__)
-	if (destination->IsCapabilityRegister()) {
+        if (destination->IsCapabilityRegister()) {
           MoveConstantToRegister(g.ToRegister(destination).C(), src);
-	  return;
-	}
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+          return;
+        }
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
         MoveConstantToRegister(g.ToRegister(destination), src);
       } else {
         VRegister dst = g.ToDoubleRegister(destination);
@@ -4356,12 +4356,12 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       if (destination->IsStackSlot()) {
         UseScratchRegisterScope scope(masm());
 #if defined(__CHERI_PURE_CAPABILITY__)
-	if (destination->IsCapabilityStackSlot()) {
+        if (destination->IsCapabilityStackSlot()) {
           Register temp = scope.AcquireC();
           MoveConstantToRegister(temp, src);
           __ Str(temp, dst);
           return;
-	}
+        }
 #endif // defined(__CHERI_PURE_CAPABILITY__)
         Register temp = scope.AcquireX();
         MoveConstantToRegister(temp, src);
