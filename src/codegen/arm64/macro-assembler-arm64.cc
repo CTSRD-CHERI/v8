@@ -2407,7 +2407,11 @@ void MacroAssembler::Swap(Register lhs, Register rhs) {
 #if defined(__CHERI_PURE_CAPABILITY__)
   if (lhs.IsC()) {
     // Perform capability preserving copy.
-    Cpy(lhs, rhs);
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireC();
+    Cpy(temp, rhs);
+    Cpy(rhs, lhs);
+    Cpy(lhs, temp);
     return;
   }
 #endif   // __CHERI_PURE_CAPABILITY__
