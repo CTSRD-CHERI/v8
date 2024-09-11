@@ -52,6 +52,7 @@ extern const float16 kFP16DefaultNaN;
 
 unsigned CalcLSDataSize(LoadStoreOp op);
 unsigned CalcLSPairDataSize(LoadStorePairOp op);
+unsigned CalcLSPairDataSize(LoadStorePairOp op, const CPURegister& rt);
 #if defined(__CHERI_PURE_CAPABILITY__)
 unsigned CalcLSPairCapDataSize(LoadStorePairOp op);
 #endif // __CHERI_PURE_CAPABILITY__

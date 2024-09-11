@@ -216,6 +216,36 @@ unsigned CalcLSPairDataSize(LoadStorePairOp op) {
   }
 }
 
+unsigned CalcLSPairDataSize(LoadStorePairOp op, const CPURegister& rt) {
+  static_assert(kXRegSize == kDRegSize, "X and D registers must be same size.");
+  static_assert(kWRegSize == kSRegSize, "W and S registers must be same size.");
+  switch (op) {
+    case STP_q:
+    case LDP_q:
+      return kQRegSizeLog2;
+    case STP_x:
+    case LDP_x:
+    case STP_d:
+    case LDP_d:
+      return kXRegSizeLog2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    case STP_c:
+      [[fallthrough]];
+    case LDP_c:
+      if (rt.IsC())
+        return kCRegSizeLog2;
+      else if (rt.IsX())
+        return kXRegSizeLog2;
+      else if (rt.IsW())
+        return kWRegSizeLog2;
+      else
+        UNREACHABLE();
+#endif // defined(__CHERI_PURE_CAPABILITY__)
+    default:
+      return kWRegSizeLog2;
+  }
+}
+
 int64_t Instruction::ImmPCOffset() {
   int64_t offset;
   if (IsPCRelAddressing()) {

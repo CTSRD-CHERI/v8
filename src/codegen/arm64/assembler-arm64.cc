@@ -1338,11 +1338,11 @@ void Assembler::LoadStorePair(const CPURegister& rt, const CPURegister& rt2,
   // 'rt' and 'rt2' can only be aliased for stores.
   DCHECK(((op & LoadStorePairLBit) == 0) || rt != rt2);
   DCHECK(AreSameSizeAndType(rt, rt2));
-  DCHECK(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op)));
+  DCHECK(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op, rt)));
   int offset = static_cast<int>(addr.offset());
 
   Instr memop = op | Rt(rt) | Rt2(rt2) | RnSP(addr.base()) |
-                ImmLSPair(offset, CalcLSPairDataSize(op));
+                ImmLSPair(offset, CalcLSPairDataSize(op, rt));
 
   Instr addrmodeop;
   if (addr.IsImmediateOffset()) {
@@ -1405,12 +1405,12 @@ void Assembler::LoadStorePairCap(const Register& ct, const Register& ct2,
   // 'ct' and 'ct2' can only be aliased for stores.
   DCHECK(((op & LoadStorePairCapLBit) == 0) || ct != ct2);
   DCHECK(AreSameSizeAndType(ct, ct2));
-  DCHECK(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op)));
+  DCHECK(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op, ct)));
   DCHECK_EQ(STP_c | LoadStorePairLBit, LDP_c);
   int offset = static_cast<int>(addr.offset());
 
   Instr memop = op | Ct(ct) | Ct2(ct2) | CnCSP(addr.base()) |
-                ImmLSPair(offset, CalcLSPairDataSize(op));
+                ImmLSPair(offset, CalcLSPairDataSize(op, ct));
 
   Instr addrmodeop;
   if (addr.IsImmediateOffset()) {
