@@ -58,7 +58,7 @@ class BasicSlotSet {
     size_t size = kInitialBucketsSize + buckets_size + kSystemPointerSize;
     void* allocation = v8::base::AlignedAlloc(size, kSystemPointerSize);
     CHECK(allocation);
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#if defined(__CHERI_PURE_CAPABILITY__)
     BasicSlotSet* slot_set = reinterpret_cast<BasicSlotSet*>(RoundUp(
         reinterpret_cast<uintptr_t>(reinterpret_cast<uint8_t*>(allocation) +
                                     kInitialBucketsSize),
@@ -93,7 +93,7 @@ class BasicSlotSet {
     }
 #endif
 
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#if defined(__CHERI_PURE_CAPABILITY__)
     v8::base::AlignedFree(reinterpret_cast<uint8_t*>(
         RoundDown(reinterpret_cast<uintptr_t>(slot_set) - kInitialBucketsSize,
                   kSystemPointerSize)));
