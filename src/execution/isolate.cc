@@ -4061,6 +4061,7 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   SetEmbeddedBlob(embedded_blob_code_, embedded_blob_code_size_,
                   embedded_blob_data_, embedded_blob_data_size_);
   sticky_embedded_blob_code_ = embedded_blob_code_;
+  sticky_embedded_blob_data_ = embedded_blob_data_;
 #endif  // !__CHERI_PURE_CAPABILITY__
   // The un-embedded code blob is already a part of the registered code range
   // so it's not necessary to register it again.
