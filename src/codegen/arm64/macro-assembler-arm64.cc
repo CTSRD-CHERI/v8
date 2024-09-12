@@ -3015,6 +3015,24 @@ void MacroAssembler::StoreReturnAddressAndCall(Register target) {
   // trigger GC, since the callee function will return to it.
 
   UseScratchRegisterScope temps(this);
+#ifdef __CHERI_PURE_CAPABILITY__
+  temps.Exclude(c16, c17);
+  DCHECK(!AreAliased(c16, c17, target));
+
+  Label return_location;
+  Adr(c17, &return_location);
+  Poke(c17, 0);
+
+  if (v8_flags.debug_code) {
+    ASM_CODE_COMMENT_STRING(this, "Verify fp[kSPOffset]-8");
+    // Verify that the slot below fp[kSPOffset]-8 points to the signed return
+    // location.
+    Ldr(c16, MemOperand(fp, ExitFrameConstants::kSPOffset));
+    Ldr(c16, MemOperand(c16, -static_cast<int64_t>(kCRegSize)));
+    Cmp(c16, c17);
+    Check(eq, AbortReason::kReturnAddressNotFoundInFrame);
+  }
+#else  // !__CHERI_PURE_CAPABILITY__
   temps.Exclude(x16, x17);
   DCHECK(!AreAliased(x16, x17, target));
 
@@ -3035,6 +3053,7 @@ void MacroAssembler::StoreReturnAddressAndCall(Register target) {
     Cmp(x16, x17);
     Check(eq, AbortReason::kReturnAddressNotFoundInFrame);
   }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   Blr(target);
   Bind(&return_location);
