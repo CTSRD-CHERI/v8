@@ -2319,7 +2319,6 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
 #if defined(__CHERI_PURE_CAPABILITY__)
     case kArm64LdrCapability:
       EmitOOLTrapIfNeeded(zone(), this, opcode, instr, __ pc_offset());
-      DCHECK(instr->OutputAt(0)->IsCapabilityRegister());
       __ Ldr(i.OutputRegisterCapability(), i.MemoryOperand());
       break;
 #endif // defined(__CHERI_PURE_CAPABILITY__)

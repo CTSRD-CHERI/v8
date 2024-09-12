@@ -469,17 +469,17 @@ uint8_t GetBinopProperties(InstructionCode opcode) {
       break;
     case kArm64Add32:
     case kArm64Add:
- #if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__)
     case kArm64AddCap:
- #endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
       result = CanCommuteField::update(result, true);
       result = IsAddSubField::update(result, true);
       break;
     case kArm64Sub32:
     case kArm64Sub:
- #if defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__CHERI_PURE_CAPABILITY__)
     case kArm64SubCap:
- #endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
       result = IsAddSubField::update(result, true);
       break;
     case kArm64Tst32:
@@ -892,6 +892,14 @@ void InstructionSelector::VisitLoad(Node* node) {
     case MachineRepresentation::kTaggedPointer:  // Fall through.
     case MachineRepresentation::kTagged:         // Fall through.
 #endif
+#ifdef __CHERI_PURE_CAPABILITY__
+    case MachineRepresentation::kCapability64:
+      // On purecap uncompressed builds, any tagged value is going to be
+      // represented as a capability.
+      opcode = kArm64LdrCapability;
+      immediate_mode = kLoadStoreImm64;
+      break;
+#endif  // __CHERI_PURE_CAPABILITY__
     case MachineRepresentation::kWord64:
       opcode = kArm64Ldr;
       immediate_mode = kLoadStoreImm64;
@@ -904,12 +912,6 @@ void InstructionSelector::VisitLoad(Node* node) {
       opcode = kArm64LdrQ;
       immediate_mode = kNoImmediate;
       break;
-#if defined(__CHERI_PURE_CAPABILITY__)
-    case MachineRepresentation::kCapability64:
-      opcode = kArm64LdrCapability;
-      immediate_mode = kLoadStoreImm64;
-      break;
-#endif // defined(__CHERI_PURE_CAPABILITY__)
     case MachineRepresentation::kSimd256:  // Fall through.
     case MachineRepresentation::kMapWord:  // Fall through.
     case MachineRepresentation::kNone:

@@ -2664,7 +2664,7 @@ void InstructionSelector::VisitNode(Node* node) {
     case IrOpcode::kCapability32Constant:
     case IrOpcode::kCapability64Constant:
       return MarkAsCapability(node), VisitConstant(node);
-#endif // defined(__CHERI_PURE_CAPABILITY__)
+#endif  // defined(__CHERI_PURE_CAPABILITY__)
     default:
       FATAL("Unexpected operator #%d:%s @ node #%d", node->opcode(),
             node->op()->mnemonic(), node->id());
