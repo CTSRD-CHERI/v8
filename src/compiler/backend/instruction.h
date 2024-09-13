@@ -526,6 +526,13 @@ class LocationOperand : public InstructionOperand {
     return Register::from_code(register_code());
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register GetCapabilityRegister() const {
+    DCHECK(IsRegister());
+    return Register::cap_from_code(register_code());
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
+
   FloatRegister GetFloatRegister() const {
     DCHECK(IsFloatRegister());
     return FloatRegister::from_code(register_code());

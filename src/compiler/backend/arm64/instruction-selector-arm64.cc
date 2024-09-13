@@ -1020,6 +1020,7 @@ void InstructionSelector::VisitStore(Node* node) {
 #else
         UNREACHABLE();
 #endif
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
       case MachineRepresentation::kTaggedSigned:   // Fall through.
       case MachineRepresentation::kTaggedPointer:  // Fall through.
       case MachineRepresentation::kTagged:
@@ -1048,6 +1049,7 @@ void InstructionSelector::VisitStore(Node* node) {
         immediate_mode =
             COMPRESS_POINTERS_BOOL ? kLoadStoreImm32 : kLoadStoreImm64;
         break;
+#endif  // !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
       case MachineRepresentation::kSandboxedPointer:
         CHECK(!paired);
         opcode = kArm64StrEncodeSandboxedPointer;
@@ -1063,8 +1065,18 @@ void InstructionSelector::VisitStore(Node* node) {
         immediate_mode = kNoImmediate;
         break;
 #if defined(__CHERI_PURE_CAPABILITY__)
+#ifndef V8_COMPRESS_POINTERS
+      case MachineRepresentation::kTaggedSigned:   // Fall through.
+      case MachineRepresentation::kTaggedPointer:  // Fall through.
+      case MachineRepresentation::kTagged:
+#endif  // V8_COMPRESS_POINTERS
       case MachineRepresentation::kCapability64:
-        opcode = kArm64StrCapability;
+        if (paired) {
+          static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 4);
+          opcode = kArm64StrPairCapability;
+        } else {
+          opcode = kArm64StrCapability;
+        }
         immediate_mode = kLoadStoreImm64;
         break;
 #endif //defined( __CHERI_PURE_CAPABILITY__)

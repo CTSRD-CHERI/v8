@@ -239,7 +239,7 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
   }
 #endif // defined(__CHERI_PURE_CAPABILITY__)
 
-  MemOperand MemoryOperand(size_t index = 0) {
+  MemOperand MemoryOperand(size_t index = 0, bool cap_register = false) {
     switch (AddressingModeField::decode(instr_->opcode())) {
       case kMode_None:
       case kMode_Operand2_R_LSR_I:
@@ -254,11 +254,18 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
       case kMode_Root:
         return MemOperand(kRootRegister, InputInt64(index));
       case kMode_Operand2_R_LSL_I:
+        DCHECK(!cap_register);
         return MemOperand(InputRegister(index + 0), InputRegister(index + 1),
                           LSL, InputInt32(index + 2));
       case kMode_MRI:
+        if (cap_register)
+          return MemOperand(InputCapabilityRegister(index + 0),
+                            InputInt32(index + 1));
         return MemOperand(InputRegister(index + 0), InputInt32(index + 1));
       case kMode_MRR:
+        if (cap_register)
+          return MemOperand(InputCapabilityRegister(index + 0),
+                            InputRegister(index + 1));
         return MemOperand(InputRegister(index + 0), InputRegister(index + 1));
     }
     UNREACHABLE();
@@ -2363,7 +2370,12 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       // TODO(gcjenkinson): Why is the representation kWord64?
       // DCHECK_WITH_MSG(instr->InputAt(0)->IsCapabilityRegister(),
 //		       MachineReprToString(LocationOperand::cast(instr->InputAt(0))->representation()));
-      __ Str(i.InputOrZeroRegisterCapability(0), i.MemoryOperand(1));
+      __ Str(i.InputOrZeroRegisterCapability(0), i.MemoryOperand(1, true));
+      break;
+    case kArm64StrPairCapability:
+      EmitOOLTrapIfNeeded(zone(), this, opcode, instr, __ pc_offset());
+      __ Stp(i.InputOrZeroRegisterCapability(0),
+             i.InputOrZeroRegisterCapability(1), i.MemoryOperand(2, true));
       break;
 #endif // defined(__CHERI_PURE_CAPABILITY__)
        //

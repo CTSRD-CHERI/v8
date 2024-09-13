@@ -3025,8 +3025,6 @@ void MacroAssembler::StoreReturnAddressAndCall(Register target) {
 
   if (v8_flags.debug_code) {
     ASM_CODE_COMMENT_STRING(this, "Verify fp[kSPOffset]-8");
-    // Verify that the slot below fp[kSPOffset]-8 points to the signed return
-    // location.
     Ldr(c16, MemOperand(fp, ExitFrameConstants::kSPOffset));
     Ldr(c16, MemOperand(c16, -static_cast<int64_t>(kCRegSize)));
     Cmp(c16, c17);

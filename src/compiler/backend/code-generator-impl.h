@@ -30,6 +30,12 @@ class InstructionOperandConverter {
     return ToRegister(instr_->InputAt(index));
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register InputCapabilityRegister(size_t index) const {
+    return ToCapabilityRegister(instr_->InputAt(index));
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
+
   FloatRegister InputFloatRegister(size_t index) {
     return ToFloatRegister(instr_->InputAt(index));
   }
@@ -155,6 +161,12 @@ class InstructionOperandConverter {
   Register ToRegister(InstructionOperand* op) const {
     return LocationOperand::cast(op)->GetRegister();
   }
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register ToCapabilityRegister(InstructionOperand* op) const {
+    return LocationOperand::cast(op)->GetCapabilityRegister();
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   FloatRegister ToFloatRegister(InstructionOperand* op) {
     return LocationOperand::cast(op)->GetFloatRegister();

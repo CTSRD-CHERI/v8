@@ -353,6 +353,7 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kArm64StrPair:
 #if defined(__CHERI_PURE_CAPABILITY__)
     case kArm64StrCapability:
+    case kArm64StrPairCapability:
 #endif // defined(__CHERI_PURE_CAPABILITY__)
     case kArm64StrCompressTagged:
     case kArm64StlrCompressTagged:

@@ -298,6 +298,13 @@ class Register : public CPURegister {
     return Register::Create(code, kXRegSizeInBits);
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  static constexpr Register cap_from_code(int code) {
+    // Always return a C register.
+    return Register::Create(code, kCRegSizeInBits);
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
+
   static const char* GetSpecialRegisterName(int code) {
 #if defined(__CHERI_PURE_CAPABILITY__)
     return (code == kSPRegInternalCode) ? "csp" : "UNKNOWN";

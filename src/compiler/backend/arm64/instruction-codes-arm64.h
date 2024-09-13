@@ -14,11 +14,12 @@ namespace compiler {
 
 // Opcodes that support a MemoryAccessMode.
 #if defined(__CHERI_PURE_CAPABILITY__)
-#define TARGET_ARCH_OPCODE_WITH_MEMORY_ACCESS_MODE_LIST(V)  \
-  ARM64_ARCH_OPCODE_WITH_MEMORY_ACCESS_MODE_LIST(V)         \
-  V(Arm64StrCapability)                                     \
-  V(Arm64LdrCapability)                                     \
-  V(Arm64AddCap)                                            \
+#define TARGET_ARCH_OPCODE_WITH_MEMORY_ACCESS_MODE_LIST(V) \
+  ARM64_ARCH_OPCODE_WITH_MEMORY_ACCESS_MODE_LIST(V)        \
+  V(Arm64StrCapability)                                    \
+  V(Arm64LdrCapability)                                    \
+  V(Arm64StrPairCapability)                                \
+  V(Arm64AddCap)                                           \
   V(Arm64SubCap)
 #else
 #define TARGET_ARCH_OPCODE_WITH_MEMORY_ACCESS_MODE_LIST(V)  \
