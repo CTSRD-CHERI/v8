@@ -1928,8 +1928,19 @@ Object Isolate::UnwindAndFindHandler() {
                           Address handler_fp, int num_frames_above_handler) {
     // Store information to be consumed by the CEntry.
     thread_local_top()->pending_handler_context_ = context;
+#ifdef __CHERI_PURE_CAPABILITY__
+    if (__builtin_cheri_sealed_get(instruction_start)) {
+      Address pcc =
+          reinterpret_cast<Address>(__builtin_cheri_program_counter_get());
+      instruction_start = __builtin_cheri_address_set(
+          pcc, __builtin_cheri_address_get(instruction_start));
+    }
+    thread_local_top()->pending_handler_entrypoint_ =
+        __builtin_cheri_seal_entry(instruction_start + handler_offset);
+#else   // !__CHERI_PURE_CAPABILITY__
     thread_local_top()->pending_handler_entrypoint_ =
         instruction_start + handler_offset;
+#endif  // __CHERI_PURE_CAPABILITY__
     thread_local_top()->pending_handler_constant_pool_ = constant_pool_address;
     thread_local_top()->pending_handler_fp_ = handler_fp;
     thread_local_top()->pending_handler_sp_ = handler_sp;

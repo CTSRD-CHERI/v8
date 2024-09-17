@@ -6010,9 +6010,9 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
     Register scratch = temps.AcquireC();
 #else // defined(__CHERI_PURE_CAPABILITY__)
     Register scratch = temps.AcquireX();
+#endif // defined(__CHERI_PURE_CAPABILITY__)
     __ Mov(scratch, ER::Create(IsolateAddressId::kPendingHandlerSPAddress,
                                masm->isolate()));
-#endif // defined(__CHERI_PURE_CAPABILITY__)
     __ Ldr(scratch, MemOperand(scratch));
 #if defined(__CHERI_PURE_CAPABILITY__)
     __ Mov(csp, scratch);

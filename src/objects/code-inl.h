@@ -137,6 +137,16 @@ Address Code::instruction_end() const {
 Address Code::metadata_start() const {
   if (has_instruction_stream()) {
     static_assert(InstructionStream::kOnHeapBodyIsContiguous);
+#ifdef __CHERI_PURE_CAPABILITY__
+    Address start = instruction_start();
+    if (__builtin_cheri_sealed_get(start)) {
+      Address pcc =
+          reinterpret_cast<Address>(__builtin_cheri_program_counter_get());
+      Address rval = __builtin_cheri_address_set(
+          pcc, (__builtin_cheri_address_get(start) | 1) + instruction_size());
+      return __builtin_cheri_seal_entry(rval);
+    }
+#endif  // __CHERI_PURE_CAPABILITY__
     return instruction_start() + instruction_size();
   }
   // An embedded builtin. Remapping is irrelevant wrt the metadata section so
