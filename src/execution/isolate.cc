@@ -4044,6 +4044,22 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
     return;
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+// rederive embedded_blob_code_ from PCC for remapping
+  uintptr_t sentry = reinterpret_cast<uintptr_t>(embedded_blob_code_);
+  uintptr_t result_cap = sentry;
+  if (__builtin_cheri_sealed_get(sentry)) {
+    const ptraddr_t base_addr = __builtin_cheri_base_get(sentry);
+    const ptraddr_t sentry_addr = __builtin_cheri_address_get(sentry);
+    const void* pcc = __builtin_cheri_program_counter_get();
+    result_cap = reinterpret_cast<uintptr_t>(
+        __builtin_cheri_address_set(pcc, base_addr));
+    result_cap = __builtin_cheri_bounds_set_exact(
+        result_cap, __builtin_cheri_length_get(sentry));
+    result_cap = __builtin_cheri_address_set(result_cap, sentry_addr);
+  }
+  embedded_blob_code_ = reinterpret_cast<const uint8_t*>(result_cap);
+#endif // __CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(embedded_blob_code_);
   CHECK_NE(embedded_blob_code_size_, 0);
 
