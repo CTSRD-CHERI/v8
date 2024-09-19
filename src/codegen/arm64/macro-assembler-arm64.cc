@@ -363,9 +363,6 @@ void MacroAssembler::Mov(const Register& rd, uint64_t imm) {
     } else {
       UseScratchRegisterScope temps(this);
       Register t1 = temps.AcquireX();
-      Gcseal(rd, t1);
-      Cmp(t1, xzr);
-      Check(eq, AbortReason::kUnexpectedSealedCapability);
       Gcvalue(rd, t1);
       Mov(t1, imm);
       Scvalue(rd, rd, t1);
