@@ -328,6 +328,7 @@ void MacroAssembler::PrepareC64Jump(const Register& cd) {
   // in order to avoid needing another temporary C-register and ease register
   // pressure.
   Orr(cd.X(), cd.X(), 0x1);
+  // FIXME(ds815): We might not be re-deriving this from the PCC.
   adr(tempC, 0);  // Get the PCC
   Scvalue(tempC, tempC, cd.X());
   Seal(cd, tempC, Cheri::kSealFormRb);

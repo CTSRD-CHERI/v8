@@ -1929,6 +1929,7 @@ Object Isolate::UnwindAndFindHandler() {
     // Store information to be consumed by the CEntry.
     thread_local_top()->pending_handler_context_ = context;
 #ifdef __CHERI_PURE_CAPABILITY__
+    // FIXME(ds815): We might not be re-deriving this from the PCC.
     if (__builtin_cheri_sealed_get(instruction_start)) {
       Address pcc =
           reinterpret_cast<Address>(__builtin_cheri_program_counter_get());

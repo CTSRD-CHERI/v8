@@ -139,6 +139,7 @@ Address Code::metadata_start() const {
     static_assert(InstructionStream::kOnHeapBodyIsContiguous);
 #ifdef __CHERI_PURE_CAPABILITY__
     Address start = instruction_start();
+    // FIXME(ds815): We might not be re-deriving this from the PCC.
     if (__builtin_cheri_sealed_get(start)) {
       Address pcc =
           reinterpret_cast<Address>(__builtin_cheri_program_counter_get());
