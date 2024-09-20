@@ -1114,7 +1114,7 @@ void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
   DCHECK(!addr.IsRegisterOffset());
 
   int64_t offset = addr.offset();
-  unsigned size = CalcLSPairDataSize(op);
+  unsigned size = CalcLSPairDataSize(op, rt);
 
   // Check if the offset fits in the immediate field of the appropriate
   // instruction. If not, emit two instructions to perform the operation.
