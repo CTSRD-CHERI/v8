@@ -339,36 +339,85 @@ void RegisterDump::Dump(MacroAssembler* masm) {
   masm->FPTmpList()->set_bits(0);
 
   // Preserve some temporary registers.
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register dump_base = c0;
+  Register dump = c1;
+  Register tmp = c2;
+  Register dump_base_x = dump_base.X();
+  Register dump_x = dump.X();
+  Register tmp_x = tmp.X();
+  Register dump_base_w = dump_base.W();
+  Register dump_w = dump.W();
+  Register tmp_w = tmp.W();
+#else   // !__CHERI_PURE_CAPABILITY__
   Register dump_base = x0;
   Register dump = x1;
   Register tmp = x2;
   Register dump_base_w = dump_base.W();
   Register dump_w = dump.W();
   Register tmp_w = tmp.W();
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Offsets into the dump_ structure.
+#ifdef __CHERI_PURE_CAPABILITY__
+  const int c_offset = offsetof(dump_t, c_);
+#endif  // __CHERI_PURE_CAPABILITY__
   const int x_offset = offsetof(dump_t, x_);
   const int w_offset = offsetof(dump_t, w_);
   const int d_offset = offsetof(dump_t, d_);
   const int s_offset = offsetof(dump_t, s_);
   const int q_offset = offsetof(dump_t, q_);
+#ifdef __CHERI_PURE_CAPABILITY__
+  const int csp_offset = offsetof(dump_t, csp_);
+#endif  // __CHERI_PURE_CAPABILITY__
   const int sp_offset = offsetof(dump_t, sp_);
   const int wsp_offset = offsetof(dump_t, wsp_);
   const int flags_offset = offsetof(dump_t, flags_);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Push(czr, dump_base, dump, tmp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Push(xzr, dump_base, dump, tmp);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Load the address where we will dump the state.
+#ifdef __CHERI_PURE_CAPABILITY__
+  // XXX(ds815): Right now this means that RegisterDump must be on the stack.
+  // What if it's not?
+  __ Mov(dump_base.X(), __builtin_cheri_address_get(&dump_));
+  __ Scvalue(dump_base, csp, dump_base.X());
+  __ Mov(tmp.X(), sizeof(dump_));
+  __ Scbndse(dump_base, dump_base, tmp.X());
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(dump_base, reinterpret_cast<uint64_t>(&dump_));
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Dump the stack pointer (sp and wsp).
   // The stack pointer cannot be stored directly; it needs to be moved into
-  // another register first. Also, we pushed four X registers, so we need to
+  // another register first. Also, we pushed four C/X registers, so we need to
   // compensate here.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Add(tmp, csp, 4 * kCRegSize);
+  __ Str(tmp, MemOperand(dump_base, csp_offset));
+  __ Add(tmp_x, sp, 4 * kCRegSize);
+  __ Str(tmp_x, MemOperand(dump_base, sp_offset));
+  __ Add(tmp_w, wsp, 4 * kCRegSize);
+  __ Str(tmp_w, MemOperand(dump_base, wsp_offset));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Add(tmp, sp, 4 * kXRegSize);
   __ Str(tmp, MemOperand(dump_base, sp_offset));
   __ Add(tmp_w, wsp, 4 * kXRegSize);
   __ Str(tmp_w, MemOperand(dump_base, wsp_offset));
+#endif  // __CHERI_PURE_CAPABILITY__
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Dump C registers.
+  __ Add(dump, dump_base, c_offset);
+  for (unsigned i = 0; i < kNumberOfRegisters; i += 2) {
+    __ Stp(Register::CRegFromCode(i), Register::CRegFromCode(i + 1),
+           MemOperand(dump, i * kCRegSize));
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Dump X registers.
   __ Add(dump, dump_base, x_offset);
@@ -406,34 +455,65 @@ void RegisterDump::Dump(MacroAssembler* masm) {
   }
 
   // Dump the flags.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mrs(tmp.X(), NZCV);
+  __ Str(tmp.X(), MemOperand(dump_base, flags_offset));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mrs(tmp, NZCV);
   __ Str(tmp, MemOperand(dump_base, flags_offset));
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // To dump the values that were in tmp amd dump, we need a new scratch
   // register.  We can use any of the already dumped registers since we can
   // easily restore them.
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register dump2_base = c10;
+  Register dump2 = c11;
+#else  // !__CHERI_PURE_CAPABILITY__
   Register dump2_base = x10;
   Register dump2 = x11;
+#endif  // __CHERI_PURE_CAPABILITY__
   CHECK(!AreAliased(dump_base, dump, tmp, dump2_base, dump2));
 
   // Don't lose the dump_ address.
   __ Mov(dump2_base, dump_base);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Pop(tmp, dump, dump_base, czr);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Pop(tmp, dump, dump_base, xzr);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Add(dump2, dump2_base, w_offset);
   __ Str(dump_base_w, MemOperand(dump2, dump_base.code() * kWRegSize));
   __ Str(dump_w, MemOperand(dump2, dump.code() * kWRegSize));
   __ Str(tmp_w, MemOperand(dump2, tmp.code() * kWRegSize));
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Add(dump2, dump2_base, x_offset);
+  __ Str(dump_base_x, MemOperand(dump2, dump_base.code() * kXRegSize));
+  __ Str(dump_x, MemOperand(dump2, dump_x.code() * kXRegSize));
+  __ Str(tmp_x, MemOperand(dump2, tmp_x.code() * kXRegSize));
+
+  __ Add(dump2, dump2_base, c_offset);
+  __ Str(dump_base, MemOperand(dump2, dump_base.code() * kCRegSize));
+  __ Str(dump, MemOperand(dump2, dump.code() * kCRegSize));
+  __ Str(tmp, MemOperand(dump2, tmp.code() * kCRegSize));
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Add(dump2, dump2_base, x_offset);
   __ Str(dump_base, MemOperand(dump2, dump_base.code() * kXRegSize));
   __ Str(dump, MemOperand(dump2, dump.code() * kXRegSize));
   __ Str(tmp, MemOperand(dump2, tmp.code() * kXRegSize));
+#endif // __CHERI_PURE_CAPABILITY__
 
   // Finally, restore dump2_base and dump2.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Ldr(dump2_base, MemOperand(dump2, dump2_base.code() * kCRegSize));
+  __ Ldr(dump2, MemOperand(dump2, dump2.code() * kCRegSize));
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Ldr(dump2_base, MemOperand(dump2, dump2_base.code() * kXRegSize));
   __ Ldr(dump2, MemOperand(dump2, dump2.code() * kXRegSize));
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Restore the MacroAssembler's scratch registers.
   masm->TmpList()->set_bits(old_tmp_list);

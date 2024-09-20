@@ -143,6 +143,9 @@ class RegisterDump {
   // use offsetof to quickly find the correct field.
   struct dump_t {
     // Core registers.
+#ifdef __CHERI_PURE_CAPABILITY__
+    uintptr_t c_[kNumberOfRegisters];
+#endif  // __CHERI_PURE_CAPABILITY__
     uint64_t x_[kNumberOfRegisters];
     uint32_t w_[kNumberOfRegisters];
 
@@ -154,6 +157,9 @@ class RegisterDump {
     vec128_t q_[kNumberOfVRegisters];
 
     // The stack pointer.
+#ifdef __CHERI_PURE_CAPABILITY__
+    uintptr_t csp_;
+#endif  // __CHERI_PURE_CAPABILITY__
     uint64_t sp_;
     uint64_t wsp_;
 
@@ -174,6 +180,10 @@ class RegisterDump {
                 "Array elements must be size of D register.");
   static_assert(sizeof(for_sizeof().s_[0]) == kSRegSize,
                 "Array elements must be size of S register.");
+#ifdef __CHERI_PURE_CAPABILITY__
+  static_assert(sizeof(for_sizeof().c_[0]) == kCRegSize,
+                "Array elements must be size of C register.");
+#endif  // __CHERI_PURE_CAPABILITY__
   static_assert(sizeof(for_sizeof().x_[0]) == kXRegSize,
                 "Array elements must be size of X register.");
   static_assert(sizeof(for_sizeof().w_[0]) == kWRegSize,
