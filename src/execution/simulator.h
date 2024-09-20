@@ -151,6 +151,12 @@ class GeneratedCode {
     Signature* fn = reinterpret_cast<Signature*>(function_desc);
     return fn(args...);
 #else
+#ifdef __CHERI_PURE_CAPABILITY__
+    DCHECK(__builtin_cheri_tag_get(fn_ptr_));
+    // C64 jump bit.
+    fn_ptr_ =
+        reinterpret_cast<Signature*>(reinterpret_cast<Address>(fn_ptr_) | 1);
+#endif
     return fn_ptr_(args...);
 #endif  // ABI_USES_FUNCTION_DESCRIPTORS
   }
