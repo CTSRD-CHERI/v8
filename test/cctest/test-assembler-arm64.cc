@@ -1660,34 +1660,71 @@ TEST(adr) {
   Label label_1, label_2, label_3, label_4;
 
   START();
+  // CHERI: We don't need BTI on purecap builds, so we don't bother.
   __ Mov(x0, 0x0);        // Set to non-zero to indicate failure.
-  __ Adr(x1, &label_3);   // Set to zero to indicate success.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c1, &label_3);  // Set to zero to indicate success.
 
-  __ Adr(x2, &label_1);   // Multiple forward references to the same label.
+  __ Adr(c2, &label_1);  // Multiple forward references to the same label.
+  __ Adr(c3, &label_1);
+  __ Adr(c4, &label_1);
+  __ Bind(&label_2);
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Adr(x1, &label_3);  // Set to zero to indicate success.
+
+  __ Adr(x2, &label_1);  // Multiple forward references to the same label.
   __ Adr(x3, &label_1);
   __ Adr(x4, &label_1);
-
   __ Bind(&label_2, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
+
   __ Eor(x5, x2, Operand(x3));  // Ensure that x2,x3 and x4 are identical.
   __ Eor(x6, x2, Operand(x4));
   __ Orr(x0, x0, Operand(x5));
   __ Orr(x0, x0, Operand(x6));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ PrepareC64Jump(c2);
+  __ Br(c2);  // label_1, label_3
+  __ Bind(&label_3);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Br(x2);  // label_1, label_3
-
   __ Bind(&label_3, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c2, &label_3);   // Self-reference (offset 0).
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Adr(x2, &label_3);   // Self-reference (offset 0).
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Eor(x1, x1, Operand(x2));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c2, &label_4);   // Simple forward reference.
+  __ PrepareC64Jump(c2);
+  __ Br(c2);  // label_4
+  __ Bind(&label_1);
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Adr(x2, &label_4);   // Simple forward reference.
   __ Br(x2);  // label_4
-
   __ Bind(&label_1, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c2, &label_3);   // Multiple reverse references to the same label.
+  __ Adr(c3, &label_3);
+  __ Adr(c4, &label_3);
+  __ Adr(c5, &label_2);   // Simple reverse reference.
+  __ PrepareC64Jump(c5);
+  __ Br(c5);  // label_2
+  __ Bind(&label_4);
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Adr(x2, &label_3);   // Multiple reverse references to the same label.
   __ Adr(x3, &label_3);
   __ Adr(x4, &label_3);
   __ Adr(x5, &label_2);   // Simple reverse reference.
   __ Br(x5);  // label_2
-
   __ Bind(&label_4, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
+
   END();
 
   RUN();
