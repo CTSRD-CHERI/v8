@@ -5132,7 +5132,11 @@ void PatchingAssembler::PatchAdrFar(int64_t target_offset) {
 
   // Patch to load the correct address.
   // TODO(gcjenkinson): rd should be a C register
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register rd = Register::CRegFromCode(rd_code);
+#else   // !__CHERI_PURE_CAPABILITY__
   Register rd = Register::XRegFromCode(rd_code);
+#endif  // __CHERI_PURE_CAPABILITY__
   Register scratch = Register::XRegFromCode(scratch_code);
   // Addresses are only 48 bits.
   adr(rd, target_offset & 0xFFFF);
