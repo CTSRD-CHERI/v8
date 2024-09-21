@@ -249,6 +249,15 @@ static void InitializeVM() {
 #define CHECK_EQUAL_64(expected, result)                                      \
   CHECK(Equal64(expected, &core, result))
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define CHECK_EQUAL_CAP(expected, result)                                     \
+  CHECK(EqualCap(expected, &core, result))
+#else  // !__CHERI_PURE_CAPABILITY__
+// On !CHERI, we create a compatibility macro for 64-bit values.
+#define CHECK_EQUAL_CAP(expected, result)                                     \
+  CHECK(Equal64(expected, &core, result))
+#endif  // __CHERI_PURE_CAPABILITY__
+
 #define CHECK_FULL_HEAP_OBJECT_IN_REGISTER(expected, result) \
   CHECK(Equal64(expected->ptr(), &core, result))
 
@@ -2692,6 +2701,7 @@ TEST(ldr_str_offset) {
   __ Mov(x0, sizeof(src));
   __ Scvalue(c17, csp, x17);
   __ Scbndse(c17, c17, x0);
+
   __ Mov(x19, dst_base);
   __ Mov(x0, sizeof(dst));
   __ Scvalue(c19, csp, x19);
@@ -2730,8 +2740,8 @@ TEST(ldr_str_offset) {
   CHECK_EQUAL_64(0x3200, dst[3]);
   CHECK_EQUAL_64(0x7654, x4);
   CHECK_EQUAL_64(0x765400, dst[4]);
-  CHECK_EQUAL_64(src_base, x17);
-  CHECK_EQUAL_64(dst_base, x19);
+  CHECK_EQUAL_CAP(src_base, src_reg);
+  CHECK_EQUAL_CAP(dst_base, dst_reg);
 }
 
 TEST(ldr_str_wide) {
@@ -2749,35 +2759,80 @@ TEST(ldr_str_wide) {
   src[8191] = 8191;
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x22, src_base);
+  __ Mov(x0, sizeof(src));
+  __ Scvalue(c22, csp, x22);
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, dst_base);
+  __ Mov(x0, sizeof(dst));
+  __ Scvalue(c23, csp, x23);
+  __ Scbndse(c23, c23, x0);
+
+  __ Mov(x24, src_base);
+  __ Mov(x0, sizeof(src));
+  __ Scvalue(c24, csp, x24);
+  __ Scbndse(c24, c24, x0);
+
+  __ Mov(x25, dst_base);
+  __ Mov(x0, sizeof(dst));
+  __ Scvalue(c25, csp, x25);
+  __ Scbndse(c25, c25, x0);
+
+  __ Mov(x26, src_base);
+  __ Mov(x0, sizeof(src));
+  __ Scvalue(c26, csp, x26);
+  __ Scbndse(c26, c26, x0);
+
+  __ Mov(x27, dst_base);
+  __ Mov(x0, sizeof(dst));
+  __ Scvalue(c27, csp, x27);
+  __ Scbndse(c27, c27, x0);
+
+  Register src_reg_1 = c22;
+  Register dst_reg_1 = c23;
+  Register src_reg_2 = c24;
+  Register dst_reg_2 = c25;
+  Register src_reg_3 = c26;
+  Register dst_reg_3 = c27;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x22, src_base);
   __ Mov(x23, dst_base);
   __ Mov(x24, src_base);
   __ Mov(x25, dst_base);
   __ Mov(x26, src_base);
   __ Mov(x27, dst_base);
+  Register src_reg_1 = x22;
+  Register dst_reg_1 = x23;
+  Register src_reg_2 = x24;
+  Register dst_reg_2 = x25;
+  Register src_reg_3 = x26;
+  Register dst_reg_3 = x27;
+#endif  // __CHERI_PURE_CAPABILITY__
 
-  __ Ldr(w0, MemOperand(x22, 8191 * sizeof(src[0])));
-  __ Str(w0, MemOperand(x23, 8191 * sizeof(dst[0])));
-  __ Ldr(w1, MemOperand(x24, 4096 * sizeof(src[0]), PostIndex));
-  __ Str(w1, MemOperand(x25, 4096 * sizeof(dst[0]), PostIndex));
-  __ Ldr(w2, MemOperand(x26, 6144 * sizeof(src[0]), PreIndex));
-  __ Str(w2, MemOperand(x27, 6144 * sizeof(dst[0]), PreIndex));
+  __ Ldr(w0, MemOperand(src_reg_1, 8191 * sizeof(src[0])));
+  __ Str(w0, MemOperand(dst_reg_1, 8191 * sizeof(dst[0])));
+  __ Ldr(w1, MemOperand(src_reg_2, 4096 * sizeof(src[0]), PostIndex));
+  __ Str(w1, MemOperand(dst_reg_2, 4096 * sizeof(dst[0]), PostIndex));
+  __ Ldr(w2, MemOperand(src_reg_3, 6144 * sizeof(src[0]), PreIndex));
+  __ Str(w2, MemOperand(dst_reg_3, 6144 * sizeof(dst[0]), PreIndex));
   END();
 
   RUN();
 
   CHECK_EQUAL_32(8191, w0);
   CHECK_EQUAL_32(8191, dst[8191]);
-  CHECK_EQUAL_64(src_base, x22);
-  CHECK_EQUAL_64(dst_base, x23);
+  CHECK_EQUAL_CAP(src_base, src_reg_1);
+  CHECK_EQUAL_CAP(dst_base, dst_reg_1);
   CHECK_EQUAL_32(0, w1);
   CHECK_EQUAL_32(0, dst[0]);
-  CHECK_EQUAL_64(src_base + 4096 * sizeof(src[0]), x24);
-  CHECK_EQUAL_64(dst_base + 4096 * sizeof(dst[0]), x25);
+  CHECK_EQUAL_CAP(src_base + 4096 * sizeof(src[0]), src_reg_2);
+  CHECK_EQUAL_CAP(dst_base + 4096 * sizeof(dst[0]), dst_reg_2);
   CHECK_EQUAL_32(6144, w2);
   CHECK_EQUAL_32(6144, dst[6144]);
-  CHECK_EQUAL_64(src_base + 6144 * sizeof(src[0]), x26);
-  CHECK_EQUAL_64(dst_base + 6144 * sizeof(dst[0]), x27);
+  CHECK_EQUAL_CAP(src_base + 6144 * sizeof(src[0]), src_reg_3);
+  CHECK_EQUAL_CAP(dst_base + 6144 * sizeof(dst[0]), dst_reg_3);
 }
 
 TEST(ldr_str_preindex) {

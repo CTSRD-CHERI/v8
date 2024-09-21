@@ -57,6 +57,16 @@ bool Equal64(uint64_t expected, const RegisterDump*, uint64_t result) {
   return expected == result;
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(uintptr_t expected, const RegisterDump*, uintptr_t result) {
+  if (result != expected) {
+    printf("Expected %p\t Found %p\n", expected, result);
+  }
+
+  return expected == result;
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 bool Equal128(vec128_t expected, const RegisterDump*, vec128_t result) {
   if ((result.h != expected.h) || (result.l != expected.l)) {
     printf("Expected 0x%016" PRIx64 "%016" PRIx64
@@ -131,6 +141,15 @@ bool Equal64(uint64_t expected,
   return Equal64(expected, core, result);
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(uintptr_t expected, const RegisterDump* core,
+              const Register& cap_reg) {
+  CHECK(cap_reg.Is128Bits());
+  uintptr_t result = core->creg(cap_reg.code());
+  return EqualCap(expected, core, result);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 bool Equal128(uint64_t expected_h, uint64_t expected_l,
               const RegisterDump* core, const VRegister& vreg) {
   CHECK(vreg.Is128Bits());
@@ -170,6 +189,15 @@ bool Equal64(const Register& reg0,
   return Equal64(expected, core, result);
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(const Register& cap_reg0, const RegisterDump* core,
+              const Register& cap_reg1) {
+  CHECK(cap_reg0.Is128Bits() && cap_reg1.Is128Bits());
+  uintptr_t expected = core->creg(cap_reg0.code());
+  uintptr_t result = core->creg(cap_reg1.code());
+  return EqualCap(expected, core, result);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 static char FlagN(uint32_t flags) {
   return (flags & NFlag) ? 'N' : 'n';

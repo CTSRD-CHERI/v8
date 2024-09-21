@@ -70,6 +70,16 @@ class RegisterDump {
     return dump_.x_[code];
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  inline uintptr_t creg(unsigned code) const {
+    if (code == kSPRegInternalCode) {
+      return cspreg();
+    }
+    CHECK(RegAliasesMatch(code));
+    return dump_.c_[code];
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
+
   // VRegister accessors.
   inline uint32_t sreg_bits(unsigned code) const {
     CHECK(FPRegAliasesMatch(code));
@@ -101,6 +111,13 @@ class RegisterDump {
     CHECK(SPRegAliasesMatch());
     return static_cast<int32_t>(dump_.wsp_);
   }
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  inline uintptr_t cspreg() const {
+    CHECK(SPRegAliasesMatch());
+    return dump_.csp_;
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Flags accessors.
   inline uint32_t flags_nzcv() const {
@@ -194,12 +211,19 @@ class RegisterDump {
 // accept them so that they can overload those that take register arguments.
 bool Equal32(uint32_t expected, const RegisterDump*, uint32_t result);
 bool Equal64(uint64_t expected, const RegisterDump*, uint64_t result);
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(uintptr_t expected, const RegisterDump*, uintptr_t result);
+#endif  // __CHERI_PURE_CAPABILITY__
 
 bool EqualFP32(float expected, const RegisterDump*, float result);
 bool EqualFP64(double expected, const RegisterDump*, double result);
 
 bool Equal32(uint32_t expected, const RegisterDump* core, const Register& reg);
 bool Equal64(uint64_t expected, const RegisterDump* core, const Register& reg);
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(uintptr_t expected, const RegisterDump* core,
+              const Register& cap_reg);
+#endif  // __CHERI_PURE_CAPABILITY__
 
 bool EqualFP32(float expected, const RegisterDump* core,
                const VRegister& fpreg);
@@ -208,6 +232,10 @@ bool EqualFP64(double expected, const RegisterDump* core,
 
 bool Equal64(const Register& reg0, const RegisterDump* core,
              const Register& reg1);
+#ifdef __CHERI_PURE_CAPABILITY__
+bool EqualCap(const Register& cap_reg0, const RegisterDump* core,
+              const Register& cap_reg1);
+#endif  // __CHERI_PURE_CAPABILITY__
 bool Equal128(uint64_t expected_h, uint64_t expected_l,
               const RegisterDump* core, const VRegister& reg);
 
