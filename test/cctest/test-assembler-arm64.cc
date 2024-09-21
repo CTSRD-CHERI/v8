@@ -2687,18 +2687,35 @@ TEST(ldr_str_offset) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x17, src_base);
+  __ Mov(x0, sizeof(src));
+  __ Scvalue(c17, csp, x17);
+  __ Scbndse(c17, c17, x0);
+  __ Mov(x19, dst_base);
+  __ Mov(x0, sizeof(dst));
+  __ Scvalue(c19, csp, x19);
+  __ Scbndse(c19, c19, x0);
+
+  Register src_reg = c17;
+  Register dst_reg = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x17, src_base);
   __ Mov(x19, dst_base);
-  __ Ldr(w0, MemOperand(x17));
-  __ Str(w0, MemOperand(x19));
-  __ Ldr(w1, MemOperand(x17, 4));
-  __ Str(w1, MemOperand(x19, 12));
-  __ Ldr(x2, MemOperand(x17, 8));
-  __ Str(x2, MemOperand(x19, 16));
-  __ Ldrb(w3, MemOperand(x17, 1));
-  __ Strb(w3, MemOperand(x19, 25));
-  __ Ldrh(w4, MemOperand(x17, 2));
-  __ Strh(w4, MemOperand(x19, 33));
+
+  Register src_reg = x17;
+  Register dst_reg = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(w0, MemOperand(src_reg));
+  __ Str(w0, MemOperand(dst_reg));
+  __ Ldr(w1, MemOperand(src_reg, 4));
+  __ Str(w1, MemOperand(dst_reg, 12));
+  __ Ldr(x2, MemOperand(src_reg, 8));
+  __ Str(x2, MemOperand(dst_reg, 16));
+  __ Ldrb(w3, MemOperand(src_reg, 1));
+  __ Strb(w3, MemOperand(dst_reg, 25));
+  __ Ldrh(w4, MemOperand(src_reg, 2));
+  __ Strh(w4, MemOperand(dst_reg, 33));
   END();
 
   RUN();
