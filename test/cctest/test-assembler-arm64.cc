@@ -1747,23 +1747,53 @@ TEST(adr_far) {
   __ Mov(x0, 0x0);
 
   __ Bind(&test_near);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c10, &near_forward, MacroAssembler::kAdrFar);
+  __ PrepareC64Jump(c10);
+  __ Br(c10);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x10, &near_forward, MacroAssembler::kAdrFar);
   __ Br(x10);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ B(&fail);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Bind(&near_backward);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Bind(&near_backward, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 1);
   __ B(&test_far);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Bind(&near_forward);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Bind(&near_forward, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 0);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c10, &near_backward, MacroAssembler::kAdrFar);
+  __ PrepareC64Jump(c10);
+  __ Br(c10);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x10, &near_backward, MacroAssembler::kAdrFar);
   __ Br(x10);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&test_far);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c10, &far_forward, MacroAssembler::kAdrFar);
+  __ PrepareC64Jump(c10);
+  __ Br(c10);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x10, &far_forward, MacroAssembler::kAdrFar);
   __ Br(x10);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ B(&fail);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Bind(&far_backward);
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Bind(&far_backward, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 3);
   __ B(&done);
 
@@ -1777,10 +1807,20 @@ TEST(adr_far) {
     }
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Bind(&far_forward);
+#else  // !__CHERI_PURE_CAPABILITY__
   __ Bind(&far_forward, BranchTargetIdentifier::kBtiJump);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 2);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c10, &far_backward, MacroAssembler::kAdrFar);
+  __ PrepareC64Jump(c10);
+  __ Br(c10);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x10, &far_backward, MacroAssembler::kAdrFar);
   __ Br(x10);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ B(&done);
   __ Bind(&fail);
