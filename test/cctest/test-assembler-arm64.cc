@@ -3123,17 +3123,26 @@ TEST(load_signed) {
   uintptr_t src_base = reinterpret_cast<uintptr_t>(src);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base);
-  __ Ldrsb(w0, MemOperand(x24));
-  __ Ldrsb(w1, MemOperand(x24, 4));
-  __ Ldrsh(w2, MemOperand(x24));
-  __ Ldrsh(w3, MemOperand(x24, 4));
-  __ Ldrsb(x4, MemOperand(x24));
-  __ Ldrsb(x5, MemOperand(x24, 4));
-  __ Ldrsh(x6, MemOperand(x24));
-  __ Ldrsh(x7, MemOperand(x24, 4));
-  __ Ldrsw(x8, MemOperand(x24));
-  __ Ldrsw(x9, MemOperand(x24, 4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c24, c24, x0);
+  Register src_reg = c24;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  Register src_reg = x24;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldrsb(w0, MemOperand(src_reg));
+  __ Ldrsb(w1, MemOperand(src_reg, 4));
+  __ Ldrsh(w2, MemOperand(src_reg));
+  __ Ldrsh(w3, MemOperand(src_reg, 4));
+  __ Ldrsb(x4, MemOperand(src_reg));
+  __ Ldrsb(x5, MemOperand(src_reg, 4));
+  __ Ldrsh(x6, MemOperand(src_reg));
+  __ Ldrsh(x7, MemOperand(src_reg, 4));
+  __ Ldrsw(x8, MemOperand(src_reg));
+  __ Ldrsw(x9, MemOperand(src_reg, 4));
   END();
 
   RUN();
