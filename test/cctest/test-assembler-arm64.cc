@@ -1929,15 +1929,28 @@ TEST(branch_to_reg) {
   Label fn1, after_fn1, after_bl1;
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(c29, lr);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(x1, 0);
   __ B(&after_fn1);
 
   __ Bind(&fn1);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(c0, lr);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x0, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x1, 42);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ PrepareC64Jump(c0);
+  __ Br(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Br(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&after_fn1);
   __ Bl(&fn1);
@@ -1950,16 +1963,30 @@ TEST(branch_to_reg) {
   __ B(&after_fn2);
 
   __ Bind(&fn2);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(c0, lr);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x0, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x2, 84);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ PrepareC64Jump(c0);
+  __ Blr(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Blr(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&after_fn2);
   __ Bl(&fn2);
   __ Bind(&after_bl2, BranchTargetIdentifier::kBtiCall);  // For Blr(x0) in fn2.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(c3, lr);
+  __ Mov(lr, c29);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x3, lr);
-
   __ Mov(lr, x29);
+#endif  // __CHERI_PURE_CAPABILITY__
+
   END();
 
   RUN();
