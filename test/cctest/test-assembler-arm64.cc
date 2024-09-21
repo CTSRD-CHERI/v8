@@ -291,7 +291,11 @@ TEST(stack_ops) {
 
   START();
   // save sp.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(c29, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Set the sp to a known value.
   __ Mov(x16, 0x1000);
@@ -320,7 +324,11 @@ TEST(stack_ops) {
   __ Mov(w5, wsp);
 
   //  restore sp.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(csp, c29);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(sp, x29);
+#endif  // __CHERI_PURE_CAPABILITY__
   END();
 
   RUN();
