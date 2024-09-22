@@ -16305,29 +16305,79 @@ static void AtomicMemoryWHelper(AtomicMemoryLoadSignature* load_funcs,
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x20, __builtin_cheri_address_get(data0));
+  __ Scvalue(c20, csp, x20);
+  __ Mov(x0, sizeof(data0));
+  __ Scbndse(c20, c20, x0);
+
+  __ Mov(x21, __builtin_cheri_address_get(data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x20, reinterpret_cast<uintptr_t>(data0));
   __ Mov(x21, reinterpret_cast<uintptr_t>(data1));
   __ Mov(x22, reinterpret_cast<uintptr_t>(data2));
   __ Mov(x23, reinterpret_cast<uintptr_t>(data3));
+
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(x0, arg1);
   __ Mov(x1, arg1);
   __ Mov(x2, arg1);
   __ Mov(x3, arg1);
 
-  (masm.*(load_funcs[0]))(w0, w10, MemOperand(x20));
-  (masm.*(load_funcs[1]))(w1, w11, MemOperand(x21));
-  (masm.*(load_funcs[2]))(w2, w12, MemOperand(x22));
-  (masm.*(load_funcs[3]))(w3, w13, MemOperand(x23));
+  (masm.*(load_funcs[0]))(w0, w10, MemOperand(r20));
+  (masm.*(load_funcs[1]))(w1, w11, MemOperand(r21));
+  (masm.*(load_funcs[2]))(w2, w12, MemOperand(r22));
+  (masm.*(load_funcs[3]))(w3, w13, MemOperand(r23));
 
   if (store_funcs != NULL) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    __ Mov(x24, __builtin_cheri_address_get(data4));
+    __ Scvalue(c24, csp, x24);
+    __ Mov(x0, sizeof(data5));
+    __ Scbndse(c24, c24, x0);
+
+    __ Mov(x25, __builtin_cheri_address_get(data5));
+    __ Scvalue(c25, csp, x25);
+    __ Mov(x0, sizeof(data5));
+    __ Scbndse(c25, c25, x0);
+
+    Register r24 = c24;
+    Register r25 = c25;
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Mov(x24, reinterpret_cast<uintptr_t>(data4));
     __ Mov(x25, reinterpret_cast<uintptr_t>(data5));
+
+    Register r24 = x24;
+    Register r25 = x25;
+#endif  // __CHERI_PURE_CAPABILITY__
     __ Mov(x4, arg1);
     __ Mov(x5, arg1);
 
-    (masm.*(store_funcs[0]))(w4, MemOperand(x24));
-    (masm.*(store_funcs[1]))(w5, MemOperand(x25));
+    (masm.*(store_funcs[0]))(w4, MemOperand(r24));
+    (masm.*(store_funcs[1]))(w5, MemOperand(r25));
   }
 
   END();
@@ -16372,29 +16422,79 @@ static void AtomicMemoryXHelper(AtomicMemoryLoadSignature* load_funcs,
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x20, __builtin_cheri_address_get(data0));
+  __ Scvalue(c20, csp, x20);
+  __ Mov(x0, sizeof(data0));
+  __ Scbndse(c20, c20, x0);
+
+  __ Mov(x21, __builtin_cheri_address_get(data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x20, reinterpret_cast<uintptr_t>(data0));
   __ Mov(x21, reinterpret_cast<uintptr_t>(data1));
   __ Mov(x22, reinterpret_cast<uintptr_t>(data2));
   __ Mov(x23, reinterpret_cast<uintptr_t>(data3));
+
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(x0, arg1);
   __ Mov(x1, arg1);
   __ Mov(x2, arg1);
   __ Mov(x3, arg1);
 
-  (masm.*(load_funcs[0]))(x0, x10, MemOperand(x20));
-  (masm.*(load_funcs[1]))(x1, x11, MemOperand(x21));
-  (masm.*(load_funcs[2]))(x2, x12, MemOperand(x22));
-  (masm.*(load_funcs[3]))(x3, x13, MemOperand(x23));
+  (masm.*(load_funcs[0]))(x0, x10, MemOperand(r20));
+  (masm.*(load_funcs[1]))(x1, x11, MemOperand(r21));
+  (masm.*(load_funcs[2]))(x2, x12, MemOperand(r22));
+  (masm.*(load_funcs[3]))(x3, x13, MemOperand(r23));
 
   if (store_funcs != NULL) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    __ Mov(x24, __builtin_cheri_address_get(data4));
+    __ Scvalue(c24, csp, x24);
+    __ Mov(x0, sizeof(data5));
+    __ Scbndse(c24, c24, x0);
+
+    __ Mov(x25, __builtin_cheri_address_get(data5));
+    __ Scvalue(c25, csp, x25);
+    __ Mov(x0, sizeof(data5));
+    __ Scbndse(c25, c25, x0);
+
+    Register r24 = c24;
+    Register r25 = c25;
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Mov(x24, reinterpret_cast<uintptr_t>(data4));
     __ Mov(x25, reinterpret_cast<uintptr_t>(data5));
+
+    Register r24 = x24;
+    Register r25 = x25;
+#endif  // __CHERI_PURE_CAPABILITY__
     __ Mov(x4, arg1);
     __ Mov(x5, arg1);
 
-    (masm.*(store_funcs[0]))(x4, MemOperand(x24));
-    (masm.*(store_funcs[1]))(x5, MemOperand(x25));
+    (masm.*(store_funcs[0]))(x4, MemOperand(r24));
+    (masm.*(store_funcs[1]))(x5, MemOperand(r25));
   }
 
   END();
