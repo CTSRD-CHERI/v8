@@ -2080,18 +2080,38 @@ TEST(unguarded_bti_is_nop) {
 
   Label jump_to_c, call_to_j;
   __ Bind(&start);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c0, &none);
+  __ Adr(lr, &jump_to_c);
+  __ PrepareC64Jump(c0);
+  __ Br(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x0, &none);
   __ Adr(lr, &jump_to_c);
   __ Br(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&jump_to_c);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c0, &c);
+  __ Adr(lr, &call_to_j);
+  __ PrepareC64Jump(c0);
+  __ Br(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x0, &c);
   __ Adr(lr, &call_to_j);
   __ Br(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&call_to_j);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c0, &j);
+  __ PrepareC64Jump(c0);
+  __ Blr(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x0, &j);
   __ Blr(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
   END();
 
 #ifdef USE_SIMULATOR
