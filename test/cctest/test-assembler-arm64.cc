@@ -13449,7 +13449,11 @@ TEST(zero_dest) {
 
   START();
   // Preserve the system stack pointer, in case we clobber it.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c30, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x30, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
   // Initialize the other registers used in this test.
   uint64_t literal_base = 0x0100001000100101UL;
   __ Mov(x0, 0);
@@ -13494,12 +13498,21 @@ TEST(zero_dest) {
   // Swap the saved system stack pointer with the real one. If sp was written
   // during the test, it will show up in x30. This is done because the test
   // framework assumes that sp will be valid at the end of the test.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c29, c30);
+  __ Cpy(c30, csp);
+  __ Cpy(csp, c29);
+  // We used c29 as a scratch register, so reset it to make sure it doesn't
+  // trigger a test failure.
+  __ Add(c29, c28, x1);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, x30);
   __ Mov(x30, sp);
   __ Mov(sp, x29);
   // We used x29 as a scratch register, so reset it to make sure it doesn't
   // trigger a test failure.
   __ Add(x29, x28, x1);
+#endif  // __CHERI_PURE_CAPABILITY__
   END();
 
   RUN();
@@ -13515,7 +13528,11 @@ TEST(zero_dest_setflags) {
 
   START();
   // Preserve the system stack pointer, in case we clobber it.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c30, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x30, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
   // Initialize the other registers used in this test.
   uint64_t literal_base = 0x0100001000100101UL;
   __ Mov(x0, 0);
@@ -13558,12 +13575,21 @@ TEST(zero_dest_setflags) {
   // Swap the saved system stack pointer with the real one. If sp was written
   // during the test, it will show up in x30. This is done because the test
   // framework assumes that sp will be valid at the end of the test.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c29, c30);
+  __ Cpy(c30, csp);
+  __ Cpy(csp, c29);
+  // We used c29 as a scratch register, so reset it to make sure it doesn't
+  // trigger a test failure.
+  __ Add(c29, c28, x1);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, x30);
   __ Mov(x30, sp);
   __ Mov(sp, x29);
   // We used x29 as a scratch register, so reset it to make sure it doesn't
   // trigger a test failure.
   __ Add(x29, x28, x1);
+#endif  // __CHERI_PURE_CAPABILITY__
   END();
 
   RUN();
