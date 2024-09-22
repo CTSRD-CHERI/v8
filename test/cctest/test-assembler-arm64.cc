@@ -1685,7 +1685,7 @@ TEST(adr) {
   __ Adr(c2, &label_1);  // Multiple forward references to the same label.
   __ Adr(c3, &label_1);
   __ Adr(c4, &label_1);
-  __ Bind(&label_2);
+  __ Bind(&label_2, BranchTargetIdentifier::kBtiJump);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x1, &label_3);  // Set to zero to indicate success.
 
@@ -1702,7 +1702,7 @@ TEST(adr) {
 #ifdef __CHERI_PURE_CAPABILITY__
   __ PrepareC64Jump(c2);
   __ Br(c2);  // label_1, label_3
-  __ Bind(&label_3);
+  __ Bind(&label_3, BranchTargetIdentifier::kBtiJump);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ Br(x2);  // label_1, label_3
   __ Bind(&label_3, BranchTargetIdentifier::kBtiJump);
@@ -1718,7 +1718,7 @@ TEST(adr) {
   __ Adr(c2, &label_4);   // Simple forward reference.
   __ PrepareC64Jump(c2);
   __ Br(c2);  // label_4
-  __ Bind(&label_1);
+  __ Bind(&label_1, BranchTargetIdentifier::kBtiJump);
 #else  // !__CHERI_PURE_CAPABILITY__
   __ Adr(x2, &label_4);   // Simple forward reference.
   __ Br(x2);  // label_4
@@ -1732,7 +1732,7 @@ TEST(adr) {
   __ Adr(c5, &label_2);   // Simple reverse reference.
   __ PrepareC64Jump(c5);
   __ Br(c5);  // label_2
-  __ Bind(&label_4);
+  __ Bind(&label_4, BranchTargetIdentifier::kBtiJump);
 #else  // !__CHERI_PURE_CAPABILITY__
   __ Adr(x2, &label_3);   // Multiple reverse references to the same label.
   __ Adr(x3, &label_3);
@@ -1773,19 +1773,11 @@ TEST(adr_far) {
   __ Br(x10);
 #endif  // __CHERI_PURE_CAPABILITY__
   __ B(&fail);
-#ifdef __CHERI_PURE_CAPABILITY__
-  __ Bind(&near_backward);
-#else   // !__CHERI_PURE_CAPABILITY__
   __ Bind(&near_backward, BranchTargetIdentifier::kBtiJump);
-#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 1);
   __ B(&test_far);
 
-#ifdef __CHERI_PURE_CAPABILITY__
-  __ Bind(&near_forward);
-#else   // !__CHERI_PURE_CAPABILITY__
   __ Bind(&near_forward, BranchTargetIdentifier::kBtiJump);
-#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 0);
 #ifdef __CHERI_PURE_CAPABILITY__
   __ Adr(c10, &near_backward, MacroAssembler::kAdrFar);
@@ -1806,11 +1798,7 @@ TEST(adr_far) {
   __ Br(x10);
 #endif  // __CHERI_PURE_CAPABILITY__
   __ B(&fail);
-#ifdef __CHERI_PURE_CAPABILITY__
-  __ Bind(&far_backward);
-#else  // !__CHERI_PURE_CAPABILITY__
   __ Bind(&far_backward, BranchTargetIdentifier::kBtiJump);
-#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 3);
   __ B(&done);
 
@@ -1824,11 +1812,7 @@ TEST(adr_far) {
     }
   }
 
-#ifdef __CHERI_PURE_CAPABILITY__
-  __ Bind(&far_forward);
-#else  // !__CHERI_PURE_CAPABILITY__
   __ Bind(&far_forward, BranchTargetIdentifier::kBtiJump);
-#endif  // __CHERI_PURE_CAPABILITY__
   __ Orr(x0, x0, 1 << 2);
 #ifdef __CHERI_PURE_CAPABILITY__
   __ Adr(c10, &far_backward, MacroAssembler::kAdrFar);
@@ -2022,24 +2006,48 @@ static void BtiHelper(Register ipreg) {
   UseScratchRegisterScope temps(&masm);
   temps.Exclude(ipreg);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c0, &jump_target);
+  __ PrepareC64Jump(c0);
+  __ Br(c0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x0, &jump_target);
   __ Br(x0);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Nop();
 
   __ Bind(&jump_target, BranchTargetIdentifier::kBtiJump);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(c0, &call_target);
+  __ PrepareC64Jump(c0);
+  __ Blr(c0);
+  __ Adr(ipreg, &jump_call_target);
+  __ PrepareC64Jump(ipreg);
+  __ Blr(ipreg);
+  __ Adr(lr, &test_pacibsp);  // Make Ret return to test_pacibsp.
+  __ Br(ipreg);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(x0, &call_target);
   __ Blr(x0);
-
   __ Adr(ipreg, &jump_call_target);
   __ Blr(ipreg);
   __ Adr(lr, &test_pacibsp);  // Make Ret return to test_pacibsp.
   __ Br(ipreg);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&test_pacibsp, BranchTargetIdentifier::kNone);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Adr(ipreg, &pacibsp_target);
+  __ PrepareC64Jump(ipreg);
+  __ Blr(ipreg);
+  __ Adr(lr, &done);  // Make Ret return to done label.
+  __ Br(ipreg);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Adr(ipreg, &pacibsp_target);
   __ Blr(ipreg);
   __ Adr(lr, &done);  // Make Ret return to done label.
   __ Br(ipreg);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Bind(&call_target, BranchTargetIdentifier::kBtiCall);
   __ Ret();
@@ -2061,8 +2069,13 @@ static void BtiHelper(Register ipreg) {
 }
 
 TEST(bti) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  BtiHelper(c16);
+  BtiHelper(c17);
+#else   // !__CHERI_PURE_CAPABILITY__
   BtiHelper(x16);
   BtiHelper(x17);
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 TEST(unguarded_bti_is_nop) {
