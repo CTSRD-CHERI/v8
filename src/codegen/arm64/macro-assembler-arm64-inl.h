@@ -246,6 +246,8 @@ void MacroAssembler::Adds(const Register& rd, const Register& rn,
 #if defined(__CHERI_PURE_CAPABILITY__)
 void MacroAssembler::Cpy(const Register& cd, const Register& cn) {
   DCHECK(allow_macro_instructions());
+  DCHECK(cd.IsC());
+  DCHECK(cn.IsC());
   cpy(cd, cn);
 }
 
