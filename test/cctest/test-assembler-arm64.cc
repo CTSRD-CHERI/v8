@@ -15802,6 +15802,60 @@ TEST(cas_casa_casl_casal_w) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+  __ Add(c23, c23, 4);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+  __ Add(c24, c24, 4);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+  __ Add(c27, c27, 4);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+  __ Add(c28, c28, 4);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(&data1) + 0);
   __ Mov(x22, reinterpret_cast<uintptr_t>(&data2) + 0);
   __ Mov(x23, reinterpret_cast<uintptr_t>(&data3) + 4);
@@ -15810,6 +15864,16 @@ TEST(cas_casa_casl_casal_w) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(&data6) + 0);
   __ Mov(x27, reinterpret_cast<uintptr_t>(&data7) + 4);
   __ Mov(x28, reinterpret_cast<uintptr_t>(&data8) + 4);
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xffffffff);
 
@@ -15822,13 +15886,13 @@ TEST(cas_casa_casl_casal_w) {
   __ Mov(x7, 0xfedcba9876543210);
   __ Mov(x8, 0x89abcdef01234567);
 
-  __ Cas(w1, w0, MemOperand(x21));
-  __ Cas(w2, w0, MemOperand(x22));
-  __ Casa(w3, w0, MemOperand(x23));
-  __ Casa(w4, w0, MemOperand(x24));
-  __ Casl(w5, w0, MemOperand(x25));
-  __ Casl(w6, w0, MemOperand(x26));
-  __ Casal(w7, w0, MemOperand(x27));
+  __ Cas(w1, w0, MemOperand(r21));
+  __ Cas(w2, w0, MemOperand(r22));
+  __ Casa(w3, w0, MemOperand(r23));
+  __ Casa(w4, w0, MemOperand(r24));
+  __ Casl(w5, w0, MemOperand(r25));
+  __ Casl(w6, w0, MemOperand(r26));
+  __ Casal(w7, w0, MemOperand(r27));
   __ Casal(w8, w0, MemOperand(x28));
 
   END();
@@ -15872,6 +15936,56 @@ TEST(cas_casa_casl_casal_x) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(&data1));
   __ Mov(x22, reinterpret_cast<uintptr_t>(&data2));
   __ Mov(x23, reinterpret_cast<uintptr_t>(&data3));
@@ -15880,6 +15994,16 @@ TEST(cas_casa_casl_casal_x) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(&data6));
   __ Mov(x27, reinterpret_cast<uintptr_t>(&data7));
   __ Mov(x28, reinterpret_cast<uintptr_t>(&data8));
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xffffffffffffffff);
 
@@ -15892,14 +16016,14 @@ TEST(cas_casa_casl_casal_x) {
   __ Mov(x7, 0xfedcba9876543210);
   __ Mov(x8, 0x0123456789abcdef);
 
-  __ Cas(x1, x0, MemOperand(x21));
-  __ Cas(x2, x0, MemOperand(x22));
-  __ Casa(x3, x0, MemOperand(x23));
-  __ Casa(x4, x0, MemOperand(x24));
-  __ Casl(x5, x0, MemOperand(x25));
-  __ Casl(x6, x0, MemOperand(x26));
-  __ Casal(x7, x0, MemOperand(x27));
-  __ Casal(x8, x0, MemOperand(x28));
+  __ Cas(x1, x0, MemOperand(r21));
+  __ Cas(x2, x0, MemOperand(r22));
+  __ Casa(x3, x0, MemOperand(r23));
+  __ Casa(x4, x0, MemOperand(r24));
+  __ Casl(x5, x0, MemOperand(r25));
+  __ Casl(x6, x0, MemOperand(r26));
+  __ Casal(x7, x0, MemOperand(r27));
+  __ Casal(x8, x0, MemOperand(r28));
 
   END();
 
@@ -15942,6 +16066,62 @@ TEST(casb_casab_caslb_casalb) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+  __ Add(c23, c23, 1);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+  __ Add(c24, c24, 1);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+  __ Add(c25, c25, 2);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+  __ Add(c26, c26, 2);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+  __ Add(c27, c27, 3);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+  __ Add(c28, c28, 3);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(&data1) + 0);
   __ Mov(x22, reinterpret_cast<uintptr_t>(&data2) + 0);
   __ Mov(x23, reinterpret_cast<uintptr_t>(&data3) + 1);
@@ -15950,6 +16130,16 @@ TEST(casb_casab_caslb_casalb) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(&data6) + 2);
   __ Mov(x27, reinterpret_cast<uintptr_t>(&data7) + 3);
   __ Mov(x28, reinterpret_cast<uintptr_t>(&data8) + 3);
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xff);
 
@@ -15962,14 +16152,14 @@ TEST(casb_casab_caslb_casalb) {
   __ Mov(x7, 0x76543210);
   __ Mov(x8, 0x23456701);
 
-  __ Casb(w1, w0, MemOperand(x21));
-  __ Casb(w2, w0, MemOperand(x22));
-  __ Casab(w3, w0, MemOperand(x23));
-  __ Casab(w4, w0, MemOperand(x24));
-  __ Caslb(w5, w0, MemOperand(x25));
-  __ Caslb(w6, w0, MemOperand(x26));
-  __ Casalb(w7, w0, MemOperand(x27));
-  __ Casalb(w8, w0, MemOperand(x28));
+  __ Casb(w1, w0, MemOperand(r21));
+  __ Casb(w2, w0, MemOperand(r22));
+  __ Casab(w3, w0, MemOperand(r23));
+  __ Casab(w4, w0, MemOperand(r24));
+  __ Caslb(w5, w0, MemOperand(r25));
+  __ Caslb(w6, w0, MemOperand(r26));
+  __ Casalb(w7, w0, MemOperand(r27));
+  __ Casalb(w8, w0, MemOperand(r28));
 
   END();
 
@@ -16012,6 +16202,62 @@ TEST(cash_casah_caslh_casalh) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+  __ Add(c23, c23, 2);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+  __ Add(c24, c24, 2);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+  __ Add(c25, c25, 4);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+  __ Add(c26, c26, 4);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+  __ Add(c27, c27, 6);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+  __ Add(c28, c28, 6);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(&data1) + 0);
   __ Mov(x22, reinterpret_cast<uintptr_t>(&data2) + 0);
   __ Mov(x23, reinterpret_cast<uintptr_t>(&data3) + 2);
@@ -16020,6 +16266,16 @@ TEST(cash_casah_caslh_casalh) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(&data6) + 4);
   __ Mov(x27, reinterpret_cast<uintptr_t>(&data7) + 6);
   __ Mov(x28, reinterpret_cast<uintptr_t>(&data8) + 6);
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xffff);
 
@@ -16032,14 +16288,14 @@ TEST(cash_casah_caslh_casalh) {
   __ Mov(x7, 0xfedcba9876543210);
   __ Mov(x8, 0x456789abcdef0123);
 
-  __ Cash(w1, w0, MemOperand(x21));
-  __ Cash(w2, w0, MemOperand(x22));
-  __ Casah(w3, w0, MemOperand(x23));
-  __ Casah(w4, w0, MemOperand(x24));
-  __ Caslh(w5, w0, MemOperand(x25));
-  __ Caslh(w6, w0, MemOperand(x26));
-  __ Casalh(w7, w0, MemOperand(x27));
-  __ Casalh(w8, w0, MemOperand(x28));
+  __ Cash(w1, w0, MemOperand(r21));
+  __ Cash(w2, w0, MemOperand(r22));
+  __ Casah(w3, w0, MemOperand(r23));
+  __ Casah(w4, w0, MemOperand(r24));
+  __ Caslh(w5, w0, MemOperand(r25));
+  __ Caslh(w6, w0, MemOperand(r26));
+  __ Casalh(w7, w0, MemOperand(r27));
+  __ Casalh(w8, w0, MemOperand(r28));
 
   END();
 
@@ -16082,6 +16338,60 @@ TEST(casp_caspa_caspl_caspal_w) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+  __ Add(c23, c23, 8);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+  __ Add(c24, c24, 8);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+  __ Add(c25, c25, 8);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+  __ Add(c26, c26, 8);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(data1) + 0);
   __ Mov(x22, reinterpret_cast<uintptr_t>(data2) + 0);
   __ Mov(x23, reinterpret_cast<uintptr_t>(data3) + 8);
@@ -16090,6 +16400,16 @@ TEST(casp_caspa_caspl_caspal_w) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(data6) + 8);
   __ Mov(x27, reinterpret_cast<uintptr_t>(data7) + 0);
   __ Mov(x28, reinterpret_cast<uintptr_t>(data8) + 0);
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xfff00fff);
   __ Mov(x1, 0xfff11fff);
@@ -16114,14 +16434,14 @@ TEST(casp_caspa_caspl_caspal_w) {
   __ Mov(x16, 0x33221100);
   __ Mov(x17, 0x77665544);
 
-  __ Casp(w2, w3, w0, w1, MemOperand(x21));
-  __ Casp(w4, w5, w0, w1, MemOperand(x22));
-  __ Caspa(w6, w7, w0, w1, MemOperand(x23));
-  __ Caspa(w8, w9, w0, w1, MemOperand(x24));
-  __ Caspl(w10, w11, w0, w1, MemOperand(x25));
-  __ Caspl(w12, w13, w0, w1, MemOperand(x26));
-  __ Caspal(w14, w15, w0, w1, MemOperand(x27));
-  __ Caspal(w16, w17, w0, w1, MemOperand(x28));
+  __ Casp(w2, w3, w0, w1, MemOperand(r21));
+  __ Casp(w4, w5, w0, w1, MemOperand(r22));
+  __ Caspa(w6, w7, w0, w1, MemOperand(r23));
+  __ Caspa(w8, w9, w0, w1, MemOperand(r24));
+  __ Caspl(w10, w11, w0, w1, MemOperand(r25));
+  __ Caspl(w12, w13, w0, w1, MemOperand(r26));
+  __ Caspal(w14, w15, w0, w1, MemOperand(r27));
+  __ Caspal(w16, w17, w0, w1, MemOperand(r28));
 
   END();
 
@@ -16196,6 +16516,60 @@ TEST(casp_caspa_caspl_caspal_x) {
 
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x21, __builtin_cheri_address_get(&data1));
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(data1));
+  __ Scbndse(c21, c21, x0);
+
+  __ Mov(x22, __builtin_cheri_address_get(&data2));
+  __ Scvalue(c22, csp, x22);
+  __ Mov(x0, sizeof(data2));
+  __ Scbndse(c22, c22, x0);
+
+  __ Mov(x23, __builtin_cheri_address_get(&data3));
+  __ Scvalue(c23, csp, x23);
+  __ Mov(x0, sizeof(data3));
+  __ Scbndse(c23, c23, x0);
+  __ Add(c23, c23, 16);
+
+  __ Mov(x24, __builtin_cheri_address_get(&data4));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(data4));
+  __ Scbndse(c24, c24, x0);
+  __ Add(c24, c24, 16);
+
+  __ Mov(x25, __builtin_cheri_address_get(&data5));
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(data5));
+  __ Scbndse(c25, c25, x0);
+  __ Add(c25, c25, 16);
+
+  __ Mov(x26, __builtin_cheri_address_get(&data6));
+  __ Scvalue(c26, csp, x26);
+  __ Mov(x0, sizeof(data6));
+  __ Scbndse(c26, c26, x0);
+  __ Add(c26, c26, 16);
+
+  __ Mov(x27, __builtin_cheri_address_get(&data7));
+  __ Scvalue(c27, csp, x27);
+  __ Mov(x0, sizeof(data7));
+  __ Scbndse(c27, c27, x0);
+
+  __ Mov(x28, __builtin_cheri_address_get(&data8));
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(data8));
+  __ Scbndse(c28, c28, x0);
+
+  Register r21 = c21;
+  Register r22 = c22;
+  Register r23 = c23;
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r26 = c26;
+  Register r27 = c27;
+  Register r28 = c28;
+#else
   __ Mov(x21, reinterpret_cast<uintptr_t>(data1) + 0);
   __ Mov(x22, reinterpret_cast<uintptr_t>(data2) + 0);
   __ Mov(x23, reinterpret_cast<uintptr_t>(data3) + 16);
@@ -16204,6 +16578,16 @@ TEST(casp_caspa_caspl_caspal_x) {
   __ Mov(x26, reinterpret_cast<uintptr_t>(data6) + 16);
   __ Mov(x27, reinterpret_cast<uintptr_t>(data7) + 0);
   __ Mov(x28, reinterpret_cast<uintptr_t>(data8) + 0);
+
+  Register r21 = x21;
+  Register r22 = x22;
+  Register r23 = x23;
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r26 = x26;
+  Register r27 = x27;
+  Register r28 = x28;
+#endif
 
   __ Mov(x0, 0xfffffff00fffffff);
   __ Mov(x1, 0xfffffff11fffffff);
@@ -16228,14 +16612,14 @@ TEST(casp_caspa_caspl_caspal_x) {
   __ Mov(x16, 0x7766554433221100);
   __ Mov(x17, 0xffeeddccbbaa9988);
 
-  __ Casp(x2, x3, x0, x1, MemOperand(x21));
-  __ Casp(x4, x5, x0, x1, MemOperand(x22));
-  __ Caspa(x6, x7, x0, x1, MemOperand(x23));
-  __ Caspa(x8, x9, x0, x1, MemOperand(x24));
-  __ Caspl(x10, x11, x0, x1, MemOperand(x25));
-  __ Caspl(x12, x13, x0, x1, MemOperand(x26));
-  __ Caspal(x14, x15, x0, x1, MemOperand(x27));
-  __ Caspal(x16, x17, x0, x1, MemOperand(x28));
+  __ Casp(x2, x3, x0, x1, MemOperand(r21));
+  __ Casp(x4, x5, x0, x1, MemOperand(r22));
+  __ Caspa(x6, x7, x0, x1, MemOperand(r23));
+  __ Caspa(x8, x9, x0, x1, MemOperand(r24));
+  __ Caspl(x10, x11, x0, x1, MemOperand(r25));
+  __ Caspl(x12, x13, x0, x1, MemOperand(r26));
+  __ Caspal(x14, x15, x0, x1, MemOperand(r27));
+  __ Caspal(x16, x17, x0, x1, MemOperand(r28));
 
   END();
 
