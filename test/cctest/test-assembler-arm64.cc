@@ -3093,7 +3093,6 @@ TEST(load_store_regoffset) {
   Register src_reg1 = c16;
   Register dst_reg1 = c17;
   Register src_reg2 = c21;
-  Register dst_reg2 = c19;
   Register dst_reg3 = c20;
 #else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x21, src_base + 3 * sizeof(src[0]));
@@ -3103,7 +3102,6 @@ TEST(load_store_regoffset) {
   Register src_reg1 = x16;
   Register dst_reg1 = x17;
   Register src_reg2 = x21;
-  Register dst_reg2 = x19;
   Register dst_reg3 = x20;
 #endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x24, 0);
@@ -5869,32 +5867,40 @@ TEST(neon_st1_lane) {
 
   START();
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x19, -16);
-  __ Ldr(q0, MemOperand(x17));
+  __ Ldr(q0, MemOperand(reg));
 
   for (int i = 15; i >= 0; i--) {
-    __ St1(v0.B(), i, MemOperand(x17));
-    __ Add(x17, x17, 1);
+    __ St1(v0.B(), i, MemOperand(reg));
+    __ Add(reg, reg, 1);
   }
-  __ Ldr(q1, MemOperand(x17, x19));
+  __ Ldr(q1, MemOperand(reg, x19));
 
   for (int i = 7; i >= 0; i--) {
-    __ St1(v0.H(), i, MemOperand(x17));
-    __ Add(x17, x17, 2);
+    __ St1(v0.H(), i, MemOperand(reg));
+    __ Add(reg, reg, 2);
   }
-  __ Ldr(q2, MemOperand(x17, x19));
+  __ Ldr(q2, MemOperand(reg, x19));
 
   for (int i = 3; i >= 0; i--) {
-    __ St1(v0.S(), i, MemOperand(x17));
-    __ Add(x17, x17, 4);
+    __ St1(v0.S(), i, MemOperand(reg));
+    __ Add(reg, reg, 4);
   }
-  __ Ldr(q3, MemOperand(x17, x19));
+  __ Ldr(q3, MemOperand(reg, x19));
 
   for (int i = 1; i >= 0; i--) {
-    __ St1(v0.D(), i, MemOperand(x17));
-    __ Add(x17, x17, 8);
+    __ St1(v0.D(), i, MemOperand(reg));
+    __ Add(reg, reg, 8);
   }
-  __ Ldr(q4, MemOperand(x17, x19));
+  __ Ldr(q4, MemOperand(reg, x19));
 
   END();
 
@@ -5917,61 +5923,75 @@ TEST(neon_st2_lane) {
 
   START();
   __ Mov(x17, dst_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x19, dst_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Movi(v0.V2D(), 0x0001020304050607, 0x08090A0B0C0D0E0F);
   __ Movi(v1.V2D(), 0x1011121314151617, 0x18191A1B1C1D1E1F);
 
   // Test B stores with and without post index.
   for (int i = 15; i >= 0; i--) {
-    __ St2(v0.B(), v1.B(), i, MemOperand(x19));
-    __ Add(x19, x19, 2);
+    __ St2(v0.B(), v1.B(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 2);
   }
   for (int i = 15; i >= 0; i--) {
-    __ St2(v0.B(), v1.B(), i, MemOperand(x19, 2, PostIndex));
+    __ St2(v0.B(), v1.B(), i, MemOperand(reg2, 2, PostIndex));
   }
-  __ Ldr(q2, MemOperand(x17, 0 * 16));
-  __ Ldr(q3, MemOperand(x17, 1 * 16));
-  __ Ldr(q4, MemOperand(x17, 2 * 16));
-  __ Ldr(q5, MemOperand(x17, 3 * 16));
+  __ Ldr(q2, MemOperand(reg1, 0 * 16));
+  __ Ldr(q3, MemOperand(reg1, 1 * 16));
+  __ Ldr(q4, MemOperand(reg1, 2 * 16));
+  __ Ldr(q5, MemOperand(reg1, 3 * 16));
 
   // Test H stores with and without post index.
   __ Mov(x0, 4);
   for (int i = 7; i >= 0; i--) {
-    __ St2(v0.H(), v1.H(), i, MemOperand(x19));
-    __ Add(x19, x19, 4);
+    __ St2(v0.H(), v1.H(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 4);
   }
   for (int i = 7; i >= 0; i--) {
-    __ St2(v0.H(), v1.H(), i, MemOperand(x19, x0, PostIndex));
+    __ St2(v0.H(), v1.H(), i, MemOperand(reg2, x0, PostIndex));
   }
-  __ Ldr(q6, MemOperand(x17, 4 * 16));
-  __ Ldr(q7, MemOperand(x17, 5 * 16));
-  __ Ldr(q16, MemOperand(x17, 6 * 16));
-  __ Ldr(q17, MemOperand(x17, 7 * 16));
+  __ Ldr(q6, MemOperand(reg1, 4 * 16));
+  __ Ldr(q7, MemOperand(reg1, 5 * 16));
+  __ Ldr(q16, MemOperand(reg1, 6 * 16));
+  __ Ldr(q17, MemOperand(reg1, 7 * 16));
 
   // Test S stores with and without post index.
   for (int i = 3; i >= 0; i--) {
-    __ St2(v0.S(), v1.S(), i, MemOperand(x19));
-    __ Add(x19, x19, 8);
+    __ St2(v0.S(), v1.S(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 8);
   }
   for (int i = 3; i >= 0; i--) {
-    __ St2(v0.S(), v1.S(), i, MemOperand(x19, 8, PostIndex));
+    __ St2(v0.S(), v1.S(), i, MemOperand(reg2, 8, PostIndex));
   }
-  __ Ldr(q18, MemOperand(x17, 8 * 16));
-  __ Ldr(q19, MemOperand(x17, 9 * 16));
-  __ Ldr(q20, MemOperand(x17, 10 * 16));
-  __ Ldr(q21, MemOperand(x17, 11 * 16));
+  __ Ldr(q18, MemOperand(reg1, 8 * 16));
+  __ Ldr(q19, MemOperand(reg1, 9 * 16));
+  __ Ldr(q20, MemOperand(reg1, 10 * 16));
+  __ Ldr(q21, MemOperand(reg1, 11 * 16));
 
   // Test D stores with and without post index.
   __ Mov(x0, 16);
-  __ St2(v0.D(), v1.D(), 1, MemOperand(x19));
-  __ Add(x19, x19, 16);
-  __ St2(v0.D(), v1.D(), 0, MemOperand(x19, 16, PostIndex));
-  __ St2(v0.D(), v1.D(), 1, MemOperand(x19, x0, PostIndex));
-  __ St2(v0.D(), v1.D(), 0, MemOperand(x19, x0, PostIndex));
-  __ Ldr(q22, MemOperand(x17, 12 * 16));
-  __ Ldr(q23, MemOperand(x17, 13 * 16));
-  __ Ldr(q24, MemOperand(x17, 14 * 16));
-  __ Ldr(q25, MemOperand(x17, 15 * 16));
+  __ St2(v0.D(), v1.D(), 1, MemOperand(reg2));
+  __ Add(reg2, reg2, 16);
+  __ St2(v0.D(), v1.D(), 0, MemOperand(reg2, 16, PostIndex));
+  __ St2(v0.D(), v1.D(), 1, MemOperand(reg2, x0, PostIndex));
+  __ St2(v0.D(), v1.D(), 0, MemOperand(reg2, x0, PostIndex));
+  __ Ldr(q22, MemOperand(reg1, 12 * 16));
+  __ Ldr(q23, MemOperand(reg1, 13 * 16));
+  __ Ldr(q24, MemOperand(reg1, 14 * 16));
+  __ Ldr(q25, MemOperand(reg1, 15 * 16));
   END();
 
   RUN();
@@ -6008,66 +6028,80 @@ TEST(neon_st3_lane) {
 
   START();
   __ Mov(x17, dst_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x19, dst_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Movi(v0.V2D(), 0x0001020304050607, 0x08090A0B0C0D0E0F);
   __ Movi(v1.V2D(), 0x1011121314151617, 0x18191A1B1C1D1E1F);
   __ Movi(v2.V2D(), 0x2021222324252627, 0x28292A2B2C2D2E2F);
 
   // Test B stores with and without post index.
   for (int i = 15; i >= 0; i--) {
-    __ St3(v0.B(), v1.B(), v2.B(), i, MemOperand(x19));
-    __ Add(x19, x19, 3);
+    __ St3(v0.B(), v1.B(), v2.B(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 3);
   }
   for (int i = 15; i >= 0; i--) {
-    __ St3(v0.B(), v1.B(), v2.B(), i, MemOperand(x19, 3, PostIndex));
+    __ St3(v0.B(), v1.B(), v2.B(), i, MemOperand(reg2, 3, PostIndex));
   }
-  __ Ldr(q3, MemOperand(x17, 0 * 16));
-  __ Ldr(q4, MemOperand(x17, 1 * 16));
-  __ Ldr(q5, MemOperand(x17, 2 * 16));
-  __ Ldr(q6, MemOperand(x17, 3 * 16));
-  __ Ldr(q7, MemOperand(x17, 4 * 16));
-  __ Ldr(q16, MemOperand(x17, 5 * 16));
+  __ Ldr(q3, MemOperand(reg1, 0 * 16));
+  __ Ldr(q4, MemOperand(reg1, 1 * 16));
+  __ Ldr(q5, MemOperand(reg1, 2 * 16));
+  __ Ldr(q6, MemOperand(reg1, 3 * 16));
+  __ Ldr(q7, MemOperand(reg1, 4 * 16));
+  __ Ldr(q16, MemOperand(reg1, 5 * 16));
 
   // Test H stores with and without post index.
   __ Mov(x0, 6);
   for (int i = 7; i >= 0; i--) {
-    __ St3(v0.H(), v1.H(), v2.H(), i, MemOperand(x19));
-    __ Add(x19, x19, 6);
+    __ St3(v0.H(), v1.H(), v2.H(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 6);
   }
   for (int i = 7; i >= 0; i--) {
-    __ St3(v0.H(), v1.H(), v2.H(), i, MemOperand(x19, x0, PostIndex));
+    __ St3(v0.H(), v1.H(), v2.H(), i, MemOperand(reg2, x0, PostIndex));
   }
-  __ Ldr(q17, MemOperand(x17, 6 * 16));
-  __ Ldr(q18, MemOperand(x17, 7 * 16));
-  __ Ldr(q19, MemOperand(x17, 8 * 16));
-  __ Ldr(q20, MemOperand(x17, 9 * 16));
-  __ Ldr(q21, MemOperand(x17, 10 * 16));
-  __ Ldr(q22, MemOperand(x17, 11 * 16));
+  __ Ldr(q17, MemOperand(reg1, 6 * 16));
+  __ Ldr(q18, MemOperand(reg1, 7 * 16));
+  __ Ldr(q19, MemOperand(reg1, 8 * 16));
+  __ Ldr(q20, MemOperand(reg1, 9 * 16));
+  __ Ldr(q21, MemOperand(reg1, 10 * 16));
+  __ Ldr(q22, MemOperand(reg1, 11 * 16));
 
   // Test S stores with and without post index.
   for (int i = 3; i >= 0; i--) {
-    __ St3(v0.S(), v1.S(), v2.S(), i, MemOperand(x19));
-    __ Add(x19, x19, 12);
+    __ St3(v0.S(), v1.S(), v2.S(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 12);
   }
   for (int i = 3; i >= 0; i--) {
-    __ St3(v0.S(), v1.S(), v2.S(), i, MemOperand(x19, 12, PostIndex));
+    __ St3(v0.S(), v1.S(), v2.S(), i, MemOperand(reg2, 12, PostIndex));
   }
-  __ Ldr(q23, MemOperand(x17, 12 * 16));
-  __ Ldr(q24, MemOperand(x17, 13 * 16));
-  __ Ldr(q25, MemOperand(x17, 14 * 16));
-  __ Ldr(q26, MemOperand(x17, 15 * 16));
-  __ Ldr(q27, MemOperand(x17, 16 * 16));
-  __ Ldr(q28, MemOperand(x17, 17 * 16));
+  __ Ldr(q23, MemOperand(reg1, 12 * 16));
+  __ Ldr(q24, MemOperand(reg1, 13 * 16));
+  __ Ldr(q25, MemOperand(reg1, 14 * 16));
+  __ Ldr(q26, MemOperand(reg1, 15 * 16));
+  __ Ldr(q27, MemOperand(reg1, 16 * 16));
+  __ Ldr(q28, MemOperand(reg1, 17 * 16));
 
   // Test D stores with and without post index.
   __ Mov(x0, 24);
-  __ St3(v0.D(), v1.D(), v2.D(), 1, MemOperand(x19));
-  __ Add(x19, x19, 24);
-  __ St3(v0.D(), v1.D(), v2.D(), 0, MemOperand(x19, 24, PostIndex));
-  __ St3(v0.D(), v1.D(), v2.D(), 1, MemOperand(x19, x0, PostIndex));
-  __ Ldr(q29, MemOperand(x17, 18 * 16));
-  __ Ldr(q30, MemOperand(x17, 19 * 16));
-  __ Ldr(q31, MemOperand(x17, 20 * 16));
+  __ St3(v0.D(), v1.D(), v2.D(), 1, MemOperand(reg2));
+  __ Add(reg2, reg2, 24);
+  __ St3(v0.D(), v1.D(), v2.D(), 0, MemOperand(reg2, 24, PostIndex));
+  __ St3(v0.D(), v1.D(), v2.D(), 1, MemOperand(reg2, x0, PostIndex));
+  __ Ldr(q29, MemOperand(reg1, 18 * 16));
+  __ Ldr(q30, MemOperand(reg1, 19 * 16));
+  __ Ldr(q31, MemOperand(reg1, 20 * 16));
   END();
 
   RUN();
@@ -6105,7 +6139,21 @@ TEST(neon_st4_lane) {
 
   START();
   __ Mov(x17, dst_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x19, dst_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Movi(v0.V2D(), 0x0001020304050607, 0x08090A0B0C0D0E0F);
   __ Movi(v1.V2D(), 0x1011121314151617, 0x18191A1B1C1D1E1F);
   __ Movi(v2.V2D(), 0x2021222324252627, 0x28292A2B2C2D2E2F);
@@ -6113,43 +6161,43 @@ TEST(neon_st4_lane) {
 
   // Test B stores without post index.
   for (int i = 15; i >= 0; i--) {
-    __ St4(v0.B(), v1.B(), v2.B(), v3.B(), i, MemOperand(x19));
-    __ Add(x19, x19, 4);
+    __ St4(v0.B(), v1.B(), v2.B(), v3.B(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 4);
   }
-  __ Ldr(q4, MemOperand(x17, 0 * 16));
-  __ Ldr(q5, MemOperand(x17, 1 * 16));
-  __ Ldr(q6, MemOperand(x17, 2 * 16));
-  __ Ldr(q7, MemOperand(x17, 3 * 16));
+  __ Ldr(q4, MemOperand(reg1, 0 * 16));
+  __ Ldr(q5, MemOperand(reg1, 1 * 16));
+  __ Ldr(q6, MemOperand(reg1, 2 * 16));
+  __ Ldr(q7, MemOperand(reg1, 3 * 16));
 
   // Test H stores with post index.
   __ Mov(x0, 8);
   for (int i = 7; i >= 0; i--) {
-    __ St4(v0.H(), v1.H(), v2.H(), v3.H(), i, MemOperand(x19, x0, PostIndex));
+    __ St4(v0.H(), v1.H(), v2.H(), v3.H(), i, MemOperand(reg2, x0, PostIndex));
   }
-  __ Ldr(q16, MemOperand(x17, 4 * 16));
-  __ Ldr(q17, MemOperand(x17, 5 * 16));
-  __ Ldr(q18, MemOperand(x17, 6 * 16));
-  __ Ldr(q19, MemOperand(x17, 7 * 16));
+  __ Ldr(q16, MemOperand(reg1, 4 * 16));
+  __ Ldr(q17, MemOperand(reg1, 5 * 16));
+  __ Ldr(q18, MemOperand(reg1, 6 * 16));
+  __ Ldr(q19, MemOperand(reg1, 7 * 16));
 
   // Test S stores without post index.
   for (int i = 3; i >= 0; i--) {
-    __ St4(v0.S(), v1.S(), v2.S(), v3.S(), i, MemOperand(x19));
-    __ Add(x19, x19, 16);
+    __ St4(v0.S(), v1.S(), v2.S(), v3.S(), i, MemOperand(reg2));
+    __ Add(reg2, reg2, 16);
   }
-  __ Ldr(q20, MemOperand(x17, 8 * 16));
-  __ Ldr(q21, MemOperand(x17, 9 * 16));
-  __ Ldr(q22, MemOperand(x17, 10 * 16));
-  __ Ldr(q23, MemOperand(x17, 11 * 16));
+  __ Ldr(q20, MemOperand(reg1, 8 * 16));
+  __ Ldr(q21, MemOperand(reg1, 9 * 16));
+  __ Ldr(q22, MemOperand(reg1, 10 * 16));
+  __ Ldr(q23, MemOperand(reg1, 11 * 16));
 
   // Test D stores with post index.
   __ Mov(x0, 32);
-  __ St4(v0.D(), v1.D(), v2.D(), v3.D(), 0, MemOperand(x19, 32, PostIndex));
-  __ St4(v0.D(), v1.D(), v2.D(), v3.D(), 1, MemOperand(x19, x0, PostIndex));
+  __ St4(v0.D(), v1.D(), v2.D(), v3.D(), 0, MemOperand(reg2, 32, PostIndex));
+  __ St4(v0.D(), v1.D(), v2.D(), v3.D(), 1, MemOperand(reg2, x0, PostIndex));
 
-  __ Ldr(q24, MemOperand(x17, 12 * 16));
-  __ Ldr(q25, MemOperand(x17, 13 * 16));
-  __ Ldr(q26, MemOperand(x17, 14 * 16));
-  __ Ldr(q27, MemOperand(x17, 15 * 16));
+  __ Ldr(q24, MemOperand(reg1, 12 * 16));
+  __ Ldr(q25, MemOperand(reg1, 13 * 16));
+  __ Ldr(q26, MemOperand(reg1, 14 * 16));
+  __ Ldr(q27, MemOperand(reg1, 15 * 16));
   END();
 
   RUN();
@@ -6296,28 +6344,36 @@ TEST(neon_st1_lane_postindex) {
 
   START();
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x19, -16);
-  __ Ldr(q0, MemOperand(x17));
+  __ Ldr(q0, MemOperand(reg));
 
   for (int i = 15; i >= 0; i--) {
-    __ St1(v0.B(), i, MemOperand(x17, 1, PostIndex));
+    __ St1(v0.B(), i, MemOperand(reg, 1, PostIndex));
   }
-  __ Ldr(q1, MemOperand(x17, x19));
+  __ Ldr(q1, MemOperand(reg, x19));
 
   for (int i = 7; i >= 0; i--) {
-    __ St1(v0.H(), i, MemOperand(x17, 2, PostIndex));
+    __ St1(v0.H(), i, MemOperand(reg, 2, PostIndex));
   }
-  __ Ldr(q2, MemOperand(x17, x19));
+  __ Ldr(q2, MemOperand(reg, x19));
 
   for (int i = 3; i >= 0; i--) {
-    __ St1(v0.S(), i, MemOperand(x17, 4, PostIndex));
+    __ St1(v0.S(), i, MemOperand(reg, 4, PostIndex));
   }
-  __ Ldr(q3, MemOperand(x17, x19));
+  __ Ldr(q3, MemOperand(reg, x19));
 
   for (int i = 1; i >= 0; i--) {
-    __ St1(v0.D(), i, MemOperand(x17, 8, PostIndex));
+    __ St1(v0.D(), i, MemOperand(reg, 8, PostIndex));
   }
-  __ Ldr(q4, MemOperand(x17, x19));
+  __ Ldr(q4, MemOperand(reg, x19));
 
   END();
 
@@ -6436,30 +6492,43 @@ TEST(neon_st1_d) {
 
   START();
   __ Mov(x17, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  __ Cpy(c28, c17);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c17, c28);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x17, src_base);
+#endif  // __CHERI_PURE_CAPABILITY__
 
-  __ St1(v0.V8B(), MemOperand(x17));
-  __ Ldr(d16, MemOperand(x17, 8, PostIndex));
+  __ St1(v0.V8B(), MemOperand(reg));
+  __ Ldr(d16, MemOperand(reg, 8, PostIndex));
 
-  __ St1(v0.V8B(), v1.V8B(), MemOperand(x17));
-  __ Ldr(q17, MemOperand(x17, 16, PostIndex));
+  __ St1(v0.V8B(), v1.V8B(), MemOperand(reg));
+  __ Ldr(q17, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(x17));
-  __ Ldr(d18, MemOperand(x17, 8, PostIndex));
-  __ Ldr(d19, MemOperand(x17, 8, PostIndex));
-  __ Ldr(d20, MemOperand(x17, 8, PostIndex));
+  __ St1(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(reg));
+  __ Ldr(d18, MemOperand(reg, 8, PostIndex));
+  __ Ldr(d19, MemOperand(reg, 8, PostIndex));
+  __ Ldr(d20, MemOperand(reg, 8, PostIndex));
 
-  __ St1(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(x17));
-  __ Ldr(q21, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q22, MemOperand(x17, 16, PostIndex));
+  __ St1(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(reg));
+  __ Ldr(q21, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q22, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V1D(), v1.V1D(), v2.V1D(), v3.V1D(), MemOperand(x17));
-  __ Ldr(q23, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q24, MemOperand(x17));
+  __ St1(v0.V1D(), v1.V1D(), v2.V1D(), v3.V1D(), MemOperand(reg));
+  __ Ldr(q23, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q24, MemOperand(reg));
   END();
 
   RUN();
@@ -6491,36 +6560,49 @@ TEST(neon_st1_d_postindex) {
 
   START();
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x28, -8);
   __ Mov(x19, -16);
   __ Mov(x20, -24);
   __ Mov(x21, -32);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+  __ Ldr(q0, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg, 16, PostIndex));
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
 
-  __ St1(v0.V8B(), MemOperand(x17, 8, PostIndex));
-  __ Ldr(d16, MemOperand(x17, x28));
+  __ St1(v0.V8B(), MemOperand(reg, 8, PostIndex));
+  __ Ldr(d16, MemOperand(reg, x28));
 
-  __ St1(v0.V8B(), v1.V8B(), MemOperand(x17, 16, PostIndex));
-  __ Ldr(q17, MemOperand(x17, x19));
+  __ St1(v0.V8B(), v1.V8B(), MemOperand(reg, 16, PostIndex));
+  __ Ldr(q17, MemOperand(reg, x19));
 
-  __ St1(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(x17, 24, PostIndex));
-  __ Ldr(d18, MemOperand(x17, x20));
-  __ Ldr(d19, MemOperand(x17, x19));
-  __ Ldr(d20, MemOperand(x17, x28));
+  __ St1(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(reg, 24, PostIndex));
+  __ Ldr(d18, MemOperand(reg, x20));
+  __ Ldr(d19, MemOperand(reg, x19));
+  __ Ldr(d20, MemOperand(reg, x28));
 
   __ St1(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(),
-         MemOperand(x17, 32, PostIndex));
-  __ Ldr(q21, MemOperand(x17, x21));
-  __ Ldr(q22, MemOperand(x17, x19));
+         MemOperand(reg, 32, PostIndex));
+  __ Ldr(q21, MemOperand(reg, x21));
+  __ Ldr(q22, MemOperand(reg, x19));
 
   __ St1(v0.V1D(), v1.V1D(), v2.V1D(), v3.V1D(),
-         MemOperand(x17, 32, PostIndex));
-  __ Ldr(q23, MemOperand(x17, x21));
-  __ Ldr(q24, MemOperand(x17, x19));
+         MemOperand(reg, 32, PostIndex));
+  __ Ldr(q23, MemOperand(reg, x21));
+  __ Ldr(q24, MemOperand(reg, x19));
   END();
 
   RUN();
@@ -6548,28 +6630,36 @@ TEST(neon_st1_q) {
 
   START();
   __ Mov(x17, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V16B(), MemOperand(x17));
-  __ Ldr(q16, MemOperand(x17, 16, PostIndex));
+  __ St1(v0.V16B(), MemOperand(reg));
+  __ Ldr(q16, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V8H(), v1.V8H(), MemOperand(x17));
-  __ Ldr(q17, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q18, MemOperand(x17, 16, PostIndex));
+  __ St1(v0.V8H(), v1.V8H(), MemOperand(reg));
+  __ Ldr(q17, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q18, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(x17));
-  __ Ldr(q19, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q20, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q21, MemOperand(x17, 16, PostIndex));
+  __ St1(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(reg));
+  __ Ldr(q19, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q20, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q21, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(x17));
-  __ Ldr(q22, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q23, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q24, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q25, MemOperand(x17));
+  __ St1(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(reg));
+  __ Ldr(q22, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q23, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q24, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q25, MemOperand(reg));
   END();
 
   RUN();
@@ -6598,33 +6688,41 @@ TEST(neon_st1_q_postindex) {
 
   START();
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+  Register reg = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x28, -16);
   __ Mov(x19, -32);
   __ Mov(x20, -48);
   __ Mov(x21, -64);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+  __ Ldr(q0, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg, 16, PostIndex));
 
-  __ St1(v0.V16B(), MemOperand(x17, 16, PostIndex));
-  __ Ldr(q16, MemOperand(x17, x28));
+  __ St1(v0.V16B(), MemOperand(reg, 16, PostIndex));
+  __ Ldr(q16, MemOperand(reg, x28));
 
-  __ St1(v0.V8H(), v1.V8H(), MemOperand(x17, 32, PostIndex));
-  __ Ldr(q17, MemOperand(x17, x19));
-  __ Ldr(q18, MemOperand(x17, x28));
+  __ St1(v0.V8H(), v1.V8H(), MemOperand(reg, 32, PostIndex));
+  __ Ldr(q17, MemOperand(reg, x19));
+  __ Ldr(q18, MemOperand(reg, x28));
 
-  __ St1(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(x17, 48, PostIndex));
-  __ Ldr(q19, MemOperand(x17, x20));
-  __ Ldr(q20, MemOperand(x17, x19));
-  __ Ldr(q21, MemOperand(x17, x28));
+  __ St1(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(reg, 48, PostIndex));
+  __ Ldr(q19, MemOperand(reg, x20));
+  __ Ldr(q20, MemOperand(reg, x19));
+  __ Ldr(q21, MemOperand(reg, x28));
 
   __ St1(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(),
-         MemOperand(x17, 64, PostIndex));
-  __ Ldr(q22, MemOperand(x17, x21));
-  __ Ldr(q23, MemOperand(x17, x20));
-  __ Ldr(q24, MemOperand(x17, x19));
-  __ Ldr(q25, MemOperand(x17, x28));
+         MemOperand(reg, 64, PostIndex));
+  __ Ldr(q22, MemOperand(reg, x21));
+  __ Ldr(q23, MemOperand(reg, x20));
+  __ Ldr(q24, MemOperand(reg, x19));
+  __ Ldr(q25, MemOperand(reg, x28));
 
   END();
 
@@ -6654,21 +6752,40 @@ TEST(neon_st2_d) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St2(v0.V8B(), v1.V8B(), MemOperand(x19));
-  __ Add(x19, x19, 22);
-  __ St2(v0.V4H(), v1.V4H(), MemOperand(x19));
-  __ Add(x19, x19, 11);
-  __ St2(v0.V2S(), v1.V2S(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+
+  __ St2(v0.V8B(), v1.V8B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 22);
+  __ St2(v0.V4H(), v1.V4H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 11);
+  __ St2(v0.V2S(), v1.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6693,18 +6810,37 @@ TEST(neon_st2_d_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St2(v0.V8B(), v1.V8B(), MemOperand(x19, x22, PostIndex));
-  __ St2(v0.V4H(), v1.V4H(), MemOperand(x19, 16, PostIndex));
-  __ St2(v0.V2S(), v1.V2S(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+
+  __ St2(v0.V8B(), v1.V8B(), MemOperand(reg2, x22, PostIndex));
+  __ St2(v0.V4H(), v1.V4H(), MemOperand(reg2, 16, PostIndex));
+  __ St2(v0.V2S(), v1.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6727,23 +6863,42 @@ TEST(neon_st2_q) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St2(v0.V16B(), v1.V16B(), MemOperand(x19));
-  __ Add(x19, x19, 8);
-  __ St2(v0.V8H(), v1.V8H(), MemOperand(x19));
-  __ Add(x19, x19, 22);
-  __ St2(v0.V4S(), v1.V4S(), MemOperand(x19));
-  __ Add(x19, x19, 2);
-  __ St2(v0.V2D(), v1.V2D(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+
+  __ St2(v0.V16B(), v1.V16B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 8);
+  __ St2(v0.V8H(), v1.V8H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 22);
+  __ St2(v0.V4S(), v1.V4S(), MemOperand(reg2));
+  __ Add(reg2, reg2, 2);
+  __ St2(v0.V2D(), v1.V2D(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6768,21 +6923,40 @@ TEST(neon_st2_q_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St2(v0.V16B(), v1.V16B(), MemOperand(x19, x22, PostIndex));
-  __ St2(v0.V8H(), v1.V8H(), MemOperand(x19, 32, PostIndex));
-  __ St2(v0.V4S(), v1.V4S(), MemOperand(x19, x22, PostIndex));
-  __ St2(v0.V2D(), v1.V2D(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+
+  __ St2(v0.V16B(), v1.V16B(), MemOperand(reg2, x22, PostIndex));
+  __ St2(v0.V8H(), v1.V8H(), MemOperand(reg2, 32, PostIndex));
+  __ St2(v0.V4S(), v1.V4S(), MemOperand(reg2, x22, PostIndex));
+  __ St2(v0.V2D(), v1.V2D(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6807,20 +6981,39 @@ TEST(neon_st3_d) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St3(v0.V8B(), v1.V8B(), v2.V8B(), MemOperand(x19));
-  __ Add(x19, x19, 3);
-  __ St3(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(x19));
-  __ Add(x19, x19, 2);
-  __ St3(v0.V2S(), v1.V2S(), v2.V2S(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+
+  __ St3(v0.V8B(), v1.V8B(), v2.V8B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 3);
+  __ St3(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 2);
+  __ St3(v0.V2S(), v1.V2S(), v2.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6843,20 +7036,39 @@ TEST(neon_st3_d_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St3(v0.V8B(), v1.V8B(), v2.V8B(), MemOperand(x19, x22, PostIndex));
-  __ St3(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(x19, 24, PostIndex));
-  __ St3(v0.V2S(), v1.V2S(), v2.V2S(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+
+  __ St3(v0.V8B(), v1.V8B(), v2.V8B(), MemOperand(reg2, x22, PostIndex));
+  __ St3(v0.V4H(), v1.V4H(), v2.V4H(), MemOperand(reg2, 24, PostIndex));
+  __ St3(v0.V2S(), v1.V2S(), v2.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6880,26 +7092,45 @@ TEST(neon_st3_q) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St3(v0.V16B(), v1.V16B(), v2.V16B(), MemOperand(x19));
-  __ Add(x19, x19, 5);
-  __ St3(v0.V8H(), v1.V8H(), v2.V8H(), MemOperand(x19));
-  __ Add(x19, x19, 12);
-  __ St3(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(x19));
-  __ Add(x19, x19, 22);
-  __ St3(v0.V2D(), v1.V2D(), v2.V2D(), MemOperand(x19));
+  __ Cpy(c19, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x19, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+
+  __ St3(v0.V16B(), v1.V16B(), v2.V16B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 5);
+  __ St3(v0.V8H(), v1.V8H(), v2.V8H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 12);
+  __ St3(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(reg2));
+  __ Add(reg2, reg2, 22);
+  __ St3(v0.V2D(), v1.V2D(), v2.V2D(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q5, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg2, 16, PostIndex));
+  __ Ldr(q5, MemOperand(reg2, 16, PostIndex));
 
   END();
 
@@ -6926,24 +7157,46 @@ TEST(neon_st3_q_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
-  __ Mov(x28, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St3(v0.V16B(), v1.V16B(), v2.V16B(), MemOperand(x28, x22, PostIndex));
-  __ St3(v0.V8H(), v1.V8H(), v2.V8H(), MemOperand(x28, 48, PostIndex));
-  __ St3(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(x28, x22, PostIndex));
-  __ St3(v0.V2D(), v1.V2D(), v2.V2D(), MemOperand(x28));
+  __ Cpy(c28, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c28;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x28, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x28;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+
+  __ St3(v0.V16B(), v1.V16B(), v2.V16B(), MemOperand(reg2, x22, PostIndex));
+  __ St3(v0.V8H(), v1.V8H(), v2.V8H(), MemOperand(reg2, 48, PostIndex));
+  __ St3(v0.V4S(), v1.V4S(), v2.V4S(), MemOperand(reg2, x22, PostIndex));
+  __ St3(v0.V2D(), v1.V2D(), v2.V2D(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q5, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q6, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+  Register reg3 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg3 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q5, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q6, MemOperand(reg3, 16, PostIndex));
 
   END();
 
@@ -6970,23 +7223,45 @@ TEST(neon_st4_d) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x28, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St4(v0.V8B(), v1.V8B(), v2.V8B(), v3.V8B(), MemOperand(x28));
-  __ Add(x28, x28, 12);
-  __ St4(v0.V4H(), v1.V4H(), v2.V4H(), v3.V4H(), MemOperand(x28));
-  __ Add(x28, x28, 15);
-  __ St4(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(x28));
+  __ Cpy(c28, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c28;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x28, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x28;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg1, 16, PostIndex));
+
+  __ St4(v0.V8B(), v1.V8B(), v2.V8B(), v3.V8B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 12);
+  __ St4(v0.V4H(), v1.V4H(), v2.V4H(), v3.V4H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 15);
+  __ St4(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+  Register reg3 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg3 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg3, 16, PostIndex));
 
   END();
 
@@ -7011,24 +7286,46 @@ TEST(neon_st4_d_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+
+  __ Cpy(c28, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c28;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x28, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+
+  Register reg1 = x17;
+  Register reg2 = x28;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg1, 16, PostIndex));
 
   __ St4(v0.V8B(), v1.V8B(), v2.V8B(), v3.V8B(),
-         MemOperand(x28, x22, PostIndex));
+         MemOperand(reg2, x22, PostIndex));
   __ St4(v0.V4H(), v1.V4H(), v2.V4H(), v3.V4H(),
-         MemOperand(x28, 32, PostIndex));
-  __ St4(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(x28));
+         MemOperand(reg2, 32, PostIndex));
+  __ St4(v0.V2S(), v1.V2S(), v2.V2S(), v3.V2S(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+  Register reg3 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg3 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg3, 16, PostIndex));
 
   END();
 
@@ -7053,29 +7350,51 @@ TEST(neon_st4_q) {
 
   START();
   __ Mov(x17, src_base);
-  __ Mov(x28, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
 
-  __ St4(v0.V16B(), v1.V16B(), v2.V16B(), v3.V16B(), MemOperand(x28));
-  __ Add(x28, x28, 5);
-  __ St4(v0.V8H(), v1.V8H(), v2.V8H(), v3.V8H(), MemOperand(x28));
-  __ Add(x28, x28, 12);
-  __ St4(v0.V4S(), v1.V4S(), v2.V4S(), v3.V4S(), MemOperand(x28));
-  __ Add(x28, x28, 22);
-  __ St4(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(x28));
-  __ Add(x28, x28, 10);
+  __ Cpy(c28, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c28;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x28, src_base);
+
+  Register reg1 = x17;
+  Register reg2 = x28;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg1, 16, PostIndex));
+
+  __ St4(v0.V16B(), v1.V16B(), v2.V16B(), v3.V16B(), MemOperand(reg2));
+  __ Add(reg2, reg2, 5);
+  __ St4(v0.V8H(), v1.V8H(), v2.V8H(), v3.V8H(), MemOperand(reg2));
+  __ Add(reg2, reg2, 12);
+  __ St4(v0.V4S(), v1.V4S(), v2.V4S(), v3.V4S(), MemOperand(reg2));
+  __ Add(reg2, reg2, 22);
+  __ St4(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(reg2));
+  __ Add(reg2, reg2, 10);
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q5, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q6, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+  Register reg3 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg3 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q5, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q6, MemOperand(reg3, 16, PostIndex));
 
   END();
 
@@ -7103,30 +7422,52 @@ TEST(neon_st4_q_postindex) {
   START();
   __ Mov(x22, 5);
   __ Mov(x17, src_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+
+  __ Cpy(c28, c17);
+
+  Register reg1 = c17;
+  Register reg2 = c28;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x28, src_base);
-  __ Ldr(q0, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x17, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x17, 16, PostIndex));
+
+  Register reg1 = x17;
+  Register reg2 = x28;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg1, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg1, 16, PostIndex));
 
   __ St4(v0.V16B(), v1.V16B(), v2.V16B(), v3.V16B(),
-         MemOperand(x28, x22, PostIndex));
+         MemOperand(reg2, x22, PostIndex));
   __ St4(v0.V8H(), v1.V8H(), v2.V8H(), v3.V8H(),
-         MemOperand(x28, 64, PostIndex));
+         MemOperand(reg2, 64, PostIndex));
   __ St4(v0.V4S(), v1.V4S(), v2.V4S(), v3.V4S(),
-         MemOperand(x28, x22, PostIndex));
-  __ St4(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(x28));
+         MemOperand(reg2, x22, PostIndex));
+  __ St4(v0.V2D(), v1.V2D(), v2.V2D(), v3.V2D(), MemOperand(reg2));
 
   __ Mov(x19, src_base);
-  __ Ldr(q0, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q1, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q2, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q3, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q4, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q5, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q6, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q7, MemOperand(x19, 16, PostIndex));
-  __ Ldr(q8, MemOperand(x19, 16, PostIndex));
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c19, csp, x19);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c19, c19, x0);
+  Register reg3 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register reg3 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q1, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q2, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q3, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q4, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q5, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q6, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q7, MemOperand(reg3, 16, PostIndex));
+  __ Ldr(q8, MemOperand(reg3, 16, PostIndex));
 
   END();
 
