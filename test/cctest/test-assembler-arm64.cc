@@ -13248,10 +13248,42 @@ static void TestUScvtf32Helper(uint64_t in,
   SETUP();
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x0, __builtin_cheri_address_get(results_scvtf_x));
+  __ Scvalue(c0, csp, x0);
+  __ Mov(x10, sizeof(results_scvtf_x));
+  __ Scbndse(c0, c0, x10);
+
+  __ Mov(x1, __builtin_cheri_address_get(results_ucvtf_x));
+  __ Scvalue(c1, csp, x1);
+  __ Mov(x10, sizeof(results_ucvtf_x));
+  __ Scbndse(c1, c1, x10);
+
+  __ Mov(x2, __builtin_cheri_address_get(results_scvtf_w));
+  __ Scvalue(c2, csp, x2);
+  __ Mov(x10, sizeof(results_scvtf_w));
+  __ Scbndse(c2, c2, x10);
+
+  __ Mov(x3, __builtin_cheri_address_get(results_ucvtf_w));
+  __ Scvalue(c3, csp, x3);
+  __ Mov(x10, sizeof(results_ucvtf_w));
+  __ Scbndse(c3, c3, x10);
+
+  Register r0 = c0;
+  Register r1 = c1;
+  Register r2 = c2;
+  Register r3 = c3;
+#else // !__CHERI_PURE_CAPABILITY__
   __ Mov(x0, reinterpret_cast<int64_t>(results_scvtf_x));
   __ Mov(x1, reinterpret_cast<int64_t>(results_ucvtf_x));
   __ Mov(x2, reinterpret_cast<int64_t>(results_scvtf_w));
   __ Mov(x3, reinterpret_cast<int64_t>(results_ucvtf_w));
+
+  Register r0 = x0;
+  Register r1 = x1;
+  Register r2 = x2;
+  Register r3 = x3;
+#endif
 
   __ Mov(x10, s64);
 
@@ -13265,10 +13297,10 @@ static void TestUScvtf32Helper(uint64_t in,
   __ Ucvtf(s1, x10);
   __ Scvtf(s2, w11);
   __ Ucvtf(s3, w11);
-  __ Str(s0, MemOperand(x0));
-  __ Str(s1, MemOperand(x1));
-  __ Str(s2, MemOperand(x2));
-  __ Str(s3, MemOperand(x3));
+  __ Str(s0, MemOperand(r0));
+  __ Str(s1, MemOperand(r1));
+  __ Str(s2, MemOperand(r2));
+  __ Str(s3, MemOperand(r3));
 
   // Test all possible values of fbits.
   for (int fbits = 1; fbits <= 32; fbits++) {
@@ -13276,10 +13308,10 @@ static void TestUScvtf32Helper(uint64_t in,
     __ Ucvtf(s1, x10, fbits);
     __ Scvtf(s2, w11, fbits);
     __ Ucvtf(s3, w11, fbits);
-    __ Str(s0, MemOperand(x0, fbits * kSRegSize));
-    __ Str(s1, MemOperand(x1, fbits * kSRegSize));
-    __ Str(s2, MemOperand(x2, fbits * kSRegSize));
-    __ Str(s3, MemOperand(x3, fbits * kSRegSize));
+    __ Str(s0, MemOperand(r0, fbits * kSRegSize));
+    __ Str(s1, MemOperand(r1, fbits * kSRegSize));
+    __ Str(s2, MemOperand(r2, fbits * kSRegSize));
+    __ Str(s3, MemOperand(r3, fbits * kSRegSize));
   }
 
   // Conversions from W registers can only handle fbits values <= 32, so just
@@ -13287,8 +13319,8 @@ static void TestUScvtf32Helper(uint64_t in,
   for (int fbits = 33; fbits <= 64; fbits++) {
     __ Scvtf(s0, x10, fbits);
     __ Ucvtf(s1, x10, fbits);
-    __ Str(s0, MemOperand(x0, fbits * kSRegSize));
-    __ Str(s1, MemOperand(x1, fbits * kSRegSize));
+    __ Str(s0, MemOperand(r0, fbits * kSRegSize));
+    __ Str(s1, MemOperand(r1, fbits * kSRegSize));
   }
 
   END();
@@ -14567,9 +14599,17 @@ TEST(copy_slots_down) {
   __ Mov(x1, 2);
   __ Mov(x2, 3);
   __ Mov(x3, 1);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ CopySlots(x1, x2, x3, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x1, x2, x3);
+#endif  // __CHERI_PURE_CAPABILITY__
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Drop(2, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Drop(2);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Pop(x0, xzr);
 
   END();
@@ -14635,7 +14675,11 @@ TEST(copy_slots_up) {
   __ CopySlots(x5, x6, x7);
 #endif  // _CHERI_PURE_CAPABILITY
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Drop(2, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Drop(2);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Pop(x11, x12);
 
   // Test copying three slots to the next three slots higher in memory.
@@ -14651,7 +14695,11 @@ TEST(copy_slots_up) {
   __ CopySlots(x5, x6, x7);
 #endif  // __CHERI_PURE_CAPABILITY__
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Drop(2, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Drop(2);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Pop(xzr, x0, x1, x2);
 
   END();
