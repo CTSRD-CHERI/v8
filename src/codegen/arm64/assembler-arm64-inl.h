@@ -54,7 +54,13 @@ inline bool CPURegister::IsSP() const {
 
 inline void CPURegList::Combine(const CPURegList& other) {
   DCHECK(other.type() == type_);
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(other.RegisterSizeInBits() == size_ ||
+         (other.RegisterSizeInBits() == kXRegSizeInBits &&
+          size_ == kCRegSizeInBits));
+#else // !__CHERI_PURE_CAPABILITY__
   DCHECK(other.RegisterSizeInBits() == size_);
+#endif  // __CHERI_PURE_CAPABILITY__
   list_ |= other.list_;
 }
 
