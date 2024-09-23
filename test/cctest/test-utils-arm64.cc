@@ -60,7 +60,8 @@ bool Equal64(uint64_t expected, const RegisterDump*, uint64_t result) {
 #ifdef __CHERI_PURE_CAPABILITY__
 bool EqualCap(uintptr_t expected, const RegisterDump*, uintptr_t result) {
   if (result != expected) {
-    printf("Expected %p\t Found %p\n", expected, result);
+    printf("Expected %p\t Found %p\n", reinterpret_cast<void*>(expected),
+           reinterpret_cast<void*>(result));
   }
 
   return expected == result;
