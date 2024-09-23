@@ -12063,9 +12063,18 @@ TEST(fcvtas) {
   __ Fcvtas(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtas(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtas(x29, d29);
   __ Fcvtas(x30, d30);
@@ -12270,9 +12279,18 @@ TEST(fcvtms) {
   __ Fcvtms(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtms(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtms(x29, d29);
   __ Fcvtms(x30, d30);
@@ -12380,9 +12398,18 @@ TEST(fcvtmu) {
   __ Fcvtmu(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtmu(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtmu(x29, d29);
   __ Fcvtmu(x30, d30);
@@ -12430,8 +12457,17 @@ TEST(fcvtn) {
   double src[2] = {1.0f, 1.0f};
   uintptr_t src_base = reinterpret_cast<uintptr_t>(src);
 
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x0, src_base);
-  __ Ldr(q0, MemOperand(x0, 0));
+  __ Scvalue(c0, csp, x0);
+  __ Mov(x1, sizeof(src));
+  __ Scbndse(c0, c0, x1);
+  Register r0 = c0;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x0, src_base);
+  Register r0 = x0;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(q0, MemOperand(r0, 0));
 
   __ Fcvtn(q0.V2S(), q0.V2D());
 
@@ -12510,9 +12546,18 @@ TEST(fcvtns) {
 //  __ Fcvtns(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtns(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtns(x29, d29);
   __ Fcvtns(x30, d30);
@@ -12717,9 +12762,18 @@ TEST(fcvtzs) {
   __ Fcvtzs(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtmu(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtzs(x29, d29);
   __ Fcvtzs(x30, d30);
@@ -12931,9 +12985,18 @@ TEST(fcvtzu) {
   __ Fcvtzu(x28, d28);
 
   // Save results to the scratch memory, for those that don't fit in registers.
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x30, scratch_base);
+  __ Scvalue(c30, csp, x30);
+  __ Mov(x29, sizeof(scratch));
+  __ Scbndse(c30, c30, x29);
+  Register r30 = c30;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x30, scratch_base);
+  Register r30 = x30;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Fcvtzu(x29, s16);
-  __ Str(x29, MemOperand(x30));
+  __ Str(x29, MemOperand(r30));
 
   __ Fcvtzu(x29, d29);
   __ Fcvtzu(x30, d30);
@@ -13003,10 +13066,41 @@ static void TestUScvtfHelper(uint64_t in,
   SETUP();
   START();
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x0, __builtin_cheri_address_get(results_scvtf_x));
+  __ Scvalue(c0, csp, x0);
+  __ Mov(x10, sizeof(results_scvtf_x));
+  __ Scbndse(c0, c0, x10);
+
+  __ Mov(x1, __builtin_cheri_address_get(results_ucvtf_x));
+  __ Scvalue(c1, csp, x1);
+  __ Mov(x10, sizeof(results_ucvtf_x));
+  __ Scbndse(c1, c1, x10);
+
+  __ Mov(x2, __builtin_cheri_address_get(results_scvtf_w));
+  __ Scvalue(c2, csp, x2);
+  __ Mov(x10, sizeof(results_scvtf_w));
+  __ Scbndse(c2, c2, x10);
+
+  __ Mov(x3, __builtin_cheri_address_get(results_ucvtf_w));
+  __ Scvalue(c3, csp, x3);
+  __ Mov(x10, sizeof(results_ucvtf_w));
+  __ Scbndse(c3, c3, x10);
+
+  Register r0 = c0;
+  Register r1 = c1;
+  Register r2 = c2;
+  Register r3 = c3;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x0, reinterpret_cast<int64_t>(results_scvtf_x));
   __ Mov(x1, reinterpret_cast<int64_t>(results_ucvtf_x));
   __ Mov(x2, reinterpret_cast<int64_t>(results_scvtf_w));
   __ Mov(x3, reinterpret_cast<int64_t>(results_ucvtf_w));
+  Register r0 = x0;
+  Register r1 = x1;
+  Register r2 = x2;
+  Register r3 = x3;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(x10, s64);
 
@@ -13020,10 +13114,10 @@ static void TestUScvtfHelper(uint64_t in,
   __ Ucvtf(d1, x10);
   __ Scvtf(d2, w11);
   __ Ucvtf(d3, w11);
-  __ Str(d0, MemOperand(x0));
-  __ Str(d1, MemOperand(x1));
-  __ Str(d2, MemOperand(x2));
-  __ Str(d3, MemOperand(x3));
+  __ Str(d0, MemOperand(r0));
+  __ Str(d1, MemOperand(r1));
+  __ Str(d2, MemOperand(r2));
+  __ Str(d3, MemOperand(r3));
 
   // Test all possible values of fbits.
   for (int fbits = 1; fbits <= 32; fbits++) {
@@ -13031,10 +13125,10 @@ static void TestUScvtfHelper(uint64_t in,
     __ Ucvtf(d1, x10, fbits);
     __ Scvtf(d2, w11, fbits);
     __ Ucvtf(d3, w11, fbits);
-    __ Str(d0, MemOperand(x0, fbits * kDRegSize));
-    __ Str(d1, MemOperand(x1, fbits * kDRegSize));
-    __ Str(d2, MemOperand(x2, fbits * kDRegSize));
-    __ Str(d3, MemOperand(x3, fbits * kDRegSize));
+    __ Str(d0, MemOperand(r0, fbits * kDRegSize));
+    __ Str(d1, MemOperand(r1, fbits * kDRegSize));
+    __ Str(d2, MemOperand(r2, fbits * kDRegSize));
+    __ Str(d3, MemOperand(r3, fbits * kDRegSize));
   }
 
   // Conversions from W registers can only handle fbits values <= 32, so just
@@ -13042,8 +13136,8 @@ static void TestUScvtfHelper(uint64_t in,
   for (int fbits = 33; fbits <= 64; fbits++) {
     __ Scvtf(d0, x10, fbits);
     __ Ucvtf(d1, x10, fbits);
-    __ Str(d0, MemOperand(x0, fbits * kDRegSize));
-    __ Str(d1, MemOperand(x1, fbits * kDRegSize));
+    __ Str(d0, MemOperand(r0, fbits * kDRegSize));
+    __ Str(d1, MemOperand(r1, fbits * kDRegSize));
   }
 
   END();
