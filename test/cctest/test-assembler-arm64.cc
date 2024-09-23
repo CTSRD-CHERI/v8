@@ -13995,7 +13995,7 @@ TEST(peek_poke_mixed) {
   __ Add(x2, x1, x0);
   __ Add(x3, x2, x0);
 
-  __ Claim(4);
+  __ Claim(4, kXRegSize);
 
   // Mix with other stack operations.
   //  After this section:
@@ -14009,10 +14009,10 @@ TEST(peek_poke_mixed) {
     __ Peek(w7, 6);
     __ Poke(xzr, 0);    // Clobber the space we're about to drop.
     __ Poke(xzr, 8);    // Clobber the space we're about to drop.
-    __ Drop(2);
+    __ Drop(2, kXRegSize);
     __ Poke(x3, 8);
     __ Poke(x2, 0);
-    __ Claim(2);
+    __ Claim(2, kXRegSize);
     __ Poke(x0, 0);
     __ Poke(x1, 8);
   }
