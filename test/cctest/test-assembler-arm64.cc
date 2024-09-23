@@ -15737,6 +15737,9 @@ TEST(blr_lr) {
   __ Mov(x0, 0x0);
   __ Adr(lr, &target);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ PrepareC64Jump(lr);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Blr(lr);
   __ Mov(x0, 0xDEADBEEF);
   __ B(&end);
