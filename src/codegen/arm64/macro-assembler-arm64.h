@@ -233,7 +233,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
 #ifdef __CHERI_PURE_CAPABILITY__
   void PrepareC64Jump(const Register& cd);
-#endif
+#endif  // __CHERI_PURE_CAPABILITY__
   void Mov(const Register& rd, const Operand& operand,
            DiscardMoveMode discard_mode = kDontDiscardForSameWReg);
   void Mov(const Register& rd, uint64_t imm);
@@ -782,8 +782,15 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // them must be greater than or equal to slot_count, otherwise the result is
   // unpredictable. The function may corrupt its register arguments. The
   // registers must not alias each other.
+#ifdef __CHERI_PURE_CAPABILITY__
+  void CopySlots(int dst, Register src, Register slot_count,
+                 int size = kCRegSize);
+  void CopySlots(Register dst, Register src, Register slot_count,
+                 int size = kCRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   void CopySlots(int dst, Register src, Register slot_count);
   void CopySlots(Register dst, Register src, Register slot_count);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Copy count double words from the address in register src to the address
   // in register dst. There are three modes for this function:
@@ -804,9 +811,10 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
     kCapSrcLessThanDst,
     kCapDstLessThanSrcAndReverse
   };
+  // XXX(cheri): A possible footgun since we're working in 16-byte chunks.
   void CopyCapabilities(Register dst, Register src, Register count,
                         CopyCapabilitiesMode mode = kCapDstLessThanSrc);
-#else
+#endif  // __CHERI_PURE_CAPABILITY__
   enum CopyDoubleWordsMode {
     kDstLessThanSrc,
     kSrcLessThanDst,
@@ -814,13 +822,17 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   };
   void CopyDoubleWords(Register dst, Register src, Register count,
                        CopyDoubleWordsMode mode = kDstLessThanSrc);
-#endif // __CHERI_PURE_CAPABILITY__
 
   // Calculate the address of a double word-sized slot at slot_offset from the
   // stack pointer, and write it to dst. Positive slot_offsets are at addresses
   // greater than sp, with slot zero at sp.
+#ifdef __CHERI_PURE_CAPABILITY__
+  void SlotAddress(Register dst, int slot_offset, int size = kCRegSize);
+  void SlotAddress(Register dst, Register slot_offset, int size = kCRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   void SlotAddress(Register dst, int slot_offset);
   void SlotAddress(Register dst, Register slot_offset);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Load a literal from the inline constant pool.
   inline void Ldr(const CPURegister& rt, const Operand& imm);

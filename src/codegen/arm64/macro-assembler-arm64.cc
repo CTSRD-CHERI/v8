@@ -2140,33 +2140,51 @@ void MacroAssembler::AssertUnreachable(AbortReason reason) {
 }
 #endif  // V8_ENABLE_DEBUG_CODE
 
+#ifdef __CHERI_PURE_CAPABILITY__
+void MacroAssembler::CopySlots(int dst, Register src, Register slot_count,
+                               int size) {
+#else   // !__CHERI_PURE_CAPABILITY__
 void MacroAssembler::CopySlots(int dst, Register src, Register slot_count) {
+#endif  // __CHERI_PURE_CAPABILITY__
   DCHECK(!src.IsZero());
   UseScratchRegisterScope scope(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
   Register dst_reg = scope.AcquireC();
 #else   // !__CHERI_PURE_CAPABILITY__
   Register dst_reg = scope.AcquireX();
-#endif  // !__CHERI_PURE_CAPABILITY__
-  SlotAddress(dst_reg, dst);
-  SlotAddress(src, src);
+#endif  // __CHERI_PURE_CAPABILITY__
 #if defined(__CHERI_PURE_CAPABILITY__)
+  SlotAddress(dst_reg, dst, size);
+  SlotAddress(src, src, size);
   CopyCapabilities(dst_reg, src, slot_count);
 #else   // !__CHERI_PURE_CAPABILITY__
+  SlotAddress(dst_reg, dst);
+  SlotAddress(src, src);
   CopyDoubleWords(dst_reg, src, slot_count);
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+void MacroAssembler::CopySlots(Register dst, Register src, Register slot_count,
+                               int size) {
+#else   // !__CHERI_PURE_CAPABILITY__
 void MacroAssembler::CopySlots(Register dst, Register src,
                                Register slot_count) {
+#endif  // __CHERI_PURE_CAPABILITY__
   DCHECK(!dst.IsZero() && !src.IsZero());
+#if defined(__CHERI_PURE_CAPABILITY__)
+  SlotAddress(dst, dst, size);
+  SlotAddress(src, src, size);
+  if (size == kCRegSize) CopyCapabilities(dst, src, slot_count);
+  else {
+    DCHECK_EQ(size, kXRegSize);
+    CopyDoubleWords(dst, src, slot_count);
+  }
+#else   // !__CHERI_PURE_CAPABILITY__
   SlotAddress(dst, dst);
   SlotAddress(src, src);
-#if defined(__CHERI_PURE_CAPABILITY__)
-  CopyCapabilities(dst, src, slot_count);
-#else   // !__CHERI_PURE_CAPABILITY__
   CopyDoubleWords(dst, src, slot_count);
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 #if defined(__CHERI_PURE_CAPABILITY__)
@@ -2184,15 +2202,17 @@ void MacroAssembler::CopyCapabilities(Register dst, Register src, Register count
     }
     // Copy requires pointer1 < pointer2 || (pointer1 - pointer2) >= count.
     Label pointer1_below_pointer2;
-    Subs(pointer1, pointer1, pointer2);
-    B(lt, &pointer1_below_pointer2);
-    UseScratchRegisterScope temps(this);
-    Register temp = temps.AcquireX();
-    Gcvalue(pointer1, temp);
-    Cmp(temp, count);
+    {
+      // Use a temporary register on CHERI because we might run way out of
+      // bounds of the pointer and accidentally invalidate it.
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      Subs(temp, pointer1.X(), pointer2.X());
+      B(lt, &pointer1_below_pointer2);
+      Cmp(temp, count);
+    }
     Check(ge, AbortReason::kOffsetOutOfRange);
     Bind(&pointer1_below_pointer2);
-    Add(pointer1, pointer1, pointer2);
   }
 
   static_assert(kSystemPointerSize == kCRegSize,
@@ -2238,6 +2258,87 @@ void MacroAssembler::CopyCapabilities(Register dst, Register src, Register count
         MemOperand(dst, 2 * dst_direction * kSystemPointerSize, PostIndex));
   }
   B(&loop);
+
+  Bind(&done);
+}
+
+// CHERI version of CopyDoubleWords
+void MacroAssembler::CopyDoubleWords(Register dst, Register src, Register count,
+                                     CopyDoubleWordsMode mode) {
+  ASM_CODE_COMMENT(this);
+  DCHECK(!AreAliased(dst, src, count));
+
+  DCHECK(dst.IsC());
+  DCHECK(src.IsC());
+  if (v8_flags.debug_code) {
+    Register pointer1 = dst;
+    Register pointer2 = src;
+    if (mode == kSrcLessThanDst) {
+      pointer1 = src;
+      pointer2 = dst;
+    }
+    // Copy requires pointer1 < pointer2 || (pointer1 - pointer2) >= count.
+    Label pointer1_below_pointer2;
+    {
+      // Use a temporary register on CHERI because we might run way out of
+      // bounds of the pointer and accidentally invalidate it.
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      Subs(temp, pointer1.X(), pointer2.X());
+      B(lt, &pointer1_below_pointer2);
+      Cmp(temp, count);
+    }
+    Check(ge, AbortReason::kOffsetOutOfRange);
+    Bind(&pointer1_below_pointer2);
+  }
+  static_assert(kSystemPointerAddrSize == kDRegSize,
+                "pointer addresses must be the same size as doubles");
+
+  if (mode == kDstLessThanSrcAndReverse) {
+    Add(src, src, Operand(count, LSL, kSystemPointerAddrSizeLog2));
+    Sub(src, src, kSystemPointerAddrSize);
+  }
+
+  int src_direction = (mode == kDstLessThanSrc) ? 1 : -1;
+  int dst_direction = (mode == kSrcLessThanDst) ? -1 : 1;
+
+  UseScratchRegisterScope scope(this);
+  VRegister temp0 = scope.AcquireD();
+  VRegister temp1 = scope.AcquireD();
+
+  Label pairs, loop, done;
+
+  Tbz(count, 0, &pairs);
+  Ldr(temp0,
+      MemOperand(src, src_direction * kSystemPointerAddrSize, PostIndex));
+  Sub(count, count, 1);
+  Str(temp0,
+      MemOperand(dst, dst_direction * kSystemPointerAddrSize, PostIndex));
+
+  Bind(&pairs);
+  if (mode == kSrcLessThanDst) {
+    // Adjust pointers for post-index ldp/stp with negative offset:
+    Sub(dst, dst, kSystemPointerAddrSize);
+    Sub(src, src, kSystemPointerAddrSize);
+  } else if (mode == kDstLessThanSrcAndReverse) {
+    Sub(src, src, kSystemPointerAddrSize);
+  }
+  Bind(&loop);
+  Cbz(count, &done);
+  Ldp(temp0, temp1,
+      MemOperand(src, 2 * src_direction * kSystemPointerAddrSize, PostIndex));
+  Sub(count, count, 2);
+  if (mode == kDstLessThanSrcAndReverse) {
+    Stp(temp1, temp0,
+        MemOperand(dst, 2 * dst_direction * kSystemPointerAddrSize, PostIndex));
+  } else {
+    Stp(temp0, temp1,
+        MemOperand(dst, 2 * dst_direction * kSystemPointerAddrSize, PostIndex));
+  }
+  B(&loop);
+
+  // TODO(all): large copies may benefit from using temporary Q registers
+  // to copy four double words per iteration.
 
   Bind(&done);
 }
@@ -2314,20 +2415,42 @@ void MacroAssembler::CopyDoubleWords(Register dst, Register src, Register count,
 }
 #endif   // !__CHERI_PURE_CAPABILITY__
 
-void MacroAssembler::SlotAddress(Register dst, int slot_offset) {
-#if defined(__CHERI_PURE_CAPABILITY__)
-  Add(dst, csp, slot_offset << kSystemPointerSizeLog2);
+#ifdef __CHERI_PURE_CAPABILITY__
+void MacroAssembler::SlotAddress(Register dst, int slot_offset, int size) {
 #else   // !__CHERI_PURE_CAPABILITY__
-  Add(dst, sp, slot_offset << kSystemPointerSizeLog2);
-#endif   // !__CHERI_PURE_CAPABILITY__
-}
-
-void MacroAssembler::SlotAddress(Register dst, Register slot_offset) {
+void MacroAssembler::SlotAddress(Register dst, int slot_offset) {
+#endif  // __CHERI_PURE_CAPABILITY__
 #if defined(__CHERI_PURE_CAPABILITY__)
   // XXX(cheri): We are now working in 16-byte granularity. This could be a
   // footgun when pushing X registers onto the stack and expecting to be able to
   // get a slot address for them.
-  Add(dst, csp, Operand(slot_offset, LSL, kSystemPointerSizeLog2));
+  if (size == kCRegSize) {
+    Add(dst, csp, slot_offset << kSystemPointerSizeLog2);
+  } else {
+    DCHECK(size == kXRegSize);
+    Add(dst, csp, slot_offset << kSystemPointerAddrSizeLog2);
+  }
+#else   // !__CHERI_PURE_CAPABILITY__
+  Add(dst, sp, slot_offset << kSystemPointerSizeLog2);
+#endif  // __CHERI_PURE_CAPABILITY__
+}
+
+#ifdef __CHERI_PURE_CAPABILITY__
+void MacroAssembler::SlotAddress(Register dst, Register slot_offset, int size) {
+#else   // !__CHERI_PURE_CAPABILITY__
+void MacroAssembler::SlotAddress(Register dst, Register slot_offset) {
+#endif  // __CHERI_PURE_CAPABILITY__
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // XXX(cheri): We are now working in 16-byte granularity. This could be a
+  // footgun when pushing X registers onto the stack and expecting to be able to
+  // get a slot address for them.
+  DCHECK(!slot_offset.IsC());
+  if (size == kCRegSize)
+    Add(dst, csp, Operand(slot_offset, LSL, kSystemPointerSizeLog2));
+  else {
+    DCHECK(size == kXRegSize);
+    Add(dst, csp, Operand(slot_offset, LSL, kSystemPointerAddrSizeLog2));
+  }
 #else   // !__CHERI_PURE_CAPABILITY__
   Add(dst, sp, Operand(slot_offset, LSL, kSystemPointerSizeLog2));
 #endif   // !__CHERI_PURE_CAPABILITY__

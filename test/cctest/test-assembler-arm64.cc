@@ -14550,7 +14550,11 @@ TEST(copy_slots_down) {
   __ Mov(x5, 1);
   __ Mov(x6, 2);
   __ Mov(x7, 12);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ CopySlots(x5, x6, x7, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Pop(xzr, x4, x5, x6);
   __ Pop(x7, x8, x9, x10);
@@ -14610,7 +14614,11 @@ TEST(copy_slots_up) {
   __ Mov(x5, 1);
   __ Mov(x6, 0);
   __ Mov(x7, 1);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ CopySlots(x5, x6, x7, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Pop(xzr, x10);
 
@@ -14621,7 +14629,11 @@ TEST(copy_slots_up) {
   __ Mov(x5, 2);
   __ Mov(x6, 0);
   __ Mov(x7, 2);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ CopySlots(x5, x6, x7, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
+#endif  // _CHERI_PURE_CAPABILITY
 
   __ Drop(2);
   __ Pop(x11, x12);
@@ -14633,7 +14645,11 @@ TEST(copy_slots_up) {
   __ Mov(x5, 3);
   __ Mov(x6, 0);
   __ Mov(x7, 3);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ CopySlots(x5, x6, x7, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Drop(2);
   __ Pop(xzr, x0, x1, x2);
@@ -14672,10 +14688,19 @@ TEST(copy_double_words_downwards_even) {
   __ Push(x1, x2, x1, x2);
   __ Push(x3, x4, x3, x4);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ SlotAddress(c5, 12, kXRegSize);
+  __ SlotAddress(c6, 11, kXRegSize);
+  Register r5 = c5;
+  Register r6 = c6;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ SlotAddress(x5, 12);
   __ SlotAddress(x6, 11);
+  Register r5 = x5;
+  Register r6 = x6;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x7, 12);
-  __ CopyCapabilities(x5, x6, x7, MacroAssembler::kCapSrcLessThanDst);
+  __ CopyDoubleWords(r5, r6, x7, MacroAssembler::kSrcLessThanDst);
 
   __ Pop(xzr, x4, x5, x6);
   __ Pop(x7, x8, x9, x10);
@@ -14726,10 +14751,19 @@ TEST(copy_double_words_downwards_odd) {
   __ Push(x1, x2, x1, x2);
   __ Push(x3, x4, x3, x4);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ SlotAddress(c5, 13, kXRegSize);
+  __ SlotAddress(c6, 12, kXRegSize);
+  Register r5 = c5;
+  Register r6 = c6;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ SlotAddress(x5, 13);
   __ SlotAddress(x6, 12);
+  Register r5 = x5;
+  Register r6 = x6;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x7, 13);
-  __ CopyCapabilities(x5, x6, x7, MacroAssembler::kCapSrcLessThanDst);
+  __ CopyDoubleWords(r5, r6, x7, MacroAssembler::kSrcLessThanDst);
 
   __ Pop(xzr, x4);
   __ Pop(x5, x6, x7, x8);
@@ -14782,16 +14816,30 @@ TEST(copy_noop) {
   __ Push(x1, x2, x3, x4);
 
   // src < dst, count == 0
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ SlotAddress(c5, 3, kXRegSize);
+  __ SlotAddress(c6, 2, kXRegSize);
+  Register r5 = c5;
+  Register r6 = c6;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ SlotAddress(x5, 3);
   __ SlotAddress(x6, 2);
+  Register r5 = x5;
+  Register r6 = x6;
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x7, 0);
-  __ CopyCapabilities(x5, x6, x7, MacroAssembler::kCapSrcLessThanDst);
+  __ CopyDoubleWords(r5, r6, x7, MacroAssembler::kSrcLessThanDst);
 
   // dst < src, count == 0
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ SlotAddress(c5, 2, kXRegSize);
+  __ SlotAddress(c6, 3, kXRegSize);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ SlotAddress(x5, 2);
   __ SlotAddress(x6, 3);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x7, 0);
-  __ CopyCapabilities(x5, x6, x7, MacroAssembler::kCapDstLessThanSrc);
+  __ CopyDoubleWords(r5, r6, x7, MacroAssembler::kDstLessThanSrc);
 
   __ Pop(x1, x2, x3, x4);
   __ Pop(x5, x6, x7, x8);
