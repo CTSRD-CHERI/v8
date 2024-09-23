@@ -905,11 +905,21 @@ TEST(bic) {
   // field.
   // Use x20 to preserve sp. We check for the result via x21 because the
   // test infrastructure requires that sp be restored to its original value.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c20, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x20, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Mov(x0, 0xFFFFFF);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Bic(csp, x0, Operand(0xABCDEF));
+  __ Gcvalue(csp, x21);
+  __ Cpy(csp, c20);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Bic(sp, x0, Operand(0xABCDEF));
   __ Mov(x21, sp);
   __ Mov(sp, x20);
+#endif  // __CHERI_PURE_CAPABILITY__
   END();
 
   RUN();
