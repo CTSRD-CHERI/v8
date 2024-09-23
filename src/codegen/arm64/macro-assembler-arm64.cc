@@ -2324,6 +2324,9 @@ void MacroAssembler::SlotAddress(Register dst, int slot_offset) {
 
 void MacroAssembler::SlotAddress(Register dst, Register slot_offset) {
 #if defined(__CHERI_PURE_CAPABILITY__)
+  // XXX(cheri): We are now working in 16-byte granularity. This could be a
+  // footgun when pushing X registers onto the stack and expecting to be able to
+  // get a slot address for them.
   Add(dst, csp, Operand(slot_offset, LSL, kSystemPointerSizeLog2));
 #else   // !__CHERI_PURE_CAPABILITY__
   Add(dst, sp, Operand(slot_offset, LSL, kSystemPointerSizeLog2));

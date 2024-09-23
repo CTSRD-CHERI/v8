@@ -836,6 +836,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // Note that unit_size must be specified in bytes. For variants which take a
   // Register count, the unit size must be a power of two.
 #if defined(__CHERI_PURE_CAPABILITY__)
+  // XXX(cheri): Possible footgun with defaulting unit_size to kCRegSize when
+  // dealing with X registers (the default on flat archs).
   inline void Claim(int64_t count, uint64_t unit_size = kCRegSize);
   inline void Claim(const Register& count, uint64_t unit_size = kCRegSize,
                     bool assume_sp_aligned = true);
