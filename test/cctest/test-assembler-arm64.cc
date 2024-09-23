@@ -18156,9 +18156,15 @@ TEST(internal_reference_linked) {
     Assembler::BlockPoolsScope block_pools(&masm);
     Label base;
 
+#ifdef __CHERI_PURE_CAPABILITY__
+    __ Adr(c10, &base);
+    __ Ldr(c11, MemOperand(c10));
+    __ Br(c11);
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Adr(x10, &base);
     __ Ldr(x11, MemOperand(x10));
     __ Br(x11);
+#endif  // __CHERI_PURE_CAPABILITY__
     __ Bind(&base);
     __ dcptr(&done);
   }
