@@ -13500,7 +13500,11 @@ TEST(system_pauth_b) {
   temps.Include(x10, x11);
 
   // Backup stack pointer.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c20, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x20, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Modifiers
   __ Mov(x16, 0x477d469dec0b8768);
@@ -13513,28 +13517,52 @@ TEST(system_pauth_b) {
 
   __ Mov(lr, 0x0000000012345678);
   __ Pacibsp();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x2, lr.X());
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x2, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Authenticate the pointers above.
   __ Mov(x17, x0);
   __ Autib1716();
   __ Mov(x3, x17);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(lr.X(), x2);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(lr, x2);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Autibsp();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x5, lr.X());
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x5, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Attempt to authenticate incorrect pointers.
   __ Mov(x17, x2);
   __ Autib1716();
   __ Mov(x6, x17);
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(lr.X(), x0);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(lr, x0);
+#endif  // __CHERI_PURE_CAPABILITY__
   __ Autibsp();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x8, lr.X());
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x8, lr);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Restore stack pointer.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(csp, c20);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(sp, x20);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Mask out just the PAC code bits.
   __ And(x0, x0, 0x007f000000000000);
