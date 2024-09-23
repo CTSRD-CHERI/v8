@@ -98,6 +98,14 @@ void MacroAssembler::Bic(const Register& rd, const Register& rn,
     Scvalue(rd, rd, temp);
     return;
   }
+  if (rd.IsC()) {
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireX();
+    Gcvalue(rd, temp);
+    LogicalMacro(temp, rn, operand, BIC);
+    Scvalue(rd, rd, temp);
+    return;
+  }
 #endif // __CHERI_PURE_CAPABILITY__
   LogicalMacro(rd, rn, operand, BIC);
 }
