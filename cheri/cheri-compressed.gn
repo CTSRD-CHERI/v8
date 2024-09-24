@@ -26,6 +26,7 @@ v8_enable_sandboxed_external_pointers = true
 
 # Needed because we don't use the wrapper on FreeBSD Morello builds.
 clang_base_path                       = "/usr/local64"
+#cc_wrapper                            = "env CCACHE_PREFIX=distcc CCACHE_SLOPPINESS=time_macros ccache" # Uncomment for distcc and ccache
 extra_cxxflags                        = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
 extra_cflags                          = "-I/usr/include -I/usr/include/c++/v1 --target=aarch64c-unknown-freebsd -mabi=purecap -march=morello -Xclang -morello-vararg=new"
 extra_ldflags                         = "-mabi=purecap"
