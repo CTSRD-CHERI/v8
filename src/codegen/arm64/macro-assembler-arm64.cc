@@ -2178,8 +2178,8 @@ void MacroAssembler::CopySlots(Register dst, Register src,
 #endif  // __CHERI_PURE_CAPABILITY__
   DCHECK(!dst.IsZero() && !src.IsZero());
 #if defined(__CHERI_PURE_CAPABILITY__)
-  SlotAddress(dst, dst, size);
-  SlotAddress(src, src, size);
+  SlotAddress(dst, dst.X(), size);
+  SlotAddress(src, src.X(), size);
   if (size == kCRegSize) CopyCapabilities(dst, src, slot_count);
   else {
     DCHECK_EQ(size, kXRegSize);

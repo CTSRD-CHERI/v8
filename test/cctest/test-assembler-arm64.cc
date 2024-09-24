@@ -14916,7 +14916,7 @@ TEST(copy_slots_down) {
   __ Mov(x6, 2);
   __ Mov(x7, 12);
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ CopySlots(x5, x6, x7, kXRegSize);
+  __ CopySlots(c5, c6, x7, kXRegSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
 #endif  // __CHERI_PURE_CAPABILITY__
@@ -14933,7 +14933,7 @@ TEST(copy_slots_down) {
   __ Mov(x2, 3);
   __ Mov(x3, 1);
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ CopySlots(x1, x2, x3, kXRegSize);
+  __ CopySlots(c1, c2, x3, kXRegSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x1, x2, x3);
 #endif  // __CHERI_PURE_CAPABILITY__
@@ -14988,7 +14988,7 @@ TEST(copy_slots_up) {
   __ Mov(x6, 0);
   __ Mov(x7, 1);
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ CopySlots(x5, x6, x7, kXRegSize);
+  __ CopySlots(c5, c6, x7, kXRegSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
 #endif  // __CHERI_PURE_CAPABILITY__
@@ -15003,7 +15003,7 @@ TEST(copy_slots_up) {
   __ Mov(x6, 0);
   __ Mov(x7, 2);
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ CopySlots(x5, x6, x7, kXRegSize);
+  __ CopySlots(c5, c6, x7, kXRegSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
 #endif  // _CHERI_PURE_CAPABILITY
@@ -15023,7 +15023,7 @@ TEST(copy_slots_up) {
   __ Mov(x6, 0);
   __ Mov(x7, 3);
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ CopySlots(x5, x6, x7, kXRegSize);
+  __ CopySlots(c5, c6, x7, kXRegSize);
 #else   // !__CHERI_PURE_CAPABILITY__
   __ CopySlots(x5, x6, x7);
 #endif  // __CHERI_PURE_CAPABILITY__
