@@ -1072,7 +1072,11 @@ void InstructionSelector::VisitStore(Node* node) {
 #endif  // V8_COMPRESS_POINTERS
       case MachineRepresentation::kCapability64:
         if (paired) {
+#ifdef V8_COMPRESS_POINTERS
+          static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 2);
+#else
           static_assert(ElementSizeLog2Of(MachineRepresentation::kTagged) == 4);
+#endif
           opcode = kArm64StrPairCapability;
         } else {
           opcode = kArm64StrCapability;
