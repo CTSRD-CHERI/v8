@@ -7737,10 +7737,28 @@ TEST(ldp_stp_float) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  Register r16 = c16;
+  Register r17 = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
-  __ Ldp(s31, s0, MemOperand(x16, 2 * sizeof(src[0]), PostIndex));
-  __ Stp(s0, s31, MemOperand(x17, sizeof(dst[1]), PreIndex));
+
+  Register r16 = x16;
+  Register r17 = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(s31, s0, MemOperand(r16, 2 * sizeof(src[0]), PostIndex));
+  __ Stp(s0, s31, MemOperand(r17, sizeof(dst[1]), PreIndex));
   END();
 
   RUN();
@@ -7750,8 +7768,8 @@ TEST(ldp_stp_float) {
   CHECK_EQUAL_FP32(0.0, dst[0]);
   CHECK_EQUAL_FP32(2.0, dst[1]);
   CHECK_EQUAL_FP32(1.0, dst[2]);
-  CHECK_EQUAL_64(src_base + 2 * sizeof(src[0]), x16);
-  CHECK_EQUAL_64(dst_base + sizeof(dst[1]), x17);
+  CHECK_EQUAL_CAP(src_base + 2 * sizeof(src[0]), r16);
+  CHECK_EQUAL_CAP(dst_base + sizeof(dst[1]), r17);
 }
 
 TEST(ldp_stp_double) {
@@ -7764,10 +7782,28 @@ TEST(ldp_stp_double) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  Register r16 = c16;
+  Register r17 = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
-  __ Ldp(d31, d0, MemOperand(x16, 2 * sizeof(src[0]), PostIndex));
-  __ Stp(d0, d31, MemOperand(x17, sizeof(dst[1]), PreIndex));
+
+  Register r16 = x16;
+  Register r17 = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(d31, d0, MemOperand(r16, 2 * sizeof(src[0]), PostIndex));
+  __ Stp(d0, d31, MemOperand(r17, sizeof(dst[1]), PreIndex));
   END();
 
   RUN();
@@ -7777,8 +7813,8 @@ TEST(ldp_stp_double) {
   CHECK_EQUAL_FP64(0.0, dst[0]);
   CHECK_EQUAL_FP64(2.0, dst[1]);
   CHECK_EQUAL_FP64(1.0, dst[2]);
-  CHECK_EQUAL_64(src_base + 2 * sizeof(src[0]), x16);
-  CHECK_EQUAL_64(dst_base + sizeof(dst[1]), x17);
+  CHECK_EQUAL_CAP(src_base + 2 * sizeof(src[0]), r16);
+  CHECK_EQUAL_CAP(dst_base + sizeof(dst[1]), r17);
 }
 
 TEST(ldp_stp_quad) {
@@ -7791,10 +7827,28 @@ TEST(ldp_stp_quad) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  Register r16 = c16;
+  Register r17 = c17;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
-  __ Ldp(q31, q0, MemOperand(x16, 4 * sizeof(src[0]), PostIndex));
-  __ Stp(q0, q31, MemOperand(x17, 2 * sizeof(dst[1]), PreIndex));
+
+  Register r16 = x16;
+  Register r17 = x17;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(q31, q0, MemOperand(r16, 4 * sizeof(src[0]), PostIndex));
+  __ Stp(q0, q31, MemOperand(r17, 2 * sizeof(dst[1]), PreIndex));
   END();
 
   RUN();
@@ -7807,8 +7861,8 @@ TEST(ldp_stp_quad) {
   CHECK_EQUAL_64(0x55555555AAAAAAAA, dst[3]);
   CHECK_EQUAL_64(0x0123456789ABCDEF, dst[4]);
   CHECK_EQUAL_64(0xAAAAAAAA55555555, dst[5]);
-  CHECK_EQUAL_64(src_base + 4 * sizeof(src[0]), x16);
-  CHECK_EQUAL_64(dst_base + 2 * sizeof(dst[1]), x17);
+  CHECK_EQUAL_CAP(src_base + 4 * sizeof(src[0]), r16);
+  CHECK_EQUAL_CAP(dst_base + 2 * sizeof(dst[1]), r17);
 }
 
 TEST(ldp_stp_offset) {
@@ -7822,20 +7876,46 @@ TEST(ldp_stp_offset) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Add(c28, c16, 24);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Add(c19, c17, 56);
+
+  Register r16 = c16;
+  Register r17 = c17;
+  Register r28 = c28;
+  Register r19 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
   __ Mov(x28, src_base + 24);
   __ Mov(x19, dst_base + 56);
-  __ Ldp(w0, w1, MemOperand(x16));
-  __ Ldp(w2, w3, MemOperand(x16, 4));
-  __ Ldp(x4, x5, MemOperand(x16, 8));
-  __ Ldp(w6, w7, MemOperand(x28, -12));
-  __ Ldp(x8, x9, MemOperand(x28, -16));
-  __ Stp(w0, w1, MemOperand(x17));
-  __ Stp(w2, w3, MemOperand(x17, 8));
-  __ Stp(x4, x5, MemOperand(x17, 16));
-  __ Stp(w6, w7, MemOperand(x19, -24));
-  __ Stp(x8, x9, MemOperand(x19, -16));
+
+  Register r16 = x16;
+  Register r17 = x17;
+  Register r28 = x28;
+  Register r19 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(w0, w1, MemOperand(r16));
+  __ Ldp(w2, w3, MemOperand(r16, 4));
+  __ Ldp(x4, x5, MemOperand(r16, 8));
+  __ Ldp(w6, w7, MemOperand(r28, -12));
+  __ Ldp(x8, x9, MemOperand(r28, -16));
+  __ Stp(w0, w1, MemOperand(r17));
+  __ Stp(w2, w3, MemOperand(r17, 8));
+  __ Stp(x4, x5, MemOperand(r17, 16));
+  __ Stp(w6, w7, MemOperand(r19, -24));
+  __ Stp(x8, x9, MemOperand(r19, -16));
   END();
 
   RUN();
@@ -7857,10 +7937,10 @@ TEST(ldp_stp_offset) {
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[5]);
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, x9);
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[6]);
-  CHECK_EQUAL_64(src_base, x16);
-  CHECK_EQUAL_64(dst_base, x17);
-  CHECK_EQUAL_64(src_base + 24, x28);
-  CHECK_EQUAL_64(dst_base + 56, x19);
+  CHECK_EQUAL_CAP(src_base, r16);
+  CHECK_EQUAL_CAP(dst_base, r17);
+  CHECK_EQUAL_CAP(src_base + 24, r28);
+  CHECK_EQUAL_CAP(dst_base + 56, r19);
 }
 
 TEST(ldp_stp_offset_wide) {
@@ -7877,20 +7957,48 @@ TEST(ldp_stp_offset_wide) {
   const int64_t base_offset = 1024;
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x20, src_base);
+  __ Scvalue(c20, csp, x20);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c20, c20, x0);
+  __ Sub(c20, c20, base_offset);
+
+  __ Add(c28, c20, base_offset * 2 + 24);
+
+  __ Mov(x21, dst_base);
+  __ Scvalue(c21, csp, x21);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c21, c21, x0);
+  __ Sub(c21, c21, base_offset);
+
+  __ Add(c19, c21, base_offset * 2 + 56);
+
+  Register r20 = c20;
+  Register r28 = c28;
+  Register r21 = c21;
+  Register r19 = c19;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x20, src_base - base_offset);
   __ Mov(x21, dst_base - base_offset);
   __ Mov(x28, src_base + base_offset + 24);
   __ Mov(x19, dst_base + base_offset + 56);
-  __ Ldp(w0, w1, MemOperand(x20, base_offset));
-  __ Ldp(w2, w3, MemOperand(x20, base_offset + 4));
-  __ Ldp(x4, x5, MemOperand(x20, base_offset + 8));
-  __ Ldp(w6, w7, MemOperand(x28, -12 - base_offset));
-  __ Ldp(x8, x9, MemOperand(x28, -16 - base_offset));
-  __ Stp(w0, w1, MemOperand(x21, base_offset));
-  __ Stp(w2, w3, MemOperand(x21, base_offset + 8));
-  __ Stp(x4, x5, MemOperand(x21, base_offset + 16));
-  __ Stp(w6, w7, MemOperand(x19, -24 - base_offset));
-  __ Stp(x8, x9, MemOperand(x19, -16 - base_offset));
+
+  Register r20 = x20;
+  Register r28 = x28;
+  Register r21 = x21;
+  Register r19 = x19;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(w0, w1, MemOperand(r20, base_offset));
+  __ Ldp(w2, w3, MemOperand(r20, base_offset + 4));
+  __ Ldp(x4, x5, MemOperand(r20, base_offset + 8));
+  __ Ldp(w6, w7, MemOperand(r28, -12 - base_offset));
+  __ Ldp(x8, x9, MemOperand(r28, -16 - base_offset));
+  __ Stp(w0, w1, MemOperand(r21, base_offset));
+  __ Stp(w2, w3, MemOperand(r21, base_offset + 8));
+  __ Stp(x4, x5, MemOperand(r21, base_offset + 16));
+  __ Stp(w6, w7, MemOperand(r19, -24 - base_offset));
+  __ Stp(x8, x9, MemOperand(r19, -16 - base_offset));
   END();
 
   RUN();
@@ -7912,10 +8020,10 @@ TEST(ldp_stp_offset_wide) {
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[5]);
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, x9);
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[6]);
-  CHECK_EQUAL_64(src_base - base_offset, x20);
-  CHECK_EQUAL_64(dst_base - base_offset, x21);
-  CHECK_EQUAL_64(src_base + base_offset + 24, x28);
-  CHECK_EQUAL_64(dst_base + base_offset + 56, x19);
+  CHECK_EQUAL_CAP(src_base - base_offset, r20);
+  CHECK_EQUAL_CAP(dst_base - base_offset, r21);
+  CHECK_EQUAL_CAP(src_base + base_offset + 24, r28);
+  CHECK_EQUAL_CAP(dst_base + base_offset + 56, r19);
 }
 
 TEST(ldp_stp_preindex) {
@@ -7929,21 +8037,51 @@ TEST(ldp_stp_preindex) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Add(c28, c17, 16);
+
+  Register r16 = c16;
+  Register r17 = c17;
+  Register r28 = c28;
+  Register r19 = c19;
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
   __ Mov(x28, dst_base + 16);
-  __ Ldp(w0, w1, MemOperand(x16, 4, PreIndex));
-  __ Mov(x19, x16);
-  __ Ldp(w2, w3, MemOperand(x16, -4, PreIndex));
-  __ Stp(w2, w3, MemOperand(x17, 4, PreIndex));
-  __ Mov(x20, x17);
-  __ Stp(w0, w1, MemOperand(x17, -4, PreIndex));
-  __ Ldp(x4, x5, MemOperand(x16, 8, PreIndex));
-  __ Mov(x21, x16);
-  __ Ldp(x6, x7, MemOperand(x16, -8, PreIndex));
-  __ Stp(x7, x6, MemOperand(x28, 8, PreIndex));
-  __ Mov(x22, x28);
-  __ Stp(x5, x4, MemOperand(x28, -8, PreIndex));
+
+  Register r16 = x16;
+  Register r17 = x17;
+  Register r28 = x28;
+  Register r19 = x19;
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(w0, w1, MemOperand(r16, 4, PreIndex));
+  __ Mov(r19, r16);
+  __ Ldp(w2, w3, MemOperand(r16, -4, PreIndex));
+  __ Stp(w2, w3, MemOperand(r17, 4, PreIndex));
+  __ Mov(r20, r17);
+  __ Stp(w0, w1, MemOperand(r17, -4, PreIndex));
+  __ Ldp(x4, x5, MemOperand(r16, 8, PreIndex));
+  __ Mov(r21, r16);
+  __ Ldp(x6, x7, MemOperand(r16, -8, PreIndex));
+  __ Stp(x7, x6, MemOperand(r28, 8, PreIndex));
+  __ Mov(r22, r28);
+  __ Stp(x5, x4, MemOperand(r28, -8, PreIndex));
   END();
 
   RUN();
@@ -7961,13 +8099,13 @@ TEST(ldp_stp_preindex) {
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[2]);
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[3]);
   CHECK_EQUAL_64(0x0011223344556677UL, dst[4]);
-  CHECK_EQUAL_64(src_base, x16);
-  CHECK_EQUAL_64(dst_base, x17);
-  CHECK_EQUAL_64(dst_base + 16, x28);
-  CHECK_EQUAL_64(src_base + 4, x19);
-  CHECK_EQUAL_64(dst_base + 4, x20);
-  CHECK_EQUAL_64(src_base + 8, x21);
-  CHECK_EQUAL_64(dst_base + 24, x22);
+  CHECK_EQUAL_CAP(src_base, r16);
+  CHECK_EQUAL_CAP(dst_base, r17);
+  CHECK_EQUAL_CAP(dst_base + 16, r28);
+  CHECK_EQUAL_CAP(src_base + 4, r19);
+  CHECK_EQUAL_CAP(dst_base + 4, r20);
+  CHECK_EQUAL_CAP(src_base + 8, r21);
+  CHECK_EQUAL_CAP(dst_base + 24, r22);
 }
 
 TEST(ldp_stp_preindex_wide) {
@@ -7984,26 +8122,96 @@ TEST(ldp_stp_preindex_wide) {
   const int64_t base_offset = 1024;
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c24, c24, x0);
+  __ Sub(c24, c24, base_offset);
+
+  __ Mov(x25, dst_base);
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c25, c25, x0);
+  __ Add(c25, c25, base_offset);
+
+  __ Add(c28, c25, 16);
+
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r28 = c28;
+  Register r19 = c19;
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+#else // !__CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base - base_offset);
   __ Mov(x25, dst_base + base_offset);
   __ Mov(x28, dst_base + base_offset + 16);
-  __ Ldp(w0, w1, MemOperand(x24, base_offset + 4, PreIndex));
-  __ Mov(x19, x24);
+
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r28 = x28;
+  Register r19 = x19;
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+#endif
+  __ Ldp(w0, w1, MemOperand(r24, base_offset + 4, PreIndex));
+  __ Mov(r19, r24);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x2, sizeof(src));
+  __ Scbndse(c24, c24, x2);
+  __ Sub(c24, c24, base_offset - 4);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base - base_offset + 4);
-  __ Ldp(w2, w3, MemOperand(x24, base_offset - 4, PreIndex));
-  __ Stp(w2, w3, MemOperand(x25, 4 - base_offset, PreIndex));
-  __ Mov(x20, x25);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(w2, w3, MemOperand(r24, base_offset - 4, PreIndex));
+  __ Stp(w2, w3, MemOperand(r25, 4 - base_offset, PreIndex));
+  __ Mov(r20, r25);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x25, dst_base);
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x4, sizeof(dst));
+  __ Scbndse(c25, c25, x4);
+  __ Add(c25, c25, base_offset + 4);
+
+  __ Mov(x24, src_base);
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x4, sizeof(src));
+  __ Scbndse(c24, c24, x4);
+  __ Sub(c24, c24, base_offset);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x25, dst_base + base_offset + 4);
   __ Mov(x24, src_base - base_offset);
-  __ Stp(w0, w1, MemOperand(x25, -4 - base_offset, PreIndex));
-  __ Ldp(x4, x5, MemOperand(x24, base_offset + 8, PreIndex));
-  __ Mov(x21, x24);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Stp(w0, w1, MemOperand(r25, -4 - base_offset, PreIndex));
+  __ Ldp(x4, x5, MemOperand(r24, base_offset + 8, PreIndex));
+  __ Mov(r21, r24);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x6, sizeof(src));
+  __ Scbndse(c24, c24, x6);
+  __ Sub(c24, c24, base_offset - 8);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base - base_offset + 8);
-  __ Ldp(x6, x7, MemOperand(x24, base_offset - 8, PreIndex));
-  __ Stp(x7, x6, MemOperand(x28, 8 - base_offset, PreIndex));
-  __ Mov(x22, x28);
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(x6, x7, MemOperand(r24, base_offset - 8, PreIndex));
+  __ Stp(x7, x6, MemOperand(r28, 8 - base_offset, PreIndex));
+  __ Mov(r22, r28);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x28, dst_base);
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x8, sizeof(dst));
+  __ Scbndse(c28, c28, x8);
+  __ Add(c28, c28, base_offset + 16 + 8);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x28, dst_base + base_offset + 16 + 8);
-  __ Stp(x5, x4, MemOperand(x28, -8 - base_offset, PreIndex));
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Stp(x5, x4, MemOperand(r28, -8 - base_offset, PreIndex));
   END();
 
   RUN();
@@ -8021,13 +8229,13 @@ TEST(ldp_stp_preindex_wide) {
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[2]);
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[3]);
   CHECK_EQUAL_64(0x0011223344556677UL, dst[4]);
-  CHECK_EQUAL_64(src_base, x24);
-  CHECK_EQUAL_64(dst_base, x25);
-  CHECK_EQUAL_64(dst_base + 16, x28);
-  CHECK_EQUAL_64(src_base + 4, x19);
-  CHECK_EQUAL_64(dst_base + 4, x20);
-  CHECK_EQUAL_64(src_base + 8, x21);
-  CHECK_EQUAL_64(dst_base + 24, x22);
+  CHECK_EQUAL_CAP(src_base, r24);
+  CHECK_EQUAL_CAP(dst_base, r25);
+  CHECK_EQUAL_CAP(dst_base + 16, r28);
+  CHECK_EQUAL_CAP(src_base + 4, r19);
+  CHECK_EQUAL_CAP(dst_base + 4, r20);
+  CHECK_EQUAL_CAP(src_base + 8, r21);
+  CHECK_EQUAL_CAP(dst_base + 24, r22);
 }
 
 TEST(ldp_stp_postindex) {
@@ -8041,21 +8249,51 @@ TEST(ldp_stp_postindex) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x16, src_base);
+  __ Scvalue(c16, csp, x16);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c16, c16, x0);
+
+  __ Mov(x17, dst_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c17, c17, x0);
+
+  __ Add(c28, c17, 16);
+
+  Register r16 = c16;
+  Register r17 = c17;
+  Register r28 = c28;
+  Register r19 = c19;
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+#else
   __ Mov(x16, src_base);
   __ Mov(x17, dst_base);
   __ Mov(x28, dst_base + 16);
-  __ Ldp(w0, w1, MemOperand(x16, 4, PostIndex));
-  __ Mov(x19, x16);
-  __ Ldp(w2, w3, MemOperand(x16, -4, PostIndex));
-  __ Stp(w2, w3, MemOperand(x17, 4, PostIndex));
-  __ Mov(x20, x17);
-  __ Stp(w0, w1, MemOperand(x17, -4, PostIndex));
-  __ Ldp(x4, x5, MemOperand(x16, 8, PostIndex));
-  __ Mov(x21, x16);
-  __ Ldp(x6, x7, MemOperand(x16, -8, PostIndex));
-  __ Stp(x7, x6, MemOperand(x28, 8, PostIndex));
-  __ Mov(x22, x28);
-  __ Stp(x5, x4, MemOperand(x28, -8, PostIndex));
+
+  Register r16 = x16;
+  Register r17 = x17;
+  Register r28 = x28;
+  Register r19 = x19;
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+#endif
+  __ Ldp(w0, w1, MemOperand(r16, 4, PostIndex));
+  __ Mov(r19, r16);
+  __ Ldp(w2, w3, MemOperand(r16, -4, PostIndex));
+  __ Stp(w2, w3, MemOperand(r17, 4, PostIndex));
+  __ Mov(r20, r17);
+  __ Stp(w0, w1, MemOperand(r17, -4, PostIndex));
+  __ Ldp(x4, x5, MemOperand(r16, 8, PostIndex));
+  __ Mov(r21, r16);
+  __ Ldp(x6, x7, MemOperand(r16, -8, PostIndex));
+  __ Stp(x7, x6, MemOperand(r28, 8, PostIndex));
+  __ Mov(r22, r28);
+  __ Stp(x5, x4, MemOperand(r28, -8, PostIndex));
   END();
 
   RUN();
@@ -8073,13 +8311,13 @@ TEST(ldp_stp_postindex) {
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[2]);
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[3]);
   CHECK_EQUAL_64(0x0011223344556677UL, dst[4]);
-  CHECK_EQUAL_64(src_base, x16);
-  CHECK_EQUAL_64(dst_base, x17);
-  CHECK_EQUAL_64(dst_base + 16, x28);
-  CHECK_EQUAL_64(src_base + 4, x19);
-  CHECK_EQUAL_64(dst_base + 4, x20);
-  CHECK_EQUAL_64(src_base + 8, x21);
-  CHECK_EQUAL_64(dst_base + 24, x22);
+  CHECK_EQUAL_CAP(src_base, r16);
+  CHECK_EQUAL_CAP(dst_base, r17);
+  CHECK_EQUAL_CAP(dst_base + 16, r28);
+  CHECK_EQUAL_CAP(src_base + 4, r19);
+  CHECK_EQUAL_CAP(dst_base + 4, r20);
+  CHECK_EQUAL_CAP(src_base + 8, r21);
+  CHECK_EQUAL_CAP(dst_base + 24, r22);
 }
 
 TEST(ldp_stp_postindex_wide) {
@@ -8096,26 +8334,56 @@ TEST(ldp_stp_postindex_wide) {
   const int64_t base_offset = 1024;
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c24, c24, x0);
+
+  __ Mov(x25, dst_base);
+  __ Scvalue(c25, csp, x25);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c25, c25, x0);
+
+  __ Add(c28, c25, 16);
+
+  Register r24 = c24;
+  Register r25 = c25;
+  Register r28 = c28;
+  Register r19 = c19;
+  Register r20 = c20;
+  Register r21 = c21;
+  Register r22 = c22;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base);
   __ Mov(x25, dst_base);
   __ Mov(x28, dst_base + 16);
-  __ Ldp(w0, w1, MemOperand(x24, base_offset + 4, PostIndex));
-  __ Mov(x19, x24);
-  __ Sub(x24, x24, base_offset);
-  __ Ldp(w2, w3, MemOperand(x24, base_offset - 4, PostIndex));
-  __ Stp(w2, w3, MemOperand(x25, 4 - base_offset, PostIndex));
-  __ Mov(x20, x25);
-  __ Sub(x24, x24, base_offset);
-  __ Add(x25, x25, base_offset);
-  __ Stp(w0, w1, MemOperand(x25, -4 - base_offset, PostIndex));
-  __ Ldp(x4, x5, MemOperand(x24, base_offset + 8, PostIndex));
-  __ Mov(x21, x24);
-  __ Sub(x24, x24, base_offset);
-  __ Ldp(x6, x7, MemOperand(x24, base_offset - 8, PostIndex));
-  __ Stp(x7, x6, MemOperand(x28, 8 - base_offset, PostIndex));
-  __ Mov(x22, x28);
-  __ Add(x28, x28, base_offset);
-  __ Stp(x5, x4, MemOperand(x28, -8 - base_offset, PostIndex));
+
+  Register r24 = x24;
+  Register r25 = x25;
+  Register r28 = x28;
+  Register r19 = x19;
+  Register r20 = x20;
+  Register r21 = x21;
+  Register r22 = x22;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldp(w0, w1, MemOperand(r24, base_offset + 4, PostIndex));
+  __ Mov(r19, r24);
+  __ Sub(r24, r24, base_offset);
+  __ Ldp(w2, w3, MemOperand(r24, base_offset - 4, PostIndex));
+  __ Stp(w2, w3, MemOperand(r25, 4 - base_offset, PostIndex));
+  __ Mov(r20, r25);
+  __ Sub(r24, r24, base_offset);
+  __ Add(r25, r25, base_offset);
+  __ Stp(w0, w1, MemOperand(r25, -4 - base_offset, PostIndex));
+  __ Ldp(x4, x5, MemOperand(r24, base_offset + 8, PostIndex));
+  __ Mov(r21, r24);
+  __ Sub(r24, r24, base_offset);
+  __ Ldp(x6, x7, MemOperand(r24, base_offset - 8, PostIndex));
+  __ Stp(x7, x6, MemOperand(r28, 8 - base_offset, PostIndex));
+  __ Mov(r22, r28);
+  __ Add(r28, r28, base_offset);
+  __ Stp(x5, x4, MemOperand(r28, -8 - base_offset, PostIndex));
   END();
 
   RUN();
@@ -8133,13 +8401,13 @@ TEST(ldp_stp_postindex_wide) {
   CHECK_EQUAL_64(0xFFEEDDCCBBAA9988UL, dst[2]);
   CHECK_EQUAL_64(0x8899AABBCCDDEEFFUL, dst[3]);
   CHECK_EQUAL_64(0x0011223344556677UL, dst[4]);
-  CHECK_EQUAL_64(src_base + base_offset, x24);
-  CHECK_EQUAL_64(dst_base - base_offset, x25);
-  CHECK_EQUAL_64(dst_base - base_offset + 16, x28);
-  CHECK_EQUAL_64(src_base + base_offset + 4, x19);
-  CHECK_EQUAL_64(dst_base - base_offset + 4, x20);
-  CHECK_EQUAL_64(src_base + base_offset + 8, x21);
-  CHECK_EQUAL_64(dst_base - base_offset + 24, x22);
+  CHECK_EQUAL_CAP(src_base + base_offset, r24);
+  CHECK_EQUAL_CAP(dst_base - base_offset, r25);
+  CHECK_EQUAL_CAP(dst_base - base_offset + 16, r28);
+  CHECK_EQUAL_CAP(src_base + base_offset + 4, r19);
+  CHECK_EQUAL_CAP(dst_base - base_offset + 4, r20);
+  CHECK_EQUAL_CAP(src_base + base_offset + 8, r21);
+  CHECK_EQUAL_CAP(dst_base - base_offset + 24, r22);
 }
 
 TEST(ldp_sign_extend) {
@@ -8150,8 +8418,18 @@ TEST(ldp_sign_extend) {
   uintptr_t src_base = reinterpret_cast<uintptr_t>(src);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
   __ Mov(x24, src_base);
-  __ Ldpsw(x0, x1, MemOperand(x24));
+  __ Scvalue(c24, csp, x24);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c24, c24, x0);
+
+  Register r24 = c24;
+#else   // !__CHERI_PURE_CAPABILITY__
+  __ Mov(x24, src_base);
+  Register r24 = x24;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldpsw(x0, x1, MemOperand(r24));
   END();
 
   RUN();
@@ -8170,19 +8448,47 @@ TEST(ldur_stur) {
   uintptr_t dst_base = reinterpret_cast<uintptr_t>(dst);
 
   START();
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x17, src_base);
+  __ Scvalue(c17, csp, x17);
+  __ Mov(x0, sizeof(src));
+  __ Scbndse(c17, c17, x0);
+
+  __ Mov(x28, dst_base);
+  __ Scvalue(c28, csp, x28);
+  __ Mov(x0, sizeof(dst));
+  __ Scbndse(c28, c28, x0);
+
+  __ Add(c19, c17, 16);
+  __ Add(c20, c28, 32);
+  __ Add(c21, c28, 40);
+
+  Register r17 = c17;
+  Register r28 = c28;
+  Register r19 = c19;
+  Register r20 = c20;
+  Register r21 = c21;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x17, src_base);
   __ Mov(x28, dst_base);
   __ Mov(x19, src_base + 16);
   __ Mov(x20, dst_base + 32);
   __ Mov(x21, dst_base + 40);
-  __ Ldr(w0, MemOperand(x17, 1));
-  __ Str(w0, MemOperand(x28, 2));
-  __ Ldr(x1, MemOperand(x17, 3));
-  __ Str(x1, MemOperand(x28, 9));
-  __ Ldr(w2, MemOperand(x19, -9));
-  __ Str(w2, MemOperand(x20, -5));
-  __ Ldrb(w3, MemOperand(x19, -1));
-  __ Strb(w3, MemOperand(x21, -1));
+
+  Register r17 = x17;
+  Register r28 = x28;
+  Register r19 = x19;
+  Register r20 = x20;
+  Register r21 = x21;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(w0, MemOperand(r17, 1));
+  __ Str(w0, MemOperand(r28, 2));
+  __ Ldr(x1, MemOperand(r17, 3));
+  __ Str(x1, MemOperand(r28, 9));
+  __ Ldr(w2, MemOperand(r19, -9));
+  __ Str(w2, MemOperand(r20, -5));
+  __ Ldrb(w3, MemOperand(r19, -1));
+  __ Strb(w3, MemOperand(r21, -1));
   END();
 
   RUN();
@@ -8196,10 +8502,10 @@ TEST(ldur_stur) {
   CHECK_EQUAL_64(0x00ABCDEF01000000L, dst[3]);
   CHECK_EQUAL_64(0x00000001, x3);
   CHECK_EQUAL_64(0x0100000000000000L, dst[4]);
-  CHECK_EQUAL_64(src_base, x17);
-  CHECK_EQUAL_64(dst_base, x28);
-  CHECK_EQUAL_64(src_base + 16, x19);
-  CHECK_EQUAL_64(dst_base + 32, x20);
+  CHECK_EQUAL_CAP(src_base, r17);
+  CHECK_EQUAL_CAP(dst_base, r28);
+  CHECK_EQUAL_CAP(src_base + 16, r19);
+  CHECK_EQUAL_CAP(dst_base + 32, r20);
 }
 
 TEST(ldr_pcrel_large_offset) {
@@ -8653,6 +8959,7 @@ TEST(add_sub_zero) {
   __ Sub(x2, x2, xzr);
   CHECK_EQ(0u, __ SizeOfCodeGeneratedSince(&blob1));
 
+  Register r28 = x28;
   Label blob2;
   __ Bind(&blob2);
   __ Add(w3, w3, 0);
@@ -15794,7 +16101,11 @@ TEST(printf) {
   // Initialize x29 to the value of the stack pointer. We will use x29 as a
   // temporary stack pointer later, and initializing it in this way allows the
   // RegisterDump check to pass.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c29, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Test simple integer arguments.
   __ Mov(x0, 1234);
@@ -15804,7 +16115,14 @@ TEST(printf) {
   __ Fmov(d0, 1.234);
 
   // Test pointer (string) arguments.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(x2, __builtin_cheri_address_get(test_substring));
+  __ Scvalue(c2, csp, x2);
+  __ Mov(x3, __builtin_cheri_length_get(test_substring));
+  __ Scbndse(c2, c2, x3);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x2, reinterpret_cast<uintptr_t>(test_substring));
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Test the maximum number of arguments, and sign extension.
   __ Mov(w3, 0xFFFFFFFF);
@@ -16163,7 +16481,7 @@ TEST(cas_casa_casl_casal_w) {
   __ Casl(w5, w0, MemOperand(r25));
   __ Casl(w6, w0, MemOperand(r26));
   __ Casal(w7, w0, MemOperand(r27));
-  __ Casal(w8, w0, MemOperand(x28));
+  __ Casal(w8, w0, MemOperand(r28));
 
   END();
 
