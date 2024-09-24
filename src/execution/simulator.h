@@ -103,10 +103,6 @@ class GeneratedCode {
   using Signature = Return(Args...);
 
   static GeneratedCode FromAddress(Isolate* isolate, Address addr) {
-#if defined(__CHERI_PURE_CAPABILITY__)
-    const ptraddr_t c64_bit = 1;
-    addr = __builtin_cheri_seal_entry(addr | c64_bit);
-#endif   // __CHERI_PURE_CAPABILITY__
     return GeneratedCode(isolate, reinterpret_cast<Signature*>(addr));
   }
 
