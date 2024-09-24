@@ -100,23 +100,6 @@ add_custom_target(gcc-toolchain ALL
 add_custom_target(checkout-google-benchmark ALL
   COMMAND sed -i '' 's|%%LOCALBASE%%|/usr/local|' ${CMAKE_SOURCE_DIR}/build/toolchain/gcc_toolchain.gni ${CMAKE_SOURCE_DIR}/buildtools/third_party/libc++/BUILD.gn)
 
-add_custom_target(replace-icu ALL
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/build/linux/unbundle/replace_gn_files.py --system-libraries icu)
-
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/shim_headers/icui18n_shim/third_party/icu/source/i18n/unicode)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/shim_headers/icuuc_shim/third_party/icu/source/common/unicode)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/out/Release/gen/include)
-
-if (NO_CHERI MATCHES "yes")
-  add_custom_target(cp-icu ALL
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMAND cp -R /usr/local/include/unicode ${CMAKE_SOURCE_DIR}/out/Release/gen/include/unicode)
-else()
-  add_custom_target(cp-icu ALL
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMAND cp -R /usr/local64/include/unicode ${CMAKE_SOURCE_DIR}/out/Release/gen/include/unicode)
-endif()
-
 if (NO_CHERI MATCHES "yes")
   if (UNCOMPRESSED MATCHES "yes")
     set(V8_TARGET_DIRECTORY out/flat.uncompressed.release)
@@ -134,6 +117,7 @@ else()
     set(V8_GN_FILE cheri/cheri-compressed.gn)
   endif()
 endif()
+
 
 add_custom_target(mkdir-target ALL
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
