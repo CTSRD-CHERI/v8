@@ -8682,11 +8682,19 @@ TEST(preshift_immediates) {
   // the arithmetic or logical operation.
 
   // Save sp.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Cpy(c29, csp);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x29, sp);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Set the registers to known values.
   __ Mov(x0, 0x1000);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Mov(csp.X(), 0x1000);
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(sp, 0x1000);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // Arithmetic ops.
   __ Add(x1, x0, 0x1F7DE);
@@ -8704,10 +8712,25 @@ TEST(preshift_immediates) {
   __ Eor(x11, x0, 0x18001);
 
   // Ops using the stack pointer.
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Add(csp.X(), csp.X(), 0x1F7F0);
+  __ Mov(x12, csp.X());
+  __ Mov(csp.X(), 0x1000);
+  __ Adds(x13, csp.X(), 0x1F7F0);
+
+  __ Orr(csp, c0, 0x1F7F0);
+  __ Mov(x14, csp.X());
+  __ Mov(csp.X(), 0x1000);
+
+  __ Add(csp.X(), csp.X(), 0x10100);
+  __ Mov(x15, csp.X());
+
+  //  Restore sp.
+  __ Mov(csp, c29);
+#else   //!__CHERI_PURE_CAPABILITY__
   __ Add(sp, sp, 0x1F7F0);
   __ Mov(x12, sp);
   __ Mov(sp, 0x1000);
-
   __ Adds(x13, sp, 0x1F7F0);
 
   __ Orr(sp, x0, 0x1F7F0);
@@ -8719,6 +8742,9 @@ TEST(preshift_immediates) {
 
   //  Restore sp.
   __ Mov(sp, x29);
+#endif  // __CHERI_PURE_CAPABILITY__
+
+
   END();
 
   RUN();
