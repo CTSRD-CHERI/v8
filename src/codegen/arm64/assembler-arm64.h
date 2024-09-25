@@ -2883,6 +2883,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline static Instr ImmRotate(unsigned immr, unsigned reg_size);
 #ifdef __CHERI_PURE_CAPABILITY__
   inline static Instr ImmSealForm(Cheri::SealImmediateForm form);
+  inline static Instr CImmLLiteral(int imm17);
 #endif
   inline static Instr ImmLLiteral(int imm19);
   inline static Instr BitN(unsigned bitn, unsigned reg_size);
@@ -3074,6 +3075,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
 
   static bool IsImmLSUnscaled(int64_t offset);
   static bool IsImmLSScaled(int64_t offset, unsigned size);
+#ifdef __CHERI_PURE_CAPABILITY__
+  static bool IsCImmLLiteral(int64_t offset);
+#endif  // __CHERI_PURE_CAPABILITY__
   static bool IsImmLLiteral(int64_t offset);
 
   // Move immediates encoding.

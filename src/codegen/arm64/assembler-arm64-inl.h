@@ -560,7 +560,7 @@ Address Assembler::target_pointer_address_at(Address pc) {
 #else
   DCHECK(instr->IsLdrLiteralX() || instr->IsLdrLiteralW());
 #endif // __CHERI_PURE_CAPABILITY__
-  return reinterpret_cast<Address>(instr->ImmPCOffsetTarget());
+  return reinterpret_cast<Address>(instr->ImmPCOffsetTarget(pc));
 }
 
 // Read/Modify the code target address in the branch/call instruction at pc.
@@ -608,10 +608,10 @@ Assembler::embedded_object_index_referenced_from(Address pc) {
 #if defined(__CHERI_PURE_CAPABILITY__)
   if (instr->IsLdrLiteralC()) {
     static_assert(sizeof(EmbeddedObjectIndex) == sizeof(ptraddr_t));
-#else
+#else   // !__CHERI_PURE_CAPABILITY__
   if (instr->IsLdrLiteralX()) {
     static_assert(sizeof(EmbeddedObjectIndex) == sizeof(intptr_t));
-#endif // __CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
     return Memory<EmbeddedObjectIndex>(target_pointer_address_at(pc));
   } else {
     DCHECK(instr->IsLdrLiteralW());
@@ -696,7 +696,7 @@ void Assembler::set_target_address_at(Address pc, Address constant_pool,
   if (instr->IsLdrLiteralC()) {
 #else
   if (instr->IsLdrLiteralX()) {
-#endif // __CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
     Memory<Address>(target_pointer_address_at(pc)) = target;
     // Intuitively, we would think it is necessary to always flush the
     // instruction cache after patching a target address in the code. However,
@@ -1110,6 +1110,11 @@ Instr Assembler::ImmRotate(unsigned immr, unsigned reg_size) {
 #ifdef __CHERI_PURE_CAPABILITY__
 Instr Assembler::ImmSealForm(Cheri::SealImmediateForm form) {
   return form << 13;
+}
+
+Instr Assembler::CImmLLiteral(int imm17) {
+  CHECK(is_int17(imm17));
+  return truncate_to_int17(imm17) << CImmLLiteral_offset;
 }
 #endif // __CHERI_PURE_CAPABILITY__
 

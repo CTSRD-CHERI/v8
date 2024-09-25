@@ -211,6 +211,12 @@ class Instruction {
     return base::bit_cast<double>(result);
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  bool IsCapLdrLiteral() const {
+    return Mask(LoadLiteralCapFMask) == LoadLiteralCapFixed;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   bool IsLdrLiteral() const {
 #if defined(__CHERI_PURE_CAPABILITY__)
     return Mask(LoadLiteralFMask) == LoadLiteralFixed ||
@@ -443,11 +449,11 @@ class Instruction {
   // Find the PC offset encoded in this instruction. 'this' may be a branch or
   // a PC-relative addressing instruction.
   // The offset returned is unscaled.
-  V8_EXPORT_PRIVATE int64_t ImmPCOffset();
+  V8_EXPORT_PRIVATE int64_t ImmPCOffset(Address pc = 0);
 
   // Find the target of this instruction. 'this' may be a branch or a
   // PC-relative addressing instruction.
-  V8_EXPORT_PRIVATE Instruction* ImmPCOffsetTarget();
+  V8_EXPORT_PRIVATE Instruction* ImmPCOffsetTarget(Address pc = 0);
 
   // Check if the offset is in range of a given branch type. The offset is
   // a byte offset, unscaled.

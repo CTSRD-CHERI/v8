@@ -278,16 +278,18 @@ using float16 = uint16_t;
   V_(ImmNEONImmb, 18, 16, Bits)
 
 #if defined(__CHERI_PURE_CAPABILITY__)
-#define AARCH64C_INSTRUCTION_FIELDS_LIST(V_)                            \
-  V_(Cd, 4, 0, Bits)    /* Destination capability register.     */      \
-  V_(Cn, 9, 5, Bits)    /* First source capability register.    */      \
-  V_(Cm, 20, 16, Bits)  /* Second source register.   */                 \
-  V_(Ct, 4, 0, Bits)    /* Load dest / store source. */                 \
-  V_(Ct2, 14, 10, Bits) /* Load second dest /        */                 \
-                                                                        \
-  /* Morello add/subtract capability immediate */                       \
-  V_(ImmAddSubCapability, 21, 10, Bits)                                 \
-  V_(ShiftAddSubCapability, 23, 22, Bits)
+#define AARCH64C_INSTRUCTION_FIELDS_LIST(V_)                       \
+  V_(Cd, 4, 0, Bits)    /* Destination capability register.     */ \
+  V_(Cn, 9, 5, Bits)    /* First source capability register.    */ \
+  V_(Cm, 20, 16, Bits)  /* Second source register.   */            \
+  V_(Ct, 4, 0, Bits)    /* Load dest / store source. */            \
+  V_(Ct2, 14, 10, Bits) /* Load second dest /        */            \
+                                                                   \
+  /* Morello add/subtract capability immediate */                  \
+  V_(ImmAddSubCapability, 21, 10, Bits)                            \
+  V_(ShiftAddSubCapability, 23, 22, Bits)                          \
+  /* Morello ImmLLiteral (Imm17 as opposed to Imm19) */            \
+  V_(CImmLLiteral, 21, 5, Bits)
 #endif   // __CHERI_PURE_CAPABILITY__
 
 #define SYSTEM_REGISTER_FIELDS_LIST(V_, M_) \

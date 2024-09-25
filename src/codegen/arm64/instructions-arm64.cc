@@ -246,7 +246,7 @@ unsigned CalcLSPairDataSize(LoadStorePairOp op, const CPURegister& rt) {
   }
 }
 
-int64_t Instruction::ImmPCOffset() {
+int64_t Instruction::ImmPCOffset(Address pc) {
   int64_t offset;
   if (IsPCRelAddressing()) {
     // PC-relative addressing. Only ADR is supported.
@@ -262,14 +262,23 @@ int64_t Instruction::ImmPCOffset() {
     // Load literal (offset from PC).
     DCHECK(IsLdrLiteral());
     // The offset is always shifted by 2 bits, even for loads to 64-bits
-    // registers.
-    offset = ImmLLiteral() * kInstrSize;
+    // registers unless we are using a capability register. In that case, it's
+    // shifted by 4 bits.
+#ifdef __CHERI_PURE_CAPABILITY__
+    if (IsCapLdrLiteral()) {
+      DCHECK_NE(pc, 0);
+      const size_t pc_remainder =
+          __builtin_cheri_address_get(pc) & (kSystemPointerSize - 1);
+      offset = CImmLLiteral() * kLoadCapLiteralScale - pc_remainder;
+    } else
+#endif  // __CHERI_PURE_CAPABILITY__
+      offset = ImmLLiteral() * kInstrSize;
   }
   return offset;
 }
 
-Instruction* Instruction::ImmPCOffsetTarget() {
-  return InstructionAtOffset(ImmPCOffset());
+Instruction* Instruction::ImmPCOffsetTarget(Address pc) {
+  return InstructionAtOffset(ImmPCOffset(pc));
 }
 
 bool Instruction::IsValidImmPCOffset(ImmBranchType branch_type,
@@ -364,10 +373,20 @@ void Instruction::SetUnresolvedInternalReferenceImmTarget(
 void Instruction::SetImmLLiteral(Instruction* source) {
   DCHECK(IsLdrLiteral());
   DCHECK(IsAligned(DistanceTo(source), kInstrSize));
+#ifdef __CHERI_PURE_CAPABILITY__
+  // It makes no sense to check if we can encode it because we are forcefully
+  // encoding it and relying on the instruction itself aligning the address down
+  // to the multiple of pointer size.
+  Instr imm = Assembler::CImmLLiteral(
+      static_cast<int>(RoundUp(DistanceTo(source), kLoadCapLiteralScale) >>
+                       kLoadCapLiteralScaleLog2));
+  Instr mask = CImmLLiteral_mask;
+#else   // !__CHERI_PURE_CAPABILITY__
   DCHECK(Assembler::IsImmLLiteral(DistanceTo(source)));
   Instr imm = Assembler::ImmLLiteral(
       static_cast<int>(DistanceTo(source) >> kLoadLiteralScaleLog2));
   Instr mask = ImmLLiteral_mask;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   SetInstructionBits(Mask(~mask) | imm);
 }

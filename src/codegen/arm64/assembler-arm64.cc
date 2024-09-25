@@ -1552,7 +1552,14 @@ void Assembler::ldr_pcrel(const CPURegister& rt, int imm19) {
   // The pattern 'ldr xzr, #offset' is used to indicate the beginning of a
   // constant pool. It should not be emitted.
   DCHECK(!rt.IsZero());
-  Emit(LoadLiteralOpFor(rt) | ImmLLiteral(imm19) | Rt(rt));
+#ifdef __CHERI_PURE_CAPABILITY__
+  // On CHERI systems, when we load a pcrel literal into a capability register,
+  // we are actually dealing with an imm17 rather than an imm19.
+  if (rt.IsC())
+    Emit(LoadLiteralOpFor(rt) | CImmLLiteral(imm19) | Rt(rt));
+  else
+#endif  // __CHERI_PURE_CAPABILITY__
+    Emit(LoadLiteralOpFor(rt) | ImmLLiteral(imm19) | Rt(rt));
 }
 
 Operand Operand::EmbeddedNumber(double number) {
@@ -4468,6 +4475,18 @@ bool Assembler::IsImmLSPair(int64_t offset, unsigned size) {
        offset);
   return offset_is_size_multiple && is_int7(offset >> size);
 }
+
+#ifdef __CHERI_PURE_CAPABILITY__
+bool Assembler::IsCImmLLiteral(int64_t offset) {
+  bool offset_is_ptr_multiple =
+      (static_cast<int64_t>(
+           static_cast<uint64_t>(offset >> kLoadCapLiteralScaleLog2)
+           << kLoadCapLiteralScaleLog2) == offset);
+  DCHECK_GT(offset, 0);
+  offset >>= kLoadCapLiteralScaleLog2;
+  return offset_is_ptr_multiple && is_intn(offset, CImmLLiteral_width);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 bool Assembler::IsImmLLiteral(int64_t offset) {
   int inst_size = static_cast<int>(kInstrSizeLog2);
