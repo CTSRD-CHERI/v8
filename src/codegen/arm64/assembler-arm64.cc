@@ -754,11 +754,7 @@ bool Assembler::IsConstantPoolAt(Instruction* instr) {
   // The constant pool marker is made of two instructions. These instructions
   // will never be emitted by the JIT, so checking for the first one is enough:
   // 0: ldr xzr, #<size of pool>
-#if defined(__CHERI_PURE_CAPABILITY__)
-  bool result = instr->IsLdrLiteralC() && (instr->Rt() == kZeroRegCode);
-#else
   bool result = instr->IsLdrLiteralX() && (instr->Rt() == kZeroRegCode);
-#endif // __CHERI_PURE_CAPABILITY__
 
   // It is still worth asserting the marker is complete.
   // 4: blr xzr
@@ -4831,9 +4827,11 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data,
            RelocInfo::IsConstPool(rmode) || RelocInfo::IsVeneerPool(rmode));
     // These modes do not need an entry in the constant pool.
   } else if (constant_pool_mode == NEEDS_POOL_ENTRY) {
+    bool as_pointer = false;
     if (RelocInfo::IsEmbeddedObjectMode(rmode)) {
       Handle<HeapObject> handle(reinterpret_cast<Address*>(data));
       data = AddEmbeddedObject(handle);
+      as_pointer = true;
     }
     if (rmode == RelocInfo::COMPRESSED_EMBEDDED_OBJECT) {
       if (constpool_.RecordEntry(static_cast<uint32_t>(data), rmode) ==
@@ -4841,8 +4839,12 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data,
         return;
       }
     } else {
-      if (constpool_.RecordEntry(static_cast<uint64_t>(data), rmode) ==
-          RelocInfoStatus::kMustOmitForDuplicate) {
+      RelocInfoStatus status;
+      if (as_pointer)
+        status = constpool_.RecordEntry(static_cast<uintptr_t>(data), rmode);
+      else
+        status = constpool_.RecordEntry(static_cast<uint64_t>(data), rmode);
+      if (status == RelocInfoStatus::kMustOmitForDuplicate) {
         return;
       }
     }
@@ -4894,11 +4896,7 @@ void ConstantPool::EmitPrologue(Alignment require_alignment) {
   const int marker_size = 1;
   int word_count =
       ComputeSize(Jump::kOmitted, require_alignment) / kInt32Size - marker_size;
-#if defined(__CHERI_PURE_CAPABILITY__)
-  assm_->Emit(LDR_c_lit | Assembler::ImmLLiteral(word_count) |
-#else
   assm_->Emit(LDR_x_lit | Assembler::ImmLLiteral(word_count) |
-#endif // __CHERI_PURE_CAPABILITY__
               Assembler::Rt(xzr));
   assm_->EmitPoolGuard();
 }
@@ -4964,12 +4962,15 @@ void ConstantPool::Check(Emission force_emit, Jump require_jump,
 // want to keep entries close to the code, we try to emit every 64KB.
 const size_t ConstantPool::kMaxDistToPool32 = 1 * MB;
 const size_t ConstantPool::kMaxDistToPool64 = 1 * MB;
+const size_t ConstantPool::kMaxDistToPoolPtr = 1 * MB;
 const size_t ConstantPool::kCheckInterval = 128 * kInstrSize;
 const size_t ConstantPool::kApproxDistToPool32 = 64 * KB;
 const size_t ConstantPool::kApproxDistToPool64 = kApproxDistToPool32;
+const size_t ConstantPool::kApproxDistToPoolPtr = kApproxDistToPool32;
 
 const size_t ConstantPool::kOpportunityDistToPool32 = 64 * KB;
 const size_t ConstantPool::kOpportunityDistToPool64 = 64 * KB;
+const size_t ConstantPool::kOpportunityDistToPoolPtr = 64 * KB;
 const size_t ConstantPool::kApproxMaxEntryCount = 512;
 
 intptr_t Assembler::MaxPCOffsetAfterVeneerPoolIfEmittedNow(size_t margin) {

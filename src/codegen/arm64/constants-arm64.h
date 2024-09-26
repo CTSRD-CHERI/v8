@@ -40,6 +40,8 @@ constexpr uint8_t kInstrSize = 4;
 constexpr uint8_t kInstrSizeLog2 = 2;
 constexpr uint8_t kLoadLiteralScaleLog2 = 2;
 constexpr uint8_t kLoadLiteralScale = 1 << kLoadLiteralScaleLog2;
+constexpr uint8_t kLoadCapLiteralScaleLog2 = 4;
+constexpr uint8_t kLoadCapLiteralScale =  1 << kLoadCapLiteralScaleLog2;
 constexpr int kMaxLoadLiteralRange = 1 * MB;
 
 constexpr int kNumberOfRegisters = 32;

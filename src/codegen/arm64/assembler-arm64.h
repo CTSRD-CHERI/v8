@@ -2744,10 +2744,21 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
     BlockPoolsScope no_pool_scope(this);
     dc64(data);
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  void dp(uintptr_t data) {
+    BlockPoolsScope no_pool_scope(this);
+    DCHECK_EQ(sizeof(*pc_), 1);
+    DCHECK_LE(pc_ + sizeof(data), buffer_start_ + buffer_->size());
+    Memory<Address>(pc_) = data;
+    pc_ += sizeof(data);
+    CheckBuffer();
+  }
+#else   // !__CHERI_PURE_CAPABILITY__
   void dp(uintptr_t data) {
     BlockPoolsScope no_pool_scope(this);
     dc64(data);
   }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   // InstructionStream generation helpers
   // --------------------------------------------------
@@ -3405,7 +3416,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   size_t GetConstantPoolEntriesSizeForTesting() const {
     // Do not include branch over the pool.
     return constpool_.Entry32Count() * kInt32Size +
-           constpool_.Entry64Count() * kInt64Size;
+           constpool_.Entry64Count() * kInt64Size +
+           constpool_.EntryPtrCount() * kSystemPointerSize;
   }
 
   static size_t GetCheckConstPoolIntervalForTesting() {
@@ -3413,7 +3425,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   }
 
   static size_t GetApproxMaxDistToConstPoolForTesting() {
-    return ConstantPool::kApproxDistToPool64;
+    return ConstantPool::kApproxDistToPoolPtr;
   }
 #endif
 

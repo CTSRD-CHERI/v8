@@ -258,8 +258,13 @@ static void InitializeVM() {
   CHECK(Equal64(expected, &core, result))
 #endif  // __CHERI_PURE_CAPABILITY__
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define CHECK_FULL_HEAP_OBJECT_IN_REGISTER(expected, result) \
+  CHECK(EqualCap(expected->ptr(), &core, result))
+#else  // !__CHERI_PURE_CAPABILITY__
 #define CHECK_FULL_HEAP_OBJECT_IN_REGISTER(expected, result) \
   CHECK(Equal64(expected->ptr(), &core, result))
+#endif  // __CHERI_PURE_CAPABILITY__
 
 #define CHECK_NOT_ZERO_AND_NOT_EQUAL_64(reg0, reg1) \
   {                                                 \
@@ -8514,7 +8519,14 @@ TEST(ldr_pcrel_large_offset) {
 
   START();
 
-  __ Ldr(x1, isolate->factory()->undefined_value());
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register r1 = c1;
+  Register r2 = c2;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register r1 = x1;
+  Register r2 = x2;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(r1, isolate->factory()->undefined_value());
 
   {
     v8::internal::PatchingAssembler::BlockPoolsScope scope(&masm);
@@ -8524,14 +8536,14 @@ TEST(ldr_pcrel_large_offset) {
     }
   }
 
-  __ Ldr(x2, isolate->factory()->undefined_value());
+  __ Ldr(r2, isolate->factory()->undefined_value());
 
   END();
 
   RUN();
 
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), x1);
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), x2);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), r1);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), r2);
 }
 
 TEST(ldr_literal) {
@@ -8539,13 +8551,18 @@ TEST(ldr_literal) {
   SETUP();
 
   START();
-  __ Ldr(x2, isolate->factory()->undefined_value());
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register r2 = c2;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register r2 = x2;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(r2, isolate->factory()->undefined_value());
 
   END();
 
   RUN();
 
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), x2);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), r2);
 }
 
 #ifdef DEBUG
@@ -8559,7 +8576,7 @@ static void LdrLiteralRangeHelper(
   SETUP_SIZE(static_cast<int>(range + 1024));
 
   const size_t first_pool_entries = 2;
-  const size_t first_pool_size_bytes = first_pool_entries * kInt64Size;
+  const size_t first_pool_size_bytes = first_pool_entries * kSystemPointerSize;
 
   START();
   // Force a pool dump so the pool starts off empty.
@@ -8567,15 +8584,29 @@ static void LdrLiteralRangeHelper(
   CHECK_CONSTANT_POOL_SIZE(0);
 
   // Emit prepadding to influence alignment of the pool.
-  bool currently_aligned = IsAligned(__ pc_offset(), kInt64Size);
+  const size_t pc_offset = __ pc_offset();
+  bool currently_aligned = IsAligned(pc_offset, kSystemPointerSize);
   if ((unaligned_emission == EmitAtUnaligned && currently_aligned) ||
       (unaligned_emission == EmitAtAligned && !currently_aligned)) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    size_t how_many =
+        (RoundUp(pc_offset, kSystemPointerSize) - pc_offset) / kInstrSize;
+    for (auto i = 0; i < how_many; ++i) __ Nop();
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Nop();
+#endif  // __CHERI_PURE_CAPABILITY__
   }
 
   int initial_pc_offset = __ pc_offset();
-  __ Ldr(x0, isolate->factory()->undefined_value());
-  __ Ldr(x1, isolate->factory()->the_hole_value());
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register r0 = c0;
+  Register r1 = c1;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register r0 = c0;
+  Register r1 = c1;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(r0, isolate->factory()->undefined_value());
+  __ Ldr(r1, isolate->factory()->the_hole_value());
   CHECK_CONSTANT_POOL_SIZE(first_pool_size_bytes);
 
   size_t expected_pool_size = 0;
@@ -8585,14 +8616,21 @@ static void LdrLiteralRangeHelper(
     // and the jump around the pool, which we always need.
     size_t prologue_size = 2 * kInstrSize + kInstrSize;
     size_t pc = pc_offset + prologue_size;
-    const size_t padding = IsAligned(pc, kInt64Size) ? 0 : kInt32Size;
+    const size_t padding = IsAligned(pc, kSystemPointerSize)
+                               ? 0
+                               : (RoundUp(pc, kSystemPointerSize) - pc);
+#ifndef __CHERI_PURE_CAPABILITY__
+    // XXX(cheri): We can't possibly be aligned in this situation on CHERI since
+    // we will start from an aligned PCC and then add 2 * kInstrSize +
+    // kInstrSize which is 12.
     CHECK_EQ(padding == 0, unaligned_emission == EmitAtAligned);
+#endif  // !__CHERI_PURE_CAPABILITY__
     return prologue_size + first_pool_size_bytes + padding;
   };
 
   int pc_offset_before_emission = -1;
   bool pool_was_emitted = false;
-  while (__ pc_offset() - initial_pc_offset < static_cast<intptr_t>(range)) {
+  while (__ pc_offset() - initial_pc_offset < static_cast<ScaledInt>(range)) {
     pc_offset_before_emission = __ pc_offset() + kInstrSize;
     __ Nop();
     if (__ GetConstantPoolEntriesSizeForTesting() == 0) {
@@ -8627,9 +8665,16 @@ static void LdrLiteralRangeHelper(
 
   // These loads should be after the pool (and will require a new one).
   const int second_pool_entries = 2;
-  __ Ldr(x4, isolate->factory()->true_value());
-  __ Ldr(x5, isolate->factory()->false_value());
-  CHECK_CONSTANT_POOL_SIZE(second_pool_entries * kInt64Size);
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register r4 = c4;
+  Register r5 = c5;
+#else   // !__CHERI_PURE_CAPABILITY__
+  Register r4 = x4;
+  Register r5 = x5;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Ldr(r4, isolate->factory()->true_value());
+  __ Ldr(r5, isolate->factory()->false_value());
+  CHECK_CONSTANT_POOL_SIZE(second_pool_entries * kSystemPointerSize);
 
   END();
 
@@ -8642,8 +8687,16 @@ static void LdrLiteralRangeHelper(
         reinterpret_cast<Instruction*>(pool_start + kInstrSize);
     CHECK(marker->IsLdrLiteralX());
     size_t pool_data_start_offset = pc_offset_before_emission + kInstrSize;
-    size_t padding =
-        IsAligned(pool_data_start_offset, kInt64Size) ? 0 : kInt32Size;
+    size_t padding = 0;
+    if (!IsAligned(pool_data_start_offset, kSystemPointerSize)) {
+      padding += RoundUp(pool_data_start_offset, kSystemPointerSize) -
+                 pool_data_start_offset;
+    }
+    const size_t prologue_size = 2 * kInstrSize + kInstrSize;
+    const size_t pc = pc_offset_before_emission + prologue_size;
+    if (!IsAligned(pc, kSystemPointerSize)) {
+      padding += RoundUp(pc, kSystemPointerSize) - pc;
+    }
     size_t marker_size = kInstrSize;
     CHECK_EQ((first_pool_size_bytes + marker_size + padding) / kInt32Size,
              marker->ImmLLiteral());
@@ -8652,10 +8705,10 @@ static void LdrLiteralRangeHelper(
   RUN();
 
   // Check that the literals loaded correctly.
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), x0);
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->the_hole_value(), x1);
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->true_value(), x4);
-  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->false_value(), x5);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->undefined_value(), r0);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->the_hole_value(), r1);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->true_value(), r4);
+  CHECK_FULL_HEAP_OBJECT_IN_REGISTER(isolate->factory()->false_value(), r5);
 }
 
 TEST(ldr_literal_range_max_dist_emission_1) {

@@ -23,7 +23,7 @@ class Instruction;
 class ConstantPoolEntry {
  public:
   ConstantPoolEntry() = default;
-  ConstantPoolEntry(int position, intptr_t value, bool sharing_ok,
+  ConstantPoolEntry(int position, ScaledInt value, bool sharing_ok,
                     RelocInfo::Mode rmode = RelocInfo::NO_INFO)
       : position_(position),
         merged_index_(sharing_ok ? SHARING_ALLOWED : SHARING_PROHIBITED),
@@ -34,6 +34,12 @@ class ConstantPoolEntry {
       : position_(position),
         merged_index_(SHARING_ALLOWED),
         value64_(value.AsUint64()),
+        rmode_(rmode) {}
+  ConstantPoolEntry(int position, Address value,
+                    RelocInfo::Mode rmode = RelocInfo::NO_INFO)
+      : position_(position),
+        merged_index_(SHARING_ALLOWED),
+        valueptr_(value),
         rmode_(rmode) {}
 
   int position() const { return position_; }
@@ -56,14 +62,17 @@ class ConstantPoolEntry {
     DCHECK_GE(offset, 0);
     merged_index_ = offset;
   }
-  intptr_t value() const { return value_; }
+  ScaledInt value() const { return value_; }
   uint64_t value64() const { return value64_; }
+  uintptr_t valueptr() const { return valueptr_; }
   RelocInfo::Mode rmode() const { return rmode_; }
 
-  enum Type { INTPTR, DOUBLE, NUMBER_OF_TYPES };
+  enum Type { INTPTR, DOUBLE, INT32, NUMBER_OF_TYPES };
 
   static int size(Type type) {
-    return (type == INTPTR) ? kSystemPointerSize : kDoubleSize;
+    return (type == INTPTR)   ? kSystemPointerSize
+           : (type == DOUBLE) ? kDoubleSize
+                              : kScaledIntSize;
   }
 
   enum Access { REGULAR, OVERFLOWED };
@@ -72,8 +81,9 @@ class ConstantPoolEntry {
   int position_;
   int merged_index_;
   union {
-    intptr_t value_;
+    ScaledInt value_;
     uint64_t value64_;
+    uintptr_t valueptr_;
   };
   // TODO(leszeks): The way we use this, it could probably be packed into
   // merged_index_ if size is a concern.
@@ -99,16 +109,21 @@ class ConstantPoolBuilder {
 #endif
 
   // Add pointer-sized constant to the embedded constant pool
-  ConstantPoolEntry::Access AddEntry(int position, intptr_t value,
+  ConstantPoolEntry::Access AddEntry(int position, ScaledInt value,
                                      bool sharing_ok) {
     ConstantPoolEntry entry(position, value, sharing_ok);
-    return AddEntry(&entry, ConstantPoolEntry::INTPTR);
+    return AddEntry(&entry, ConstantPoolEntry::INT32);
   }
 
   // Add double constant to the embedded constant pool
   ConstantPoolEntry::Access AddEntry(int position, base::Double value) {
     ConstantPoolEntry entry(position, value);
     return AddEntry(&entry, ConstantPoolEntry::DOUBLE);
+  }
+
+  ConstantPoolEntry::Access AddEntry(int position, Address value) {
+    ConstantPoolEntry entry(position, value);
+    return AddEntry(&entry, ConstantPoolEntry::INTPTR);
   }
 
   // Add double constant to the embedded constant pool
@@ -123,7 +138,9 @@ class ConstantPoolBuilder {
     return info_[ConstantPoolEntry::INTPTR].entries.empty() &&
            info_[ConstantPoolEntry::INTPTR].shared_entries.empty() &&
            info_[ConstantPoolEntry::DOUBLE].entries.empty() &&
-           info_[ConstantPoolEntry::DOUBLE].shared_entries.empty();
+           info_[ConstantPoolEntry::DOUBLE].shared_entries.empty() &&
+           info_[ConstantPoolEntry::INT32].entries.empty() &&
+           info_[ConstantPoolEntry::INT32].shared_entries.empty();
   }
 
   // Emit the constant pool.  Invoke only after all entries have been
@@ -170,23 +187,34 @@ class ConstantPoolKey {
  public:
   explicit ConstantPoolKey(uint64_t value,
                            RelocInfo::Mode rmode = RelocInfo::NO_INFO)
-      : is_value32_(false), value64_(value), rmode_(rmode) {}
+      : type_(ConstantPoolKeyType::INT64), value64_(value), rmode_(rmode) {}
 
   explicit ConstantPoolKey(uint32_t value,
                            RelocInfo::Mode rmode = RelocInfo::NO_INFO)
-      : is_value32_(true), value32_(value), rmode_(rmode) {}
+      : type_(ConstantPoolKeyType::INT32), value32_(value), rmode_(rmode) {}
+
+  explicit ConstantPoolKey(uintptr_t value,
+                           RelocInfo::Mode rmode = RelocInfo::NO_INFO)
+      : type_(ConstantPoolKeyType::INTPTR), valueptr_(value), rmode_(rmode) {}
 
   uint64_t value64() const {
-    CHECK(!is_value32_);
+    CHECK(type_ == ConstantPoolKeyType::INT64);
     return value64_;
   }
   uint32_t value32() const {
-    CHECK(is_value32_);
+    CHECK(type_ == ConstantPoolKeyType::INT32);
     return value32_;
   }
+  uintptr_t valueptr() const {
+    CHECK(type_ == ConstantPoolKeyType::INTPTR);
+    return valueptr_;
+  }
 
-  bool is_value32() const { return is_value32_; }
+  bool is_value64() const { return type_ == ConstantPoolKeyType::INT64; }
+  bool is_value32() const { return type_ == ConstantPoolKeyType::INT32; }
+  bool is_valueptr() const { return type_ == ConstantPoolKeyType::INTPTR; }
   RelocInfo::Mode rmode() const { return rmode_; }
+  bool is_integer() const { return type_ != ConstantPoolKeyType::INTPTR; }
 
   bool AllowsDeduplication() const {
     DCHECK(rmode_ != RelocInfo::CONST_POOL &&
@@ -199,31 +227,48 @@ class ConstantPoolKey {
     // and we make sure we emit only one reloc info for them (thus delta
     // patching) will apply the delta only once. At the moment, we do not dedup
     // code targets if they are wrapped in a heap object request (value == 0).
-    bool is_sharable_code_target =
-        rmode_ == RelocInfo::CODE_TARGET &&
-        (is_value32() ? (value32() != 0) : (value64() != 0));
+    bool is_sharable_code_target = false;
+    if (rmode_ == RelocInfo::CODE_TARGET) {
+      if (is_value32()) {
+        is_sharable_code_target = value32() != 0;
+      } else if (is_value64()) {
+        is_sharable_code_target = value64() != 0;
+      } else {
+        DCHECK(is_valueptr());
+        is_sharable_code_target = valueptr() != 0;
+      }
+    }
     bool is_sharable_embedded_object = RelocInfo::IsEmbeddedObjectMode(rmode_);
     return RelocInfo::IsShareableRelocMode(rmode_) || is_sharable_code_target ||
            is_sharable_embedded_object;
   }
 
  private:
-  bool is_value32_;
+  enum ConstantPoolKeyType { INTPTR, INT64, INT32, NUMBER_OF_TYPES };
+  ConstantPoolKeyType type_;
   union {
+    uintptr_t valueptr_;
     uint64_t value64_;
     uint32_t value32_;
   };
   RelocInfo::Mode rmode_;
 };
 
-// Order for pool entries. 64bit entries go first.
+// Order for pool entries. pointer entries go first, then 64bit entries, then
+// 32bit.
 inline bool operator<(const ConstantPoolKey& a, const ConstantPoolKey& b) {
+  // Can be any of 32, 64 and ptr.
   if (a.is_value32() < b.is_value32()) return true;
   if (a.is_value32() > b.is_value32()) return false;
+  // Either both are 32bit or neither are.
+  if (a.is_integer() < b.is_integer()) return true;
+  if (a.is_integer() > b.is_integer()) return false;
+  // Either both are pointers or both are integers.
   if (a.rmode() < b.rmode()) return true;
   if (a.rmode() > b.rmode()) return false;
   if (a.is_value32()) return a.value32() < b.value32();
-  return a.value64() < b.value64();
+  if (a.is_value64()) return a.value64() < b.value64();
+  if (a.is_valueptr()) return a.valueptr() < b.valueptr();
 }
 
 inline bool operator==(const ConstantPoolKey& a, const ConstantPoolKey& b) {
@@ -257,9 +302,11 @@ class ConstantPool {
   // Returns true when we need to write RelocInfo and false when we do not.
   RelocInfoStatus RecordEntry(uint32_t data, RelocInfo::Mode rmode);
   RelocInfoStatus RecordEntry(uint64_t data, RelocInfo::Mode rmode);
+  RelocInfoStatus RecordEntry(uintptr_t data, RelocInfo::Mode rmode);
 
   size_t Entry32Count() const { return entry32_count_; }
   size_t Entry64Count() const { return entry64_count_; }
+  size_t EntryPtrCount() const { return entryptr_count_; }
   bool IsEmpty() const { return entries_.empty(); }
   // Check if pool will be out of range at {pc_offset}.
   bool IsInImmRangeIfEmittedAt(int pc_offset);
@@ -301,13 +348,16 @@ class ConstantPool {
   // Hard limit to the const pool which must not be exceeded.
   static const size_t kMaxDistToPool32;
   static const size_t kMaxDistToPool64;
+  static const size_t kMaxDistToPoolPtr;
   // Approximate distance where the pool should be emitted.
   static const size_t kApproxDistToPool32;
   V8_EXPORT_PRIVATE static const size_t kApproxDistToPool64;
+  V8_EXPORT_PRIVATE static const size_t kApproxDistToPoolPtr;
   // Approximate distance where the pool may be emitted if
   // no jump is required (due to a recent unconditional jump).
   static const size_t kOpportunityDistToPool32;
   static const size_t kOpportunityDistToPool64;
+  static const size_t kOpportunityDistToPoolPtr;
   // PC distance between constant pool checks.
   V8_EXPORT_PRIVATE static const size_t kCheckInterval;
   // Number of entries in the pool which trigger a check.
@@ -333,6 +383,7 @@ class ConstantPool {
   // since the previous constant pool was emitted.
   int first_use_32_ = -1;
   int first_use_64_ = -1;
+  int first_use_ptr_ = -1;
   // We sort not according to insertion order, but since we do not insert
   // addresses (for heap objects we insert an index which is created in
   // increasing order), the order is deterministic. We map each entry to the
@@ -342,6 +393,7 @@ class ConstantPool {
   std::multimap<ConstantPoolKey, int> entries_;
   size_t entry32_count_ = 0;
   size_t entry64_count_ = 0;
+  size_t entryptr_count_ = 0;
   int next_check_ = 0;
   int blocked_nesting_ = 0;
 };

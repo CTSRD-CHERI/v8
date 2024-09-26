@@ -5173,7 +5173,7 @@ bool Assembler::ImmediateFitsAddrMode2Instruction(int32_t imm32) {
 void Assembler::RecordConstPool(int size) {
   // We only need this for debugger support, to correctly compute offsets in the
   // code.
-  RecordRelocInfo(RelocInfo::CONST_POOL, static_cast<intptr_t>(size));
+  RecordRelocInfo(RelocInfo::CONST_POOL, static_cast<ScaledInt>(size));
 }
 
 void Assembler::GrowBuffer() {
