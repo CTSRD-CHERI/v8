@@ -264,7 +264,7 @@ class RelocInfo {
   // relative addresses have to be updated as well as absolute addresses
   // inside the code (internal references).
   // Do not forget to flush the icache afterwards!
-  V8_INLINE void apply(intptr_t delta);
+  V8_INLINE void apply(ScaledInt delta);
 
   // Is the pointer this relocation info refers to coded like a plain pointer
   // or is it strange in some way (e.g. relative or patched into a series of

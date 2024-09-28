@@ -269,6 +269,7 @@ inline bool operator<(const ConstantPoolKey& a, const ConstantPoolKey& b) {
   if (a.is_value32()) return a.value32() < b.value32();
   if (a.is_value64()) return a.value64() < b.value64();
   if (a.is_valueptr()) return a.valueptr() < b.valueptr();
+  CHECK(0);
 }
 
 inline bool operator==(const ConstantPoolKey& a, const ConstantPoolKey& b) {

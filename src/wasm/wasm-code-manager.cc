@@ -948,8 +948,7 @@ WasmCode* NativeModule::AddCodeForTesting(Handle<Code> code) {
     memcpy(dst_code_bytes.begin(), instructions.begin(), instructions.size());
 
     // Apply the relocation delta by iterating over the RelocInfo.
-    intptr_t delta = reinterpret_cast<Address>(dst_code_bytes.begin()) -
-                     code->instruction_start();
+    ScaledInt delta = dst_code_bytes.begin() - code->instruction_start();
     int mode_mask =
         RelocInfo::kApplyMask | RelocInfo::ModeMask(RelocInfo::WASM_STUB_CALL);
     auto jump_tables_ref =
@@ -1103,7 +1102,7 @@ std::unique_ptr<WasmCode> NativeModule::AddCodeWithCodeSpace(
            static_cast<size_t>(desc.instr_size));
 
     // Apply the relocation delta by iterating over the RelocInfo.
-    intptr_t delta = dst_code_bytes.begin() - desc.buffer;
+    ScaledInt delta = dst_code_bytes.begin() - desc.buffer;
     int mode_mask = RelocInfo::kApplyMask |
                     RelocInfo::ModeMask(RelocInfo::WASM_CALL) |
                     RelocInfo::ModeMask(RelocInfo::WASM_STUB_CALL);

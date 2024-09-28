@@ -20,13 +20,20 @@ namespace internal {
 
 bool CpuFeatures::SupportsOptimizer() { return true; }
 
-void RelocInfo::apply(intptr_t delta) {
+void RelocInfo::apply(ScaledInt delta) {
   // On arm64 only internal references and immediate branches need extra work.
   if (RelocInfo::IsInternalReference(rmode_)) {
     // Absolute code pointer inside code object moves with the code object.
+#ifdef __CHERI_PURE_CAPABILITY__
+    intptr_t internal_ref = Memory<intptr_t>(pc_);
+    internal_ref = __builtin_cheri_address_set(
+        pc_, __builtin_cheri_address_get(internal_ref) + delta);
+    Memory<Address>(pc_) = internal_ref;
+#else   // !__CHERI_PURE_CAPABILITY__
     intptr_t internal_ref = ReadUnalignedValue<intptr_t>(pc_);
     internal_ref += delta;  // Relocate entry.
     WriteUnalignedValue<intptr_t>(pc_, internal_ref);
+#endif  // __CHERI_PURE_CAPABILITY__
   } else {
     Instruction* instr = reinterpret_cast<Instruction*>(pc_);
     if (instr->IsBranchAndLink() || instr->IsUnconditionalBranch()) {

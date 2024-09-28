@@ -12,7 +12,7 @@
 namespace v8 {
 namespace internal {
 
-void InstructionStream::Relocate(intptr_t delta) {
+void InstructionStream::Relocate(ScaledInt delta) {
   Code code;
   if (!TryGetCodeUnchecked(&code, kAcquireLoad)) return;
   // This is called during evacuation and code.instruction_stream() will point

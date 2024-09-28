@@ -1628,7 +1628,12 @@ TEST(label) {
   START();
   __ Mov(x0, 0x1);
   __ Mov(x1, 0x0);
-  __ Mov(x22, lr);    // Save lr.
+#ifdef __CHERI_PURE_CAPABILITY__
+  Register r22 = c22;
+#else  // !__CHERI_PURE_CAPABILITY__
+  Register r22 = x22;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ Mov(r22, lr);  // Save lr.
 
   __ B(&label_1);
   __ B(&label_1);
@@ -1646,7 +1651,7 @@ TEST(label) {
 
   __ Bind(&label_4);
   __ Mov(x1, 0x1);
-  __ Mov(lr, x22);
+  __ Mov(lr, r22);
   END();
 
   RUN();
@@ -8589,9 +8594,9 @@ static void LdrLiteralRangeHelper(
   if ((unaligned_emission == EmitAtUnaligned && currently_aligned) ||
       (unaligned_emission == EmitAtAligned && !currently_aligned)) {
 #ifdef __CHERI_PURE_CAPABILITY__
-    size_t how_many =
+    const size_t to_align =
         (RoundUp(pc_offset, kSystemPointerSize) - pc_offset) / kInstrSize;
-    for (auto i = 0; i < how_many; ++i) __ Nop();
+    for (size_t i = 0; i < to_align; ++i) __ Nop();
 #else   // !__CHERI_PURE_CAPABILITY__
     __ Nop();
 #endif  // __CHERI_PURE_CAPABILITY__
@@ -18531,19 +18536,37 @@ TEST(jump_tables_forward) {
   const Register& index = x0;
   static_assert(sizeof(results[0]) == 4);
   const Register& value = w1;
+  __ Mov(x2, results_ptr);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c2, csp, x2);
+  __ Mov(x0, sizeof(results));
+  __ Scbndse(c2, c2, x0);
+  const Register& target = c2;
+#else   // !__CHERI_PURE_CAPABILITY__
   const Register& target = x2;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(index, 0);
-  __ Mov(target, results_ptr);
   __ Bind(&loop);
 
   {
     Assembler::BlockPoolsScope block_pools(&masm);
     Label base;
 
+#ifdef __CHERI_PURE_CAPABILITY__
+    __ Adr(c10, &base);
+    __ Ldr(c11, MemOperand(c10, index, LSL, kSystemPointerSizeLog2));
+    __ PrepareC64Jump(c11);
+    __ Br(c11);
+    const size_t pc_off = __ pc_offset();
+    const size_t to_align = RoundUp(pc_off, kSystemPointerSize) - pc_off;
+    for (size_t i = 0; i < to_align; i += kInstrSize) __ Nop();
+    DCHECK(IsAligned(reinterpret_cast<Address>(__ pc()), kSystemPointerSize));
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Adr(x10, &base);
     __ Ldr(x11, MemOperand(x10, index, LSL, kSystemPointerSizeLog2));
     __ Br(x11);
+#endif  // __CHERI_PURE_CAPABILITY__
     __ Bind(&base);
     for (int i = 0; i < kNumCases; ++i) {
       __ dcptr(&labels[i]);
@@ -18592,10 +18615,17 @@ TEST(jump_tables_backward) {
   const Register& index = x0;
   static_assert(sizeof(results[0]) == 4);
   const Register& value = w1;
+  __ Mov(x2, results_ptr);
+#ifdef __CHERI_PURE_CAPABILITY__
+  __ Scvalue(c2, csp, x2);
+  __ Mov(x0, sizeof(results));
+  __ Scbndse(c2, c2, x0);
+  const Register& target = c2;
+#else   // !__CHERI_PURE_CAPABILITY__
   const Register& target = x2;
+#endif  // __CHERI_PURE_CAPABILITY__
 
   __ Mov(index, 0);
-  __ Mov(target, results_ptr);
   __ B(&loop);
 
   for (int i = 0; i < kNumCases; ++i) {
@@ -18609,9 +18639,20 @@ TEST(jump_tables_backward) {
     Assembler::BlockPoolsScope block_pools(&masm);
     Label base;
 
+#ifdef __CHERI_PURE_CAPABILITY__
+    __ Adr(c10, &base);
+    __ Ldr(c11, MemOperand(c10, index, LSL, kSystemPointerSizeLog2));
+    __ PrepareC64Jump(c11);
+    __ Br(c11);
+    const size_t pc_off = __ pc_offset();
+    const size_t to_align = RoundUp(pc_off, kSystemPointerSize) - pc_off;
+    for (size_t i = 0; i < to_align; i += kInstrSize) __ Nop();
+    DCHECK(IsAligned(reinterpret_cast<Address>(__ pc()), kSystemPointerSize));
+#else   // !__CHERI_PURE_CAPABILITY__
     __ Adr(x10, &base);
     __ Ldr(x11, MemOperand(x10, index, LSL, kSystemPointerSizeLog2));
     __ Br(x11);
+#endif  // __CHERI_PURE_CAPABILITY__
     __ Bind(&base);
     for (int i = 0; i < kNumCases; ++i) {
       __ dcptr(&labels[i]);
@@ -18652,7 +18693,12 @@ TEST(internal_reference_linked) {
 #ifdef __CHERI_PURE_CAPABILITY__
     __ Adr(c10, &base);
     __ Ldr(c11, MemOperand(c10));
+    __ PrepareC64Jump(c11);
     __ Br(c11);
+    const size_t pc_off = __ pc_offset();
+    const size_t to_align = RoundUp(pc_off, kSystemPointerSize) - pc_off;
+    for (size_t i = 0; i < to_align; i += kInstrSize) __ Nop();
+    DCHECK(IsAligned(reinterpret_cast<Address>(__ pc()), kSystemPointerSize));
 #else   // !__CHERI_PURE_CAPABILITY__
     __ Adr(x10, &base);
     __ Ldr(x11, MemOperand(x10));
@@ -18664,6 +18710,14 @@ TEST(internal_reference_linked) {
 
   // Dead code, just to extend the label chain.
   __ B(&done);
+#ifdef __CHERI_PURE_CAPABILITY__
+  {
+    const size_t pc_off = __ pc_offset();
+    const size_t to_align = RoundUp(pc_off, kSystemPointerSize) - pc_off;
+    for (size_t i = 0; i < to_align; i += kInstrSize) __ Nop();
+    DCHECK(IsAligned(reinterpret_cast<Address>(__ pc()), kSystemPointerSize));
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
   __ dcptr(&done);
   __ Tbz(x0, 1, &done);
 

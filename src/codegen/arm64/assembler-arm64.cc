@@ -503,6 +503,9 @@ void Assembler::CheckLabelLinkChain(Label const* label) {
     bool end_of_chain = false;
     while (!end_of_chain) {
       if (++links_checked > kMaxLinksToCheck) break;
+#ifdef __CHERI_PURE_CAPABILITY__
+      DCHECK_GE(__builtin_cheri_length_get(buffer_start_), linkoffset);
+#endif  // __CHERI_PURE_CAPABILITY__
       Instruction* link = InstructionAt(linkoffset);
       int64_t linkpcoffset = link->ImmPCOffset();
       int64_t prevlinkoffset = linkoffset + linkpcoffset;
@@ -3900,7 +3903,7 @@ void Assembler::dcptr(Label* label) {
     // In this case, label->pos() returns the offset of the label from the
     // start of the buffer.
     internal_reference_positions_.push_back(pc_offset());
-    dc64(reinterpret_cast<uintptr_t>(buffer_start_ + label->pos()));
+    dp(reinterpret_cast<uintptr_t>(buffer_start_ + label->pos()));
   } else {
     int32_t offset;
     if (label->is_linked()) {
@@ -3931,6 +3934,13 @@ void Assembler::dcptr(Label* label) {
 
     brk(high16);
     brk(low16);
+#ifdef __CHERI_PURE_CAPABILITY__
+    // Generate two extra instructions in order to account for capabilities
+    // being 16 bytes long on CHERI. If we don't do this, we will accidentally
+    // overwrite the instructions that might come after this.
+    brk(0x0);
+    brk(0x0);
+#endif  // __CHERI_PURE_CAPABILITY__
   }
 }
 

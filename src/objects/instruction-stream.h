@@ -101,7 +101,7 @@ class InstructionStream : public HeapObject {
   static inline InstructionStream FromEntryAddress(Address location_of_address);
 
   // Relocate the code by delta bytes.
-  void Relocate(intptr_t delta);
+  void Relocate(ScaledInt delta);
 
   DECL_CAST(InstructionStream)
   DECL_PRINTER(InstructionStream)

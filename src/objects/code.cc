@@ -141,7 +141,7 @@ void Code::RelocateFromDesc(Heap* heap, const CodeDesc& desc) {
       UNREACHABLE();
 #endif
     } else {
-      intptr_t delta =
+      ScaledInt delta =
           instruction_start() - reinterpret_cast<Address>(desc.buffer);
       it.rinfo()->apply(delta);
     }
