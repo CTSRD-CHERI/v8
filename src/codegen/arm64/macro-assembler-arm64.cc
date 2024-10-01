@@ -516,7 +516,7 @@ void MacroAssembler::Mov(const Register& rd, const Operand& operand,
 	DCHECK(operand.reg().IsC());
         Assembler::cpy(rd, operand.reg());
       } else {
-	DCHECK(!operand.reg().IsC());
+        DCHECK(!operand.reg().IsC());
         Assembler::mov(rd, operand.reg());
       }
 #else   // !__CHERI_PURE_CAPABILITY__
@@ -2932,12 +2932,12 @@ void MacroAssembler::Call(Handle<Code> code, RelocInfo::Mode rmode) {
 void MacroAssembler::Call(ExternalReference target) {
   UseScratchRegisterScope temps(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  Register temp = temps.AcquireC();
+  brk(0x0);
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
-#endif  // !__CHERI_PURE_CAPABILITY__
   Mov(temp, target);
   Call(temp);
+#endif  // !__CHERI_PURE_CAPABILITY__
 }
 
 void MacroAssembler::LoadEntryFromBuiltinIndex(Register builtin_index,
@@ -4668,6 +4668,12 @@ void MacroAssembler::PrintfNoPreserve(const char* format,
 
   // The PCS varargs registers for printf. Note that x0 is used for the printf
   // format string.
+#ifdef __CHERI_PURE_CAPABILITY__
+  // XXX(ds815): This isn't strictly necessary, but we do it to be explicit
+  // about CHERI registers being present here and that we want to excluse them.
+  static const CPURegList kCapPCSVarargs =
+      CPURegList(CPURegister::kRegister, kCRegSizeInBits, 1, arg_count);
+#endif  // __CHERI_PURE_CAPABILITY__
   static const CPURegList kPCSVarargs =
       CPURegList(CPURegister::kRegister, kXRegSizeInBits, 1, arg_count);
   static const CPURegList kPCSVarargsFP =
@@ -4676,7 +4682,15 @@ void MacroAssembler::PrintfNoPreserve(const char* format,
   // We can use caller-saved registers as scratch values, except for the
   // arguments and the PCS registers where they might need to go.
   CPURegList tmp_list = kCallerSaved;
+#ifdef __CHERI_PURE_CAPABILITY__
+  // XXX(ds815): c0 and x0 will basically be the same, but much like with
+  // kCapPCSVarargs, we do it like this to be explicit.
+  tmp_list.Remove(c0);  // Used to pass the format string.
+  tmp_list.Remove(c9);  // Used for varargs on Morello.
+  tmp_list.Remove(kCapPCSVarargs);
+#else  // !__CHERI_PURE_CAPABILITY__
   tmp_list.Remove(x0);  // Used to pass the format string.
+#endif  // __CHERI_PURE_CAPABILITY__
   tmp_list.Remove(kPCSVarargs);
   tmp_list.Remove(arg0, arg1, arg2, arg3);
 
@@ -4703,7 +4717,14 @@ void MacroAssembler::PrintfNoPreserve(const char* format,
   for (unsigned i = 0; i < kPrintfMaxArgCount; i++) {
     // Work out the proper PCS register for this argument.
     if (args[i].IsRegister()) {
+#ifdef __CHERI_PURE_CAPABILITY__
+      pcs[i] = pcs_varargs.PopLowestIndex().C();
+      // We might only need an X register here.
+      if (args[i].Is64Bits()) pcs[i] = pcs[i].X();
+#else   // !__CHERI_PURE_CAPABILITY__
       pcs[i] = pcs_varargs.PopLowestIndex().X();
+#endif  // __CHERI_PURE_CAPABILITY__
+
       // We might only need a W register here. We need to know the size of the
       // argument so we can properly encode it for the simulator call.
       if (args[i].Is32Bits()) pcs[i] = pcs[i].W();
@@ -4777,6 +4798,18 @@ void MacroAssembler::PrintfNoPreserve(const char* format,
 #endif
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  if (arg_count > 0) {
+    Sub(csp, csp, arg_count * kSystemPointerSize);
+    Mov(c9, csp);
+  } else {
+    Mov(x9, 0);
+  }
+  for (int i = arg_count - 1; i >= 0; --i) {
+    Str(pcs[i], MemOperand(csp, i * kSystemPointerSize));
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   // Load the format string into x0, as per the procedure-call standard.
   //
   // To make the code as portable as possible, the format string is encoded
@@ -4801,7 +4834,13 @@ void MacroAssembler::PrintfNoPreserve(const char* format,
     Bind(&after_data);
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(!options().enable_simulator_code);
+  CallPrintf(0, nullptr);
+  if (arg_count > 0) Add(csp, csp, arg_count * kSystemPointerSize);
+#else
   CallPrintf(arg_count, pcs);
+#endif
 }
 
 void MacroAssembler::CallPrintf(int arg_count, const CPURegister* args) {
@@ -4836,7 +4875,17 @@ void MacroAssembler::CallPrintf(int arg_count, const CPURegister* args) {
     return;
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Create a manual pc-relative load to grab the printf capability. We aren't
+  // guaranteed to have a PCC that we can re-derive from in this case because we
+  // might be running JITted code.
+  UseScratchRegisterScope temps(this);
+  Register temp = temps.AcquireC();
+  Ldr(temp, ExternalReference::printf_function());
+  Call(temp);
+#else   // !__CHERI_PURE_CAPABILITY__
   Call(ExternalReference::printf_function());
+#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 void MacroAssembler::Printf(const char* format, CPURegister arg0,
@@ -4872,10 +4921,17 @@ void MacroAssembler::Printf(const char* format, CPURegister arg0,
     // If any of the arguments are the current stack pointer, allocate a new
     // register for them, and adjust the value to compensate for pushing the
     // caller-saved registers.
+#ifdef __CHERI_PURE_CAPABILITY__
+    bool arg0_sp = arg0.is_valid() && csp.Aliases(arg0);
+    bool arg1_sp = arg1.is_valid() && csp.Aliases(arg1);
+    bool arg2_sp = arg2.is_valid() && csp.Aliases(arg2);
+    bool arg3_sp = arg3.is_valid() && csp.Aliases(arg3);
+#else
     bool arg0_sp = arg0.is_valid() && sp.Aliases(arg0);
     bool arg1_sp = arg1.is_valid() && sp.Aliases(arg1);
     bool arg2_sp = arg2.is_valid() && sp.Aliases(arg2);
     bool arg3_sp = arg3.is_valid() && sp.Aliases(arg3);
+#endif
     if (arg0_sp || arg1_sp || arg2_sp || arg3_sp) {
       // Allocate a register to hold the original stack pointer value, to pass
       // to PrintfNoPreserve as an argument.

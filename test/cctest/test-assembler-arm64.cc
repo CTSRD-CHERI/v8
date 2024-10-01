@@ -16174,12 +16174,23 @@ TEST(printf) {
 
   // Test pointer (string) arguments.
 #ifdef __CHERI_PURE_CAPABILITY__
-  __ Mov(x2, __builtin_cheri_address_get(test_substring));
-  __ Scvalue(c2, csp, x2);
+  Label string_address;
+  __ Adr(c2, &string_address);
+  {
+    Assembler::BlockPoolsScope scope(&masm);
+    Label after_data;
+    __ B(&after_data);
+    __ Bind(&string_address);
+    __ EmitStringData(test_substring);
+    __ Unreachable();
+    __ Bind(&after_data);
+  }
   __ Mov(x3, __builtin_cheri_length_get(test_substring));
   __ Scbndse(c2, c2, x3);
+  Register r2 = c2;
 #else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x2, reinterpret_cast<uintptr_t>(test_substring));
+  Register r2 = x2;
 #endif  // __CHERI_PURE_CAPABILITY__
 
   // Test the maximum number of arguments, and sign extension.
@@ -16211,14 +16222,14 @@ TEST(printf) {
   __ Printf("x0: %" PRId64 ", x1: 0x%08" PRIx64 "\n", x0, x1);
   __ Printf("w5: %" PRId32 ", x5: %" PRId64"\n", w5, x5);
   __ Printf("d0: %f\n", d0);
-  __ Printf("Test %%s: %s\n", x2);
+  __ Printf("Test %%s: %s\n", r2);
   __ Printf("w3(uint32): %" PRIu32 "\nw4(int32): %" PRId32 "\n"
             "x5(uint64): %" PRIu64 "\nx6(int64): %" PRId64 "\n",
             w3, w4, x5, x6);
   __ Printf("%%f: %f\n%%g: %g\n%%e: %e\n%%E: %E\n", s1, s2, d3, d4);
   __ Printf("0x%" PRIx32 ", 0x%" PRIx64 "\n", w28, x28);
   __ Printf("%g\n", d10);
-  __ Printf("%%%%%s%%%c%%\n", x2, w13);
+  __ Printf("%%%%%s%%%c%%\n", r2, w13);
 
   // Print the stack pointer.
   __ Printf("StackPointer(sp): 0x%016" PRIx64 ", 0x%08" PRIx32 "\n", sp, wsp);
@@ -16265,8 +16276,26 @@ TEST(printf_no_preserve) {
   __ Mov(x21, x0);
 
   // Test pointer (string) arguments.
+#ifdef __CHERI_PURE_CAPABILITY__
+  Label string_address;
+  __ Adr(c2, &string_address);
+  {
+    Assembler::BlockPoolsScope scope(&masm);
+    Label after_data;
+    __ B(&after_data);
+    __ Bind(&string_address);
+    __ EmitStringData(test_substring);
+    __ Unreachable();
+    __ Bind(&after_data);
+  }
+  __ Mov(x3, __builtin_cheri_length_get(test_substring));
+  __ Scbndse(c2, c2, x3);
+  Register r2 = c2;
+#else   // !__CHERI_PURE_CAPABILITY__
   __ Mov(x2, reinterpret_cast<uintptr_t>(test_substring));
-  __ PrintfNoPreserve("Test %%s: %s\n", x2);
+  Register r2 = x2;
+#endif  // __CHERI_PURE_CAPABILITY__
+  __ PrintfNoPreserve("Test %%s: %s\n", r2);
   __ Mov(x22, x0);
 
   // Test the maximum number of arguments, and sign extension.

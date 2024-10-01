@@ -4850,7 +4850,11 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data,
       }
     } else {
       RelocInfoStatus status;
+#ifdef __CHERI_PURE_CAPABILITY__
+      if (as_pointer || __builtin_cheri_tag_get(data))
+#else   // !__CHERI_PURE_CAPABILITY__
       if (as_pointer)
+#endif  // __CHERI_PURE_CAPABILITY__
         status = constpool_.RecordEntry(static_cast<uintptr_t>(data), rmode);
       else
         status = constpool_.RecordEntry(static_cast<uint64_t>(data), rmode);
