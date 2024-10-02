@@ -4045,6 +4045,10 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   }
 
 #if defined(__CHERI_PURE_CAPABILITY__)
+  // Do not remap to code range if embedded blob is not disposed.
+  if (!enable_embedded_blob_refcounting_) {
+    return;
+  }
 // rederive embedded_blob_code_ from PCC for remapping
   uintptr_t sentry = reinterpret_cast<uintptr_t>(embedded_blob_code_);
   uintptr_t result_cap = sentry;
@@ -4076,8 +4080,8 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   // can bottom out the issue.
   SetEmbeddedBlob(embedded_blob_code_, embedded_blob_code_size_,
                   embedded_blob_data_, embedded_blob_data_size_);
-  sticky_embedded_blob_code_ = embedded_blob_code_;
-  sticky_embedded_blob_data_ = embedded_blob_data_;
+  SetStickyEmbeddedBlob(embedded_blob_code_, embedded_blob_code_size_,
+                        embedded_blob_data_, embedded_blob_data_size_);
 #endif  // !__CHERI_PURE_CAPABILITY__
   // The un-embedded code blob is already a part of the registered code range
   // so it's not necessary to register it again.
@@ -4606,6 +4610,7 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
   // Extra steps in the logger after the heap has been set up.
   v8_file_logger_->LateSetup(this);
 
+#ifndef __CHERI_PURE_CAPABILITY__
 #ifdef DEBUG
   // Verify that the current heap state (usually deserialized from the snapshot)
   // is compatible with the embedded blob. If this DCHECK fails, we've likely
@@ -4619,6 +4624,7 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
         "the V8 build process (e.g.: --turbo-instruction-scheduling).");
   }
 #endif  // DEBUG
+#endif // !__CHERI_PURE_CAPABILITY__
 
   if (v8_flags.print_builtin_code) builtins()->PrintBuiltinCode();
   if (v8_flags.print_builtin_size) builtins()->PrintBuiltinSize();
