@@ -151,9 +151,7 @@ template <typename IsolateT>
 template <typename TSlot>
 int Deserializer<IsolateT>::WriteAddress(TSlot dest, Address value) {
   DCHECK(!next_reference_is_weak_);
-  CheriDiagnosticOff("-Wcheri-inefficient")
-  memcpy(dest.ToVoidPtr(), &value, kSystemPointerSize);
-  CheriDiagnosticPop
+  Memory<Address>(dest.ToAddress()) = value;
   static_assert(IsAligned(kSystemPointerSize, TSlot::kSlotDataSize));
   return (kSystemPointerSize / TSlot::kSlotDataSize);
 }
