@@ -2932,7 +2932,28 @@ void MacroAssembler::Call(Handle<Code> code, RelocInfo::Mode rmode) {
 void MacroAssembler::Call(ExternalReference target) {
   UseScratchRegisterScope temps(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  brk(0x0);
+  // On CHERI, we can't just move the address into a register and jump to it. We
+  // also can't rely on creating the constant pool because it makes any function
+  // that calls this codegen method isolate-dependent, which includes nearly all
+  // the builtins. As a result, emit the pointer directly into the instruction
+  // stream and use adr + ldr to fetch it so that we can jump to it.
+  Register temp = temps.AcquireC();
+  Label ptr_address;
+  Adr(temp, &ptr_address);
+  Ldr(temp, MemOperand(temp));
+  {
+    Assembler::BlockPoolsScope scope(this);
+    Label after_data;
+    B(&after_data);
+    const size_t to_align =
+        RoundUp(pc_offset(), kSystemPointerSize) - pc_offset();
+    for (size_t i = 0; i < to_align; i += kInstrSize) Nop();
+    Bind(&ptr_address);
+    dp(target.address());
+    Unreachable();
+    Bind(&after_data);
+  }
+  Call(temp);
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
   Mov(temp, target);
@@ -4875,17 +4896,7 @@ void MacroAssembler::CallPrintf(int arg_count, const CPURegister* args) {
     return;
   }
 
-#ifdef __CHERI_PURE_CAPABILITY__
-  // Create a manual pc-relative load to grab the printf capability. We aren't
-  // guaranteed to have a PCC that we can re-derive from in this case because we
-  // might be running JITted code.
-  UseScratchRegisterScope temps(this);
-  Register temp = temps.AcquireC();
-  Ldr(temp, ExternalReference::printf_function());
-  Call(temp);
-#else   // !__CHERI_PURE_CAPABILITY__
   Call(ExternalReference::printf_function());
-#endif  // __CHERI_PURE_CAPABILITY__
 }
 
 void MacroAssembler::Printf(const char* format, CPURegister arg0,
