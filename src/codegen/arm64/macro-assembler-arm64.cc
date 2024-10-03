@@ -2929,7 +2929,7 @@ void MacroAssembler::Call(Handle<Code> code, RelocInfo::Mode rmode) {
   }
 }
 
-void MacroAssembler::Call(ExternalReference target) {
+void MacroAssembler::Call(ExternalReference target, bool is_builtin) {
   UseScratchRegisterScope temps(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
   // On CHERI, we can't just move the address into a register and jump to it. We
@@ -2937,6 +2937,13 @@ void MacroAssembler::Call(ExternalReference target) {
   // that calls this codegen method isolate-dependent, which includes nearly all
   // the builtins. As a result, emit the pointer directly into the instruction
   // stream and use adr + ldr to fetch it so that we can jump to it.
+  if (is_builtin) {
+    // In the case of a builtin, we can't quite handle it yet because the
+    // serialization and deserialization process will make the sentry
+    // non-sensical.
+    brk(0x0);
+    return;
+  }
   Register temp = temps.AcquireC();
   Label ptr_address;
   Adr(temp, &ptr_address);
@@ -4896,7 +4903,9 @@ void MacroAssembler::CallPrintf(int arg_count, const CPURegister* args) {
     return;
   }
 
-  Call(ExternalReference::printf_function());
+  // FIXME(ds815): Temporarily set this as never being called from a builtin, so
+  // that we can generate an external call to printf in tests.
+  Call(ExternalReference::printf_function(), false);
 }
 
 void MacroAssembler::Printf(const char* format, CPURegister arg0,
