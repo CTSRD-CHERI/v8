@@ -1094,10 +1094,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   void Call(Register target);
   void Call(Address target, RelocInfo::Mode rmode);
   void Call(Handle<Code> code, RelocInfo::Mode rmode = RelocInfo::CODE_TARGET);
-  // FIXME(ds815): Probably need to come up with a way to handle builtins for
-  // external calls which pass through the serialization process. Right now they
-  // get invalidated.
-  void Call(ExternalReference target, bool is_builtin = true);
+  void Call(ExternalReference target);
 
   // Generate an indirect call (for when a direct call's range is not adequate).
   void IndirectCall(Address target, RelocInfo::Mode rmode);

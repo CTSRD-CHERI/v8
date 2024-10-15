@@ -2642,11 +2642,22 @@ void MacroAssembler::CallCFunction(ExternalReference function,
   ASM_CODE_COMMENT(this);
   UseScratchRegisterScope temps(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
+  Operand operand(function);
+  // Perform this check here because an "immediate" is not necessarily an
+  // address, so we don't have the necessary information in Mov().
   Register temp = temps.AcquireC();
+  if (operand.NeedsRelocation(this)) {
+    // Mov will handle the external for us based on the assembler options.
+    Mov(temp, operand);
+  } else {
+    // On CHERI, we can't just move the address into a register and jump to it.
+    // Put the capability in the constant pool instead and then jump to it.
+    Ldr(temp, operand);
+  }
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
-#endif  // !__CHERI_PURE_CAPABILITY__
   Mov(temp, function);
+#endif  // !__CHERI_PURE_CAPABILITY__
   CallCFunction(temp, num_of_reg_args, num_of_double_args,
                 set_isolate_data_slots);
 }
@@ -2929,43 +2940,26 @@ void MacroAssembler::Call(Handle<Code> code, RelocInfo::Mode rmode) {
   }
 }
 
-void MacroAssembler::Call(ExternalReference target, bool is_builtin) {
+void MacroAssembler::Call(ExternalReference target) {
   UseScratchRegisterScope temps(this);
 #if defined(__CHERI_PURE_CAPABILITY__)
-  // On CHERI, we can't just move the address into a register and jump to it. We
-  // also can't rely on creating the constant pool because it makes any function
-  // that calls this codegen method isolate-dependent, which includes nearly all
-  // the builtins. As a result, emit the pointer directly into the instruction
-  // stream and use adr + ldr to fetch it so that we can jump to it.
-  if (is_builtin) {
-    // In the case of a builtin, we can't quite handle it yet because the
-    // serialization and deserialization process will make the sentry
-    // non-sensical.
-    brk(0x0);
-    return;
-  }
+  Operand operand(target);
+  // Perform this check here because an "immediate" is not necessarily an
+  // address, so we don't have the necessary information in Mov().
   Register temp = temps.AcquireC();
-  Label ptr_address;
-  Adr(temp, &ptr_address);
-  Ldr(temp, MemOperand(temp));
-  {
-    Assembler::BlockPoolsScope scope(this);
-    Label after_data;
-    B(&after_data);
-    const size_t to_align =
-        RoundUp(pc_offset(), kSystemPointerSize) - pc_offset();
-    for (size_t i = 0; i < to_align; i += kInstrSize) Nop();
-    Bind(&ptr_address);
-    dp(target.address());
-    Unreachable();
-    Bind(&after_data);
+  if (operand.NeedsRelocation(this)) {
+    // Mov will handle the external for us based on the assembler options.
+    Mov(temp, operand);
+  } else {
+    // On CHERI, we can't just move the address into a register and jump to it.
+    // Put the capability in the constant pool instead and then jump to it.
+    Ldr(temp, operand);
   }
-  Call(temp);
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
   Mov(temp, target);
-  Call(temp);
 #endif  // !__CHERI_PURE_CAPABILITY__
+  Call(temp);
 }
 
 void MacroAssembler::LoadEntryFromBuiltinIndex(Register builtin_index,
@@ -4903,9 +4897,7 @@ void MacroAssembler::CallPrintf(int arg_count, const CPURegister* args) {
     return;
   }
 
-  // FIXME(ds815): Temporarily set this as never being called from a builtin, so
-  // that we can generate an external call to printf in tests.
-  Call(ExternalReference::printf_function(), false);
+  Call(ExternalReference::printf_function());
 }
 
 void MacroAssembler::Printf(const char* format, CPURegister arg0,
