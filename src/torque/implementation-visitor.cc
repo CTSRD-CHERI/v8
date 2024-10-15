@@ -4220,7 +4220,8 @@ void CppClassGenerator::GenerateClass() {
       for (const Field& field : type_->ComputeAllFields()) {
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
         if (ImplementationVisitor::IsInternal(field)) {
-          stream << "   size += 1;\n";
+          stream << "   if (" << *field.offset << " > kHeaderSize - 1)\n";
+          stream << "       size += 1;\n";
           continue;
         }
 #endif  // __CHERI_PURE_CAPABILITY__ && V8_COMPRESS_POINTERS
