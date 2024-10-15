@@ -771,9 +771,15 @@ MapWord MapWord::FromForwardingAddress(HeapObject map_word_host,
   // When external code space is enabled forwarding pointers are encoded as
   // Smi representing a diff from the source object address in kObjectAlignment
   // chunks.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  int diff = static_cast<int>(object.ptr() - map_word_host.ptr());
+  DCHECK(IsAligned(diff, kObjectAlignment));
+  MapWord map_word(Smi::FromInt(diff / kObjectAlignment).ptr());
+#else
   intptr_t diff = static_cast<intptr_t>(object.ptr() - map_word_host.ptr());
   DCHECK(IsAligned(diff, kObjectAlignment));
   MapWord map_word(Smi::FromIntptr(diff / kObjectAlignment).ptr());
+#endif
   DCHECK(map_word.IsForwardingAddress());
   return map_word;
 #else
