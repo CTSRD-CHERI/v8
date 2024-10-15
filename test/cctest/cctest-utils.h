@@ -23,8 +23,13 @@ namespace internal {
 #define GET_STACK_POINTER_TO(sp_addr) \
   __asm__ __volatile__("str sp, %0" : "=g"(sp_addr))
 #elif V8_HOST_ARCH_ARM64
+#ifdef __CHERI_PURE_CAPABILITY__
+#define GET_STACK_POINTER_TO(sp_addr) \
+  __asm__ __volatile__("mov c16, csp; str c16, %0" : "=g"(sp_addr))
+#else   // !__CHERI_PURE_CAPABILITY__
 #define GET_STACK_POINTER_TO(sp_addr) \
   __asm__ __volatile__("mov x16, sp; str x16, %0" : "=g"(sp_addr))
+#endif  // __CHERI_PURE_CAPABILITY__
 #elif V8_HOST_ARCH_MIPS
 #define GET_STACK_POINTER_TO(sp_addr) \
   __asm__ __volatile__("sw $sp, %0" : "=g"(sp_addr))
