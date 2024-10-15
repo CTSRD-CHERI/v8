@@ -81,7 +81,7 @@ class V8_EXPORT_PRIVATE MacroAssemblerBase : public Assembler {
   static int32_t RootRegisterOffsetForBuiltin(Builtin builtin);
 
   // Returns the root-relative offset to reference.address().
-  static intptr_t RootRegisterOffsetForExternalReference(
+  static ScaledInt RootRegisterOffsetForExternalReference(
       Isolate* isolate, const ExternalReference& reference);
 
   // Returns the root-relative offset to the external reference table entry,

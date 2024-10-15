@@ -2780,7 +2780,7 @@ MemOperand MacroAssembler::ExternalReferenceAsOperand(
     if (IsAddressableThroughRootRegister(isolate(), reference)) {
       // Some external references can be efficiently loaded as an offset from
       // kRootRegister.
-      intptr_t offset =
+      ScaledInt offset =
           RootRegisterOffsetForExternalReference(isolate(), reference);
       CHECK(is_int32(offset));
       return MemOperand(kRootRegister, static_cast<int32_t>(offset));
@@ -3268,7 +3268,7 @@ void MacroAssembler::LoadStackLimit(Register destination, StackLimitKind kind) {
           : ExternalReference::address_of_jslimit(isolate);
   DCHECK(MacroAssembler::IsAddressableThroughRootRegister(isolate, limit));
 
-  intptr_t offset =
+  ScaledInt offset =
       MacroAssembler::RootRegisterOffsetForExternalReference(isolate, limit);
   Ldr(destination, MemOperand(kRootRegister, offset));
 }
