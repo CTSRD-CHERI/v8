@@ -487,6 +487,18 @@ void MacroAssembler::Mov(const Register& rd, const Operand& operand,
     }
     Ldr(dst, operand);
   } else if (operand.IsImmediate()) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    if (dst.IsC() && __builtin_cheri_tag_get(operand.ImmediateValue())) {
+      // In the case where we have a tagged pointer, we need to generate a
+      // constant pool and perform a pcrel load-literal in order to preserve the
+      // tag.
+      Ldr(dst, operand);
+      return;
+    } else {
+      // Call the macro assembler for generic immediates.
+      Mov(dst.X(), operand.ImmediateValue());
+    }
+#endif  // __CHERI_PURE_CAPABILITY__
     // Call the macro assembler for generic immediates.
     Mov(dst, operand.ImmediateValue());
   } else if (operand.IsShiftedRegister() && (operand.shift_amount() != 0)) {
@@ -2641,23 +2653,12 @@ void MacroAssembler::CallCFunction(ExternalReference function,
                                    SetIsolateDataSlots set_isolate_data_slots) {
   ASM_CODE_COMMENT(this);
   UseScratchRegisterScope temps(this);
-#if defined(__CHERI_PURE_CAPABILITY__)
-  Operand operand(function);
-  // Perform this check here because an "immediate" is not necessarily an
-  // address, so we don't have the necessary information in Mov().
+#ifdef __CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireC();
-  if (operand.NeedsRelocation(this)) {
-    // Mov will handle the external for us based on the assembler options.
-    Mov(temp, operand);
-  } else {
-    // On CHERI, we can't just move the address into a register and jump to it.
-    // Put the capability in the constant pool instead and then jump to it.
-    Ldr(temp, operand);
-  }
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
+#endif  // __CHERI_PURE_CAPABILITY__
   Mov(temp, function);
-#endif  // !__CHERI_PURE_CAPABILITY__
   CallCFunction(temp, num_of_reg_args, num_of_double_args,
                 set_isolate_data_slots);
 }
@@ -2942,23 +2943,12 @@ void MacroAssembler::Call(Handle<Code> code, RelocInfo::Mode rmode) {
 
 void MacroAssembler::Call(ExternalReference target) {
   UseScratchRegisterScope temps(this);
-#if defined(__CHERI_PURE_CAPABILITY__)
-  Operand operand(target);
-  // Perform this check here because an "immediate" is not necessarily an
-  // address, so we don't have the necessary information in Mov().
+#ifdef __CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireC();
-  if (operand.NeedsRelocation(this)) {
-    // Mov will handle the external for us based on the assembler options.
-    Mov(temp, operand);
-  } else {
-    // On CHERI, we can't just move the address into a register and jump to it.
-    // Put the capability in the constant pool instead and then jump to it.
-    Ldr(temp, operand);
-  }
 #else   // !__CHERI_PURE_CAPABILITY__
   Register temp = temps.AcquireX();
+#endif  // __CHERI_PURE_CAPABILITY__
   Mov(temp, target);
-#endif  // !__CHERI_PURE_CAPABILITY__
   Call(temp);
 }
 

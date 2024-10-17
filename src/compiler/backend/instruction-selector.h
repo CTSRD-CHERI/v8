@@ -537,7 +537,6 @@ class V8_EXPORT_PRIVATE InstructionSelector final {
   }
 #if defined(__CHERI_PURE_CAPABILITY__)
   void MarkAsCapability(Node* node) {
-    //MarkAsRepresentation(MachineRepresentation::kCapability64, node);
     MarkAsRepresentation(MachineRepresentation::kCapability64, node);
   }
 #endif // defined(__CHERI_PURE_CAPABILITY__
