@@ -431,6 +431,11 @@ OpIndex GraphBuilder::Process(
       return __ Word64Constant(static_cast<uint64_t>(OpParameter<int64_t>(op)));
     case IrOpcode::kInt32Constant:
       return __ Word32Constant(static_cast<uint32_t>(OpParameter<int32_t>(op)));
+#ifdef __CHERI_PURE_CAPABILITY__
+    case IrOpcode::kCapability64Constant:
+      return __ IntPtrConstant(
+          static_cast<uintptr_t>(OpParameter<intptr_t>(op)));
+#endif  // __CHERI_PURE_CAPABILITY__
     case IrOpcode::kFloat64Constant:
       return __ Float64Constant(OpParameter<double>(op));
     case IrOpcode::kFloat32Constant:
@@ -446,6 +451,9 @@ OpIndex GraphBuilder::Process(
     case IrOpcode::kExternalConstant:
       return __ ExternalConstant(OpParameter<ExternalReference>(op));
     case IrOpcode::kRelocatableInt64Constant:
+#ifdef __CHERI_PURE_CAPABILITY__
+    case IrOpcode::kRelocatableCapability64Constant:
+#endif  // __CHERI_PURE_CAPABILITY__
       return __ RelocatableConstant(
           OpParameter<RelocatablePtrConstantInfo>(op).value(),
           OpParameter<RelocatablePtrConstantInfo>(op).rmode());

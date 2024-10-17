@@ -362,6 +362,9 @@ class OperandGenerator {
         return Constant(OpParameter<float>(node->op()));
       case IrOpcode::kRelocatableInt32Constant:
       case IrOpcode::kRelocatableInt64Constant:
+#ifdef __CHERI_PURE_CAPABILITY__
+      case IrOpcode::kRelocatableCapability64Constant:
+#endif  // __CHERI_PURE_CAPABILITY__
         return Constant(OpParameter<RelocatablePtrConstantInfo>(node->op()));
       case IrOpcode::kFloat64Constant:
       case IrOpcode::kNumberConstant:

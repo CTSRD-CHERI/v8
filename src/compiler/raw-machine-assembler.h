@@ -127,6 +127,11 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   Node* RelocatableInt64Constant(int64_t value, RelocInfo::Mode rmode) {
     return AddNode(common()->RelocatableInt64Constant(value, rmode));
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  Node* RelocatableCapability64Constant(intptr_t value, RelocInfo::Mode rmode) {
+    return AddNode(common()->RelocatableCapability64Constant(value, rmode));
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   Node* Projection(int index, Node* a) {
     return AddNode(common()->Projection(index), a);

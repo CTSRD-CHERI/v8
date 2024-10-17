@@ -65,11 +65,17 @@ using RelocInt32Key = std::pair<int32_t, RelocInfoMode>;
 using RelocInt64Key = std::pair<int64_t, RelocInfoMode>;
 using RelocInt32NodeCache = NodeCache<RelocInt32Key>;
 using RelocInt64NodeCache = NodeCache<RelocInt64Key>;
+#ifdef __CHERI_PURE_CAPABILITY__
+using RelocCapability64Key = std::pair<intptr_t, RelocInfoMode>;
+using RelocCapability64NodeCache = NodeCache<RelocCapability64Key>;
+using IntPtrNodeCache = NodeCache<intptr_t>;
+#else  // !__CHERI_PURE_CAPABILITY__
 #if V8_HOST_ARCH_32_BIT
 using IntPtrNodeCache = Int32NodeCache;
 #else
 using IntPtrNodeCache = Int64NodeCache;
 #endif
+#endif // __CHERI_PURE_CAPABILITY__
 
 }  // namespace compiler
 }  // namespace internal

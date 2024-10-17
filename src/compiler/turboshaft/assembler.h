@@ -1224,20 +1224,36 @@ class AssemblerOpInterface {
   V<Word64> Word64Constant(int64_t value) {
     return Word64Constant(static_cast<uint64_t>(value));
   }
-  OpIndex WordConstant(uint64_t value, WordRepresentation rep) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  V<Capability64> Capability64Constant(uintptr_t value) {
+    if (V8_UNLIKELY(stack().generating_unreachable_operations())) {
+      return OpIndex::Invalid();
+    }
+    return stack().ReduceConstant(ConstantOp::Kind::kCapability64, value);
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
+  OpIndex WordConstant(uintptr_t value, WordRepresentation rep) {
     switch (rep.value()) {
       case WordRepresentation::Word32():
         return Word32Constant(static_cast<uint32_t>(value));
       case WordRepresentation::Word64():
-        return Word64Constant(value);
+        return Word64Constant(static_cast<uint64_t>(value));
+#ifdef __CHERI_PURE_CAPABILITY__
+      case WordRepresentation::Capability64():
+        return Capability64Constant(value);
+#endif  // __CHERI_PURE_CAPABILITY__
     }
   }
   V<WordPtr> IntPtrConstant(intptr_t value) {
     return UintPtrConstant(static_cast<uintptr_t>(value));
   }
   V<WordPtr> UintPtrConstant(uintptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    return WordConstant(value, WordRepresentation::PointerSized());
+#else   // !__CHERI_PURE_CAPABILITY__
     return WordConstant(static_cast<uint64_t>(value),
                         WordRepresentation::PointerSized());
+#endif  // __CHERI_PURE_CAPABILITY__
   }
   V<Float32> Float32Constant(float value) {
     if (V8_UNLIKELY(stack().generating_unreachable_operations())) {

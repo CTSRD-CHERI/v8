@@ -299,7 +299,11 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
         return Operand(constant.ToInt64());
 #if defined(__CHERI_PURE_CAPABILITY__)
       case Constant::kIntPtr:
-        return Operand(constant.ToIntPtr());
+        // Only generate an intptr_t operand if it's necessary.
+        // XXX(ds815): WASM at some point.
+        if (__builtin_cheri_tag_get(constant.ToIntPtr()))
+          return Operand(constant.ToIntPtr(), RelocInfo::CAPABILITY_CONSTANT);
+	return Operand(constant.ToInt64());
 #endif
       case Constant::kFloat32:
         return Operand::EmbeddedNumber(constant.ToFloat32());

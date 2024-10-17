@@ -446,6 +446,9 @@ void Verifier::Visitor::Check(Node* node, const AllNodes& all) {
     case IrOpcode::kTaggedIndexConstant:
     case IrOpcode::kRelocatableInt32Constant:
     case IrOpcode::kRelocatableInt64Constant:
+#ifdef __CHERI_PURE_CAPABILITY__
+    case IrOpcode::kRelocatableCapability64Constant:
+#endif  // __CHERI_PURE_CAPABILITY__
       // Constants have no inputs.
       CHECK_EQ(0, input_count);
       CheckNotTyped(node);

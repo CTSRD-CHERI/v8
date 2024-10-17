@@ -44,7 +44,8 @@
   V(Float64Constant)                      \
   V(CompressedHeapConstant)               \
   V(RelocatableInt32Constant)             \
-  V(RelocatableInt64Constant)
+  V(RelocatableInt64Constant)             \
+  V(RelocatableCapability64Constant)
 #else
 #define MACHINE_LEVEL_CONSTANT_OP_LIST(V) \
   V(Int32Constant)                        \

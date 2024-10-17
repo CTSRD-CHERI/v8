@@ -1244,6 +1244,9 @@ struct TryChangeOp : FixedArityOperationT<1, TryChangeOp> {
       case WordRepresentation::Word64():
         return RepVector<RegisterRepresentation::Word64(),
                          RegisterRepresentation::Word32()>();
+      case WordRepresentation::Capability64():
+        return RepVector<RegisterRepresentation::Capability64(),
+                         RegisterRepresentation::Capability64()>();
     }
   }
 
@@ -1417,6 +1420,9 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
   enum class Kind : uint8_t {
     kWord32,
     kWord64,
+#ifdef __CHERI_PURE_CAPABILITY__
+    kCapability64,
+#endif  // __CHERI_PURE_CAPABILITY__
     kFloat32,
     kFloat64,
     kNumber,  // TODO(tebbi): See if we can avoid number constants.
@@ -1434,10 +1440,16 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
     uint64_t integral;
     float float32;
     double float64;
+#ifdef __CHERI_PURE_CAPABILITY__
+    uintptr_t intptr;
+#endif  // __CHERI_PURE_CAPABILITY__
     ExternalReference external;
     Handle<HeapObject> handle;
 
     Storage(uint64_t integral = 0) : integral(integral) {}
+#ifdef __CHERI_PURE_CAPABILITY__
+    Storage(uintptr_t intptr = 0) : intptr(intptr) {}
+#endif  // __CHERI_PURE_CAPABILITY__
     Storage(double constant) : float64(constant) {}
     Storage(float constant) : float32(constant) {}
     Storage(ExternalReference constant) : external(constant) {}
@@ -1463,6 +1475,9 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
       case Kind::kTaggedIndex:
       case Kind::kRelocatableWasmCall:
       case Kind::kRelocatableWasmStubCall:
+#ifdef __CHERI_PURE_CAPABILITY__
+      case Kind::kCapability64:
+#endif  // __CHERI_PURE_CAPABILITY__
         return RegisterRepresentation::PointerSized();
       case Kind::kHeapObject:
       case Kind::kNumber:
@@ -1509,6 +1524,13 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
     return static_cast<uint64_t>(storage.integral);
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  uintptr_t capability64() const {
+    DCHECK_EQ(kind, Kind::kCapability64);
+    return storage.intptr;
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   double number() const {
     DCHECK_EQ(kind, Kind::kNumber);
     return storage.float64;
@@ -1545,6 +1567,10 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
       case Kind::kWord64:
       case Kind::kTaggedIndex:
         return storage.integral == 0;
+#ifdef __CHERI_PURE_CAPABILITY__
+      case Kind::kCapability64:
+        return storage.intptr == 0;
+#endif  // __CHERI_PURE_CAPABILITY__
       case Kind::kFloat32:
         return storage.float32 == 0;
       case Kind::kFloat64:
@@ -1565,6 +1591,10 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
       case Kind::kWord64:
       case Kind::kTaggedIndex:
         return storage.integral == 1;
+#ifdef __CHERI_PURE_CAPABILITY__
+      case Kind::kCapability64:
+        return storage.intptr == 1;
+#endif  // __CHERI_PURE_CAPABILITY__
       case Kind::kFloat32:
         return storage.float32 == 1;
       case Kind::kFloat64:
@@ -1590,6 +1620,17 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
     }
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  bool IsCapability64(uintptr_t value) const {
+    switch (kind) {
+      case Kind::kCapability64:
+        return value == capability64();
+      default:
+        UNREACHABLE();
+    }
+  }
+#endif // __CHERI_PURE_CAPABILITY__
+
   auto options() const { return std::tuple{kind, storage}; }
 
   void PrintOptions(std::ostream& os) const;
@@ -1601,6 +1642,10 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
       case Kind::kRelocatableWasmCall:
       case Kind::kRelocatableWasmStubCall:
         return fast_hash_combine(opcode, kind, storage.integral);
+#ifdef __CHERI_PURE_CAPABILITY__
+      case Kind::kCapability64:
+        return fast_hash_combine(opcode, kind, storage.intptr);
+#endif  // __CHERI_PURE_CAPABILITY__
       case Kind::kFloat32:
         return fast_hash_combine(opcode, kind, storage.float32);
       case Kind::kFloat64:
@@ -1622,6 +1667,10 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
       case Kind::kRelocatableWasmCall:
       case Kind::kRelocatableWasmStubCall:
         return storage.integral == other.storage.integral;
+#ifdef __CHERI_PURE_CAPABILITY__
+      case Kind::kCapability64:
+        return storage.intptr == other.storage.intptr;
+#endif  // __CHERI_PURE_CAPABILITY__
       case Kind::kFloat32:
         // Using a bit_cast to uint32_t in order to return false when comparing
         // +0 and -0.

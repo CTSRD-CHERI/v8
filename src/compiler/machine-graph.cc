@@ -40,11 +40,19 @@ Node* MachineGraph::Capability64Constant(intptr_t value) {
 #endif
 
 Node* MachineGraph::IntPtrConstant(intptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK_EQ(kSystemPointerSize, 16);
+  if (__builtin_cheri_tag_get(value)) return Capability64Constant(value);
+#endif  // __CHERI_PURE_CAPABILITY__
   return machine()->Is32() ? Int32Constant(static_cast<int32_t>(value))
                            : Int64Constant(static_cast<int64_t>(value));
 }
 
 Node* MachineGraph::UintPtrConstant(uintptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK_EQ(kSystemPointerSize, 16);
+  if (__builtin_cheri_tag_get(value)) return Capability64Constant(value);
+#endif  // __CHERI_PURE_CAPABILITY__
   return machine()->Is32() ? Uint32Constant(static_cast<uint32_t>(value))
                            : Uint64Constant(static_cast<uint64_t>(value));
 }
@@ -78,10 +86,28 @@ Node* MachineGraph::RelocatableInt64Constant(int64_t value,
   return *loc;
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+Node* MachineGraph::RelocatableCapability64Constant(intptr_t value,
+                                                    RelocInfo::Mode rmode) {
+  Node** loc = cache_.FindRelocatableCapability64Constant(
+      value, static_cast<RelocInfoMode>(rmode));
+  if (*loc == nullptr) {
+    *loc = graph()->NewNode(
+        common()->RelocatableCapability64Constant(value, rmode));
+  }
+  return *loc;
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 Node* MachineGraph::RelocatableIntPtrConstant(intptr_t value,
                                               RelocInfo::Mode rmode) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK_EQ(kSystemPointerSize, 16);
+  if (__builtin_cheri_tag_get(value))
+    return RelocatableCapability64Constant(value, rmode);
+#endif  // __CHERI_PURE_CAPABILITY__
   return kSystemPointerAddrSize == 8
-             ? RelocatableInt64Constant(value, rmode)
+             ? RelocatableInt64Constant(static_cast<int64_t>(value), rmode)
              : RelocatableInt32Constant(static_cast<int>(value), rmode);
 }
 

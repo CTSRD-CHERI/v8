@@ -472,6 +472,9 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
       CASE(CompressedHeapConstant)
       CASE(RelocatableInt32Constant)
       CASE(RelocatableInt64Constant)
+#ifdef __CHERI_PURE_CAPABILITY__
+      CASE(RelocatableCapability64Constant)
+#endif  // __CHERI_PURE_CAPABILITY__
       // Inner operators
       CASE(Select)
       CASE(Phi)

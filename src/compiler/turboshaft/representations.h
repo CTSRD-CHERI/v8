@@ -260,6 +260,11 @@ class WordRepresentation : public RegisterRepresentation {
   enum class Enum : uint8_t {
     kWord32 = static_cast<int>(RegisterRepresentation::Enum::kWord32),
     kWord64 = static_cast<int>(RegisterRepresentation::Enum::kWord64)
+#ifdef __CHERI_PURE_CAPABILITY__
+        ,
+    kCapability64 =
+        static_cast<int>(RegisterRepresentation::Enum::kCapability64)
+#endif  // __CHERI_PURE_CAPABILITY__
   };
   explicit constexpr WordRepresentation(Enum value)
       : RegisterRepresentation(
@@ -276,6 +281,11 @@ class WordRepresentation : public RegisterRepresentation {
   static constexpr WordRepresentation Word64() {
     return WordRepresentation(Enum::kWord64);
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  static constexpr WordRepresentation Capability64() {
+    return WordRepresentation(Enum::kCapability64);
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   static constexpr WordRepresentation PointerSized() {
     return WordRepresentation(RegisterRepresentation::PointerSized());
@@ -447,16 +457,11 @@ class MemoryRepresentation {
       case Uint32():
       case Int64():
       case Uint64():
-        return true;
-#if defined(__CHERI_PURE_CAPABILITY__)
-      // TODO(gcjenkinson): The capability representations aren't word size
-      // for the architecture, its less clear whether the meaning here is
-      // aligned with that perspective.
+#ifdef __CHERI_PURE_CAPABILITY__
       case Capability32():
-	[[fallthrough]];
       case Capability64():
-	[[fallthrough]];
-#endif  // !__CHERI_PURE_CAPABILITY__
+#endif  // __CHERI_PURE_CAPABILITY__
+        return true;
       case Float32():
       case Float64():
       case AnyTagged():

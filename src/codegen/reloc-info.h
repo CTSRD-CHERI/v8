@@ -146,6 +146,13 @@ class RelocInfo {
     // cannot be encoded as part of another record.
     PC_JUMP,
 
+#ifdef __CHERI_PURE_CAPABILITY__
+    // Only used on CHERI systems. Its purpose is to ensure that we are able to
+    // load literal capabilities from V8 into registers via the pcrel load
+    // literal instruction. Currently used only on Morello.
+    CAPABILITY_CONSTANT,
+#endif  // __CHERI_PURE_CAPABILITY__
+
     // Pseudo-types
     NUMBER_OF_MODES,
 

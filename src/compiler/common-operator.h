@@ -208,12 +208,20 @@ size_t hash_value(TypedObjectStateInfo const& p);
 
 class RelocatablePtrConstantInfo final {
  public:
+#ifdef __CHERI_PURE_CAPABILITY__
+  enum Type { kInt32, kInt64, kIntPtr };
+#else   // !__CHERI_PURE_CAPABILITY__
   enum Type { kInt32, kInt64 };
+#endif  // __CHERI_PURE_CAPABILITY__
 
   RelocatablePtrConstantInfo(int32_t value, RelocInfo::Mode rmode)
       : value_(value), rmode_(rmode), type_(kInt32) {}
   RelocatablePtrConstantInfo(int64_t value, RelocInfo::Mode rmode)
       : value_(value), rmode_(rmode), type_(kInt64) {}
+#ifdef __CHERI_PURE_CAPABILITY__
+  RelocatablePtrConstantInfo(intptr_t value, RelocInfo::Mode rmode)
+      : value_(value), rmode_(rmode), type_(kIntPtr) {}
+#endif  // __CHERI_PURE_CAPABILITY__
 
   intptr_t value() const { return value_; }
   RelocInfo::Mode rmode() const { return rmode_; }
@@ -583,6 +591,10 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
                                            RelocInfo::Mode rmode);
   const Operator* RelocatableInt64Constant(int64_t value,
                                            RelocInfo::Mode rmode);
+#ifdef __CHERI_PURE_CAPABILITY__
+  const Operator* RelocatableCapability64Constant(intptr_t value,
+                                                  RelocInfo::Mode rmode);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   const Operator* Select(MachineRepresentation, BranchHint = BranchHint::kNone);
   const Operator* Phi(MachineRepresentation representation,

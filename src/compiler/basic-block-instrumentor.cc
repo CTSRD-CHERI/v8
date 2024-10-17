@@ -39,6 +39,12 @@ static NodeVector::iterator FindInsertionPoint(BasicBlock* block) {
 
 static const Operator* IntPtrConstant(CommonOperatorBuilder* common,
                                       intptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK_EQ(kSystemPointerSize, 16);
+  if (__builtin_cheri_tag_get(value)) {
+    return common->Capability64Constant(value);
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
   return kSystemPointerAddrSize == 8
              ? common->Int64Constant(value)
              : common->Int32Constant(static_cast<int32_t>(value));

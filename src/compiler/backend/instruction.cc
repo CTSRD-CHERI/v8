@@ -579,6 +579,10 @@ Constant::Constant(RelocatablePtrConstantInfo info) {
     type_ = kInt32;
   } else if (info.type() == RelocatablePtrConstantInfo::kInt64) {
     type_ = kInt64;
+#ifdef __CHERI_PURE_CAPABILITY__
+  } else if (info.type() == RelocatablePtrConstantInfo::kIntPtr) {
+    type_ = kIntPtr;
+#endif  // __CHERI_PURE_CAPABILITY__
   } else {
     UNREACHABLE();
   }

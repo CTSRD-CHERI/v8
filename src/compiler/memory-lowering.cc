@@ -744,6 +744,7 @@ bool MemoryLowering::AllocationGroup::Contains(Node* node) const {
       case IrOpcode::kBitcastWordToTagged:
       case IrOpcode::kInt32Add:
       case IrOpcode::kInt64Add:
+      case IrOpcode::kCapAdd:
         node = NodeProperties::GetValueInput(node, 0);
         break;
       default:

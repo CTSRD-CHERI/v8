@@ -81,20 +81,35 @@ struct ScheduleBuilder {
     return blocks[block.index().id()];
   }
   Node* IntPtrConstant(intptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    DCHECK_EQ(kSystemPointerSize, 16);
+    if (__builtin_cheri_tag_get(value))
+      return AddNode(common.Capability64Constant(value), {});
+#endif  // __CHERI_PURE_CAPABILITY__
     return AddNode(machine.Is64() ? common.Int64Constant(value)
                                   : common.Int32Constant(
                                         base::checked_cast<int32_t>(value)),
                    {});
   }
   Node* IntPtrAdd(Node* a, Node* b) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    return AddNode(machine.CapAdd(), {a, b});
+#else   // !__CHERI_PURE_CAPABILITY__
     return AddNode(machine.Is64() ? machine.Int64Add() : machine.Int32Add(),
                    {a, b});
+#endif  // __CHERI_PURE_CAPABILITY__
   }
   Node* IntPtrShl(Node* a, Node* b) {
+    // FIXME(ds815): This probably needs to be fixed for capabilities.
     return AddNode(machine.Is64() ? machine.Word64Shl() : machine.Word32Shl(),
                    {a, b});
   }
   Node* RelocatableIntPtrConstant(intptr_t value, RelocInfo::Mode mode) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    DCHECK_EQ(kSystemPointerSize, 16);
+    if (__builtin_cheri_tag_get(value))
+      return AddNode(common.RelocatableCapability64Constant(value, mode), {});
+#endif  // __CHERI_PURE_CAPABILITY__
     return AddNode(machine.Is64()
                        ? common.RelocatableInt64Constant(value, mode)
                        : common.RelocatableInt32Constant(

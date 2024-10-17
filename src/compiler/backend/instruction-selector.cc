@@ -2663,6 +2663,7 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitCapAdd(node);
     case IrOpcode::kCapability32Constant:
     case IrOpcode::kCapability64Constant:
+    case IrOpcode::kRelocatableCapability64Constant:
       return MarkAsCapability(node), VisitConstant(node);
 #endif  // defined(__CHERI_PURE_CAPABILITY__)
     default:

@@ -900,6 +900,12 @@ Type Typer::Visitor::TypeRelocatableInt32Constant(Node* node) { UNREACHABLE(); }
 
 Type Typer::Visitor::TypeRelocatableInt64Constant(Node* node) { UNREACHABLE(); }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+Type Typer::Visitor::TypeRelocatableCapability64Constant(Node* node) {
+  UNREACHABLE();
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 Type Typer::Visitor::TypeFloat32Constant(Node* node) { UNREACHABLE(); }
 
 Type Typer::Visitor::TypeFloat64Constant(Node* node) { UNREACHABLE(); }
