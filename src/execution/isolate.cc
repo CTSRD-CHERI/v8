@@ -4049,7 +4049,7 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   if (!enable_embedded_blob_refcounting_) {
     return;
   }
-  // Rederive embedded_blob_code_ from PCC for remapping
+// rederive embedded_blob_code_ from PCC for remapping
   uintptr_t sentry = reinterpret_cast<uintptr_t>(embedded_blob_code_);
   uintptr_t result_cap = sentry;
   if (__builtin_cheri_sealed_get(sentry)) {
@@ -4062,8 +4062,7 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
         result_cap, __builtin_cheri_length_get(sentry));
     result_cap = __builtin_cheri_address_set(result_cap, sentry_addr);
   }
-  embedded_blob_code_ =
-      reinterpret_cast<const uint8_t*>(__builtin_cheri_seal_entry(result_cap));
+  embedded_blob_code_ = reinterpret_cast<const uint8_t*>(result_cap);
 #endif // __CHERI_PURE_CAPABILITY__
   CHECK_NOT_NULL(embedded_blob_code_);
   CHECK_NE(embedded_blob_code_size_, 0);
