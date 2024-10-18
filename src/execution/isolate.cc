@@ -4049,7 +4049,7 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   if (!enable_embedded_blob_refcounting_) {
     return;
   }
-// rederive embedded_blob_code_ from PCC for remapping
+  // Rederive embedded_blob_code_ from PCC for remapping
   uintptr_t sentry = reinterpret_cast<uintptr_t>(embedded_blob_code_);
   uintptr_t result_cap = sentry;
   if (__builtin_cheri_sealed_get(sentry)) {
