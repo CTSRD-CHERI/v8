@@ -135,6 +135,9 @@ void IteratePointersInStack(StackVisitor* visitor, const void* top,
     const void* address = *current;
     MSAN_MEMORY_IS_INITIALIZED(&address, sizeof(address));
     if (address == nullptr) continue;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (!__builtin_cheri_tag_get(address)) continue;
+#endif
     visitor->VisitPointer(address);
     IterateAsanFakeFrameIfNecessary(visitor, asan_fake_stack, start, top,
                                     address);
