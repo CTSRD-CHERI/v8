@@ -106,7 +106,11 @@ TEST_F(PageTest, NormalPageIndexing) {
   }
 
   const RawHeap& heap = GetRawHeap();
+#if defined(__CHERI_PURE_CAPABILITY__)
+  const BaseSpace* space = heap.Space(SpaceType::kNormal2);
+#else
   const BaseSpace* space = heap.Space(SpaceType::kNormal1);
+#endif
   EXPECT_EQ(kExpectedNumberOfPages, space->size());
 
   size_t page_n = 0;
