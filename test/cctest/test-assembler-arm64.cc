@@ -8693,10 +8693,6 @@ static void LdrLiteralRangeHelper(
     CHECK(marker->IsLdrLiteralX());
     size_t pool_data_start_offset = pc_offset_before_emission + kInstrSize;
     size_t padding = 0;
-    if (!IsAligned(pool_data_start_offset, kSystemPointerSize)) {
-      padding += RoundUp(pool_data_start_offset, kSystemPointerSize) -
-                 pool_data_start_offset;
-    }
     const size_t prologue_size = 2 * kInstrSize + kInstrSize;
     const size_t pc = pc_offset_before_emission + prologue_size;
     if (!IsAligned(pc, kSystemPointerSize)) {
