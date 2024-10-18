@@ -44,6 +44,9 @@ void ConservativeTracingVisitor::TraceConservatively(
     MSAN_MEMORY_IS_INITIALIZED(&maybe_full_ptr, sizeof(maybe_full_ptr));
 #endif
     // First, check the full pointer.
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (!__builtin_cheri_tag_get(maybe_full_ptr)) continue;
+#endif
     if (maybe_full_ptr > SentinelPointer::kSentinelValue)
       this->TraceConservativelyIfNeeded(
           reinterpret_cast<Address>(maybe_full_ptr));
