@@ -1248,12 +1248,7 @@ class AssemblerOpInterface {
     return UintPtrConstant(static_cast<uintptr_t>(value));
   }
   V<WordPtr> UintPtrConstant(uintptr_t value) {
-#ifdef __CHERI_PURE_CAPABILITY__
     return WordConstant(value, WordRepresentation::PointerSized());
-#else   // !__CHERI_PURE_CAPABILITY__
-    return WordConstant(static_cast<uint64_t>(value),
-                        WordRepresentation::PointerSized());
-#endif  // __CHERI_PURE_CAPABILITY__
   }
   V<Float32> Float32Constant(float value) {
     if (V8_UNLIKELY(stack().generating_unreachable_operations())) {
