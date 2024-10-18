@@ -1244,9 +1244,11 @@ struct TryChangeOp : FixedArityOperationT<1, TryChangeOp> {
       case WordRepresentation::Word64():
         return RepVector<RegisterRepresentation::Word64(),
                          RegisterRepresentation::Word32()>();
+#ifdef __CHERI_PURE_CAPABILITY__
       case WordRepresentation::Capability64():
         return RepVector<RegisterRepresentation::Capability64(),
                          RegisterRepresentation::Capability64()>();
+#endif  // __CHERI_PURE_CAPABILITY__
     }
   }
 
