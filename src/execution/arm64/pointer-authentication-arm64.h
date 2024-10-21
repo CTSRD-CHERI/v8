@@ -48,8 +48,8 @@ V8_INLINE Address PointerAuthentication::AuthenticatePC(
       : "x16", "x17", "x30");
 #endif
   return pc;
-#else // __CHERI_PURE_CAPABILITY__
-  return static_cast<uint64_t>(*pc_address);
+#else  // __CHERI_PURE_CAPABILITY__
+  return *pc_address;
 #endif // !__CHERI_PURE_CAPABILITY__
 }
 
@@ -119,8 +119,8 @@ V8_INLINE void PointerAuthentication::ReplacePC(Address* pc_address,
       : [sp] "r"(sp), [old_pc] "r"(old_pc)
       : "x16", "x17", "x30");
 #endif
-  *pc_address = new_pc;
 #endif // !__CHERI_PURE_CAPABILITY__
+  *pc_address = new_pc;
 }
 
 

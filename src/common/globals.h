@@ -295,6 +295,23 @@ const size_t kShortBuiltinCallsOldSpaceSizeThreshold = size_t{2} * GB;
 #define TAGGED_SIZE_8_BYTES false
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
+// CHERI helper macros/functions.
+
+// Get the top of a capability
+#define V8_CHERI_TOP_GET(cap)                                      \
+  __extension__({                                                  \
+    __typeof__(cap) c = (cap);                                     \
+    (__builtin_cheri_base_get(c) + __builtin_cheri_length_get(c)); \
+  })
+
+// Check if the address is between cap.base and cap.top, i.e. in bounds
+static inline bool CheriIsInBounds(const void* cap, ptraddr_t addr) {
+  return (addr >= __builtin_cheri_base_get(cap) &&
+          addr < V8_CHERI_TOP_GET(cap));
+}
+#endif // __CHERI_PURE_CAPABILITY__
+
 // Some types of tracing require the SFI to store a unique ID.
 #if defined(V8_TRACE_MAPS) || defined(V8_TRACE_UNOPTIMIZED)
 #define V8_SFI_HAS_UNIQUE_ID true

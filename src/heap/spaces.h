@@ -241,6 +241,15 @@ class Page : public MemoryChunk {
     DCHECK(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL);
     return reinterpret_cast<Page*>(o.ptr() & ~kAlignmentMask);
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  static Page* FromSentry(Address base, Address sentry) {
+    DCHECK(__builtin_cheri_sealed_get(sentry));
+    DCHECK(__builtin_cheri_tag_get(sentry));
+    DCHECK(__builtin_cheri_tag_get(base));
+    ptraddr_t addr = __builtin_cheri_address_get(sentry) & ~kAlignmentMask;
+    return reinterpret_cast<Page*>(__builtin_cheri_address_set(base, addr));
+  }
+#endif  // __CHERI_PURE_CAPABILITY__
 
   static Page* cast(BasicMemoryChunk* chunk) {
     return cast(MemoryChunk::cast(chunk));
@@ -540,6 +549,7 @@ class SpaceWithLinearArea : public Space {
   // Returns the allocation pointer in this space.
   Address top() const { return allocation_info_.top(); }
   Address limit() const { return allocation_info_.limit(); }
+  Address start() const { return allocation_info_.start(); }
 
   // The allocation top address.
   Address* allocation_top_address() const {
