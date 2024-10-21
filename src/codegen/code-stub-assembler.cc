@@ -344,6 +344,14 @@ TNode<IntPtrT> CodeStubAssembler::IntPtrRoundUpToPowerOfTwo32(
   return Signed(IntPtrAdd(value, IntPtrConstant(1)));
 }
 
+TNode<IntPtrT> CodeStubAssembler::IntPtrRoundUpToByteBoundary(
+    TNode<IntPtrT> value, size_t which) {
+  Comment("IntPtrRoundUpToByteBoundary");
+  TNode<IntPtrT> mask = IntPtrConstant(~(which - 1));
+  TNode<IntPtrT> to_add = IntPtrConstant(which - 1);
+  return Signed(WordAnd(IntPtrAdd(value, to_add), mask));
+}
+
 TNode<BoolT> CodeStubAssembler::WordIsPowerOfTwo(TNode<IntPtrT> value) {
   intptr_t constant;
   if (TryToIntPtrConstant(value, &constant)) {
@@ -1379,7 +1387,16 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
   TVARIABLE(Object, result);
   Label runtime_call(this, Label::kDeferred), no_runtime_call(this), out(this);
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // By setting this to false, a call to the runtime will default to
+  // kTaggedAligned, which on a CHERI build is going to be correctly aligned to
+  // the pointer size boundary.
+  // TODO(cheri): Might make sense to make this encoding explicit?
+  // TODO(cheri): Enable for compressed builds too? Unclear at this point.
+  constexpr bool needs_double_alignment = false;
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   bool needs_double_alignment = flags & AllocationFlag::kDoubleAlignment;
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
   bool allow_large_object_allocation =
       flags & AllocationFlag::kAllowLargeObjectAllocation;
 
@@ -1400,11 +1417,31 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
 
   TVARIABLE(IntPtrT, adjusted_size, size_in_bytes);
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // Do this unconditionally on CHERI because we always need to check
+  // alignment.
+  {
+    constexpr ScaledInt alignment_mask = kSystemPointerAlignmentMask;
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   if (needs_double_alignment) {
+    constexpr ScaledInt alignment_mask = kDoubleAlignmentMask;
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
     Label next(this);
-    GotoIfNot(WordAnd(top, IntPtrConstant(kDoubleAlignmentMask)), &next);
+    // XXX(cheri): Annoyingly, we have to cast to intptr_t here because
+    // IntPtrConstant takes an intptr_t, even though this is never a pointer. It
+    // will return a 64-bit word constant in a TNode<IntPtrT> type, so the
+    // codegen won't suffer, but it's still not great.
+    GotoIfNot(WordAnd(top, IntPtrConstant(alignment_mask)), &next);
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    TNode<IntPtrT> rounded_top = IntPtrRoundUpToByteBoundary(
+        UncheckedCast<IntPtrT>(top), kSystemPointerSize);
+    TNode<IntPtrT> padding_needed =
+        IntPtrSub(rounded_top, UncheckedCast<IntPtrT>(top));
+    adjusted_size = IntPtrAdd(size_in_bytes, padding_needed);
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
     adjusted_size = IntPtrAdd(size_in_bytes, IntPtrConstant(4));
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
     Goto(&next);
 
     BIND(&next);
@@ -1442,14 +1479,35 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
 
     TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top));
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    // Do this unconditionally on CHERI because we always need to check
+    // alignment.
+    {
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
     if (needs_double_alignment) {
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
       Label next(this);
       GotoIf(IntPtrEqual(adjusted_size.value(), size_in_bytes), &next);
 
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      // TODO/FIXME(cheri): Figure out how to store a filler here without making
+      // a mess. The issue is (roughly) that a filler map size is going to be
+      // kSystemPointerSized, which on CHERI will be 16, but we are padding up
+      // to the nearest 16-byte boundary and we might not have enough space to
+      // store a full pointer in there, so we'd need to add 16 first and then
+      // round up to ensure we have enough space, but then we can fit more than
+      // just one map.
+      TNode<IntPtrT> rounded_top = IntPtrRoundUpToByteBoundary(
+          UncheckedCast<IntPtrT>(top), kSystemPointerSize);
+      TNode<IntPtrT> padding_needed =
+          IntPtrSub(rounded_top, UncheckedCast<IntPtrT>(top));
+      address = IntPtrAdd(UncheckedCast<IntPtrT>(top), padding_needed);
+#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
       // Store a filler and increase the address by 4.
       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
                           OnePointerFillerMapConstant());
       address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
       Goto(&next);
 
       BIND(&next);

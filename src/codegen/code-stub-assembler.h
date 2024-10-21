@@ -583,6 +583,9 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
 
   // Round the 32bits payload of the provided word up to the next power of two.
   TNode<IntPtrT> IntPtrRoundUpToPowerOfTwo32(TNode<IntPtrT> value);
+  // Round up the pointer to the next which-byte boundary.
+  TNode<IntPtrT> IntPtrRoundUpToByteBoundary(TNode<IntPtrT> value,
+                                             size_t which);
   // Select the maximum of the two provided IntPtr values.
   TNode<IntPtrT> IntPtrMax(TNode<IntPtrT> left, TNode<IntPtrT> right);
   // Select the minimum of the two provided IntPtr values.

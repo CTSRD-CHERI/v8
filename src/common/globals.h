@@ -382,6 +382,7 @@ constexpr int kIntptrSize = sizeof(intptr_t);
 constexpr int kUIntptrSize = sizeof(uintptr_t);
 constexpr int kSystemPointerSize = sizeof(void*);
 constexpr int kSystemPointerHexDigits = kSystemPointerSize == 4 ? 8 : 12;
+constexpr int kSystemPointerAlignmentMask = kSystemPointerSize - 1;
 #if defined(__CHERI_PURE_CAPABILITY__)
 constexpr int kSystemPointerAddrSize = sizeof(ptraddr_t);
 #endif   // __CHERI_PURE_CAPABILITY__
@@ -1434,7 +1435,13 @@ constexpr int kIeeeDoubleExponentWordOffset = 0;
   (((value) + ::i::kObjectAlignment8GbHeapMask) & \
    ~::i::kObjectAlignment8GbHeapMask)
 #else
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+// XXX(cheri): Is this what we want in all cases?
+#define ALIGN_TO_ALLOCATION_ALIGNMENT(value) \
+  (((value) + ::i::kPointerAlignmentMask) & ~::i::kPointerAlignmentMask)
+#else  // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
 #define ALIGN_TO_ALLOCATION_ALIGNMENT(value) (value)
+#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
 #endif
 
 // OBJECT_POINTER_PADDING returns the padding size required to align value
