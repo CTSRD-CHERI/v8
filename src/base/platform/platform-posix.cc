@@ -159,6 +159,7 @@ void* Allocate(void* hint, size_t size, OS::MemoryPermission access,
                PageType page_type) {
 #if defined(__CHERI_PURE_CAPABILITY__)
   int prot = GetProtectionFromMemoryPermission(access, max_access);
+  hint = reinterpret_cast<void *>(static_cast<uintptr_t>(reinterpret_cast<ptraddr_t>(hint)));
 #else
   int prot = GetProtectionFromMemoryPermission(access);
 #endif // __CHERI_PURE_CAPABILITY__
