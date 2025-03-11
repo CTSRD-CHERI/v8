@@ -87,6 +87,10 @@ extern int madvise(caddr_t, size_t, int);
 #define MADV_FREE MADV_DONTNEED
 #endif
 
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
+#include <cheri/cherireg.h>  // OS-specific capability permission bits
+#endif
+
 #if defined(V8_LIBC_GLIBC)
 extern "C" void* __libc_stack_end;
 #endif
@@ -529,6 +533,9 @@ void OS::Release(void* address, size_t size) {
 bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
+  DCHECK_NE(0, V8_CHERI_PERMS(address) & CHERI_PERM_SW_VMEM);
+#endif
 
   int prot = GetProtectionFromMemoryPermission(access);
   int ret = mprotect(address, size, prot);

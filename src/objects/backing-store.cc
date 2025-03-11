@@ -371,7 +371,7 @@ std::unique_ptr<BackingStore> BackingStore::TryAllocateAndPartiallyCommitMemory(
     allocation_base = AllocatePages(page_allocator, nullptr, reservation_size,
 #if defined(__CHERI_PURE_CAPABILITY__)
                                     page_size, PageAllocator::kNoAccess,
-                                    PageAllocator::kNoAccess);
+                                    PageAllocator::kReadWrite);
 #else
                                     page_size, PageAllocator::kNoAccess);
 #endif // __CHERI_PURE_CAPABILITY__
