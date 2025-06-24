@@ -24,6 +24,12 @@ extern class JSArrayBuffer extends JSObjectWithEmbedderSlots {
   // Pads header size to be a multiple of kTaggedSize.
   @if(TAGGED_SIZE_8_BYTES) optional_padding: uint32;
   @ifnot(TAGGED_SIZE_8_BYTES) optional_padding: void;
+  @if(CHERI_PURECAP_UNCOMPRESSED) optional_padding_one: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) optional_padding_two: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) optional_padding_three: uint32;
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) optional_padding_one: void;
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) optional_padding_two: void;
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) optional_padding_three: void;
 }
 
 extern operator '.byte_length' macro LoadJSArrayBufferByteLength(JSArrayBuffer):
