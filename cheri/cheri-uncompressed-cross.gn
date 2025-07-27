@@ -6,6 +6,7 @@ is_component_build = false
 use_aura = true
 use_lld = true
 use_custom_libcxx = false
+use_glib = false
 
 is_debug = true
 v8_optimized_debug = true
@@ -35,5 +36,16 @@ target_os = "freebsd"
 
 target_sysroot = "/path/to/rootfs-morello-purecap"
 clang_base_path = "/path/to/morello-sdk"
+
+# Uncomment if using a remote runner to run mksnapshot
+#snapshot_remote_host = "username@host"
+#snapshot_remote_port = "22"
+#snapshot_remote_sshkey = "/path/to/id_rsa_morello"
+#snapshot_remote_dir = "/path/to/remote/dir/for/mksnapshot"
+
+# Uncomment if using QEMU usermode, but if snapshot_remote_host is set,
+# mksnapshot will be executed in the remote runner
+#qemu_user_bin = "/path/to/qemu-morello"
+#qemu_user_dylibs = "/path/to/rootfs-morello-purecap"
 
 #cc_wrapper = "env CCACHE_PREFIX=distcc CCACHE_SLOPPINESS=time_macros ccache" # Uncomment for distcc and ccache

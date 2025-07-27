@@ -242,7 +242,8 @@ int main(int argc, char** argv) {
 
   i::CpuFeatures::Probe(true);
   v8::V8::InitializeICUDefaultLocation(argv[0]);
-  std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
+  std::unique_ptr<v8::Platform> platform = i::v8_flags.single_threaded ?
+      v8::platform::NewSingleThreadedDefaultPlatform() : v8::platform::NewDefaultPlatform();
   v8::V8::InitializePlatform(platform.get());
   v8::V8::Initialize();
 

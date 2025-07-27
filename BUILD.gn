@@ -394,6 +394,20 @@ declare_args() {
   # iOS (non-simulator) does not have executable pages for 3rd party
   # applications yet so disable jit.
   v8_jitless = v8_enable_lite_mode || target_is_ios_device
+
+  # Use QEMU usermode
+  qemu_user_bin = ""
+  qemu_user_dylibs = ""
+
+  # If snapshot_remote_host is defined, run mksnapshot on a remote runner
+  # using SSH.
+  # The format of a valid input to snapshot_remote_host is "username@host".
+  # snapshot_remote_port is the SSH port and snapshot_remote_sshkey is the
+  # path to the SSH key file.
+  snapshot_remote_host = ""
+  snapshot_remote_port = ""
+  snapshot_remote_sshkey = ""
+  snapshot_remote_dir = ""
 }
 
 # Derived defaults.
@@ -1213,7 +1227,7 @@ config("toolchain") {
       # Mark assembly code as BTI-compatible.
       asmflags = [ "-mmark-bti-property" ]
     }
-    if (is_cheri) {
+    if (is_cheri && current_toolchain == default_toolchain) {
       defines += [ "V8_TARGET_CHERI" ]
     }
   }
@@ -2231,9 +2245,19 @@ template("run_mksnapshot") {
     suffix = "_$name"
   }
   action("run_mksnapshot_" + name) {
-    deps = [ ":mksnapshot($v8_snapshot_toolchain)" ]
-
-    script = "tools/run.py"
+    if (is_cheri && (v8_snapshot_toolchain != v8_cheri_snapshot_toolchain)) {
+      deps = [ ":mksnapshot($v8_cheri_snapshot_toolchain)" ]
+      
+      if (snapshot_remote_host != "") {
+        # if a remote host is available 
+        script = "tools/snapshot/remote_mksnapshot.py"
+      } else {
+        script = "tools/run.py"
+      }
+    } else {
+      deps = [ ":mksnapshot($v8_snapshot_toolchain)" ]
+      script = "tools/run.py"
+    }
 
     sources = []
 
@@ -2241,22 +2265,84 @@ template("run_mksnapshot") {
 
     data = []
 
-    args = [
-      "./" + rebase_path(get_label_info(":mksnapshot($v8_snapshot_toolchain)",
-                                        "root_out_dir") + "/mksnapshot",
-                         root_build_dir),
-      "--turbo_instruction_scheduling",
+    if (is_cheri && (v8_snapshot_toolchain != v8_cheri_snapshot_toolchain)) {
+      assert(v8_cheri_snapshot_toolchain != "")
 
-      # In cross builds, the snapshot may be generated for both the host and
-      # target toolchains.  The same host binary is used to generate both, so
-      # mksnapshot needs to know which target OS to use at runtime.  It's weird,
-      # but the target OS is really |current_os|.
-      "--target_os=$current_os",
-      "--target_arch=$current_cpu",
+      if (snapshot_remote_host != "") {
+        # Connect to a remote runner
+        args = [
+          # Arguments to remote_mksnapshot.py
+          "${snapshot_remote_host}",
+          "${snapshot_remote_port}",
+          "${snapshot_remote_sshkey}",
+          "${snapshot_remote_dir}",
+          rebase_path(get_label_info(":mksnapshot($v8_cheri_snapshot_toolchain)",
+                                     "root_out_dir") + "/mksnapshot",
+                      root_build_dir),
+          rebase_path("$root_out_dir/snapshot_blob${suffix}.bin", root_build_dir),
+          rebase_path("$target_gen_dir/embedded${suffix}.S", root_build_dir),
+          rebase_path("$target_gen_dir/snapshot${suffix}.cc", root_build_dir),
 
-      "--embedded_src",
-      rebase_path("$target_gen_dir/embedded${suffix}.S", root_build_dir),
-    ]
+          # Start of command
+          "./" + rebase_path(get_label_info(":mksnapshot($v8_cheri_snapshot_toolchain)",
+                                            "root_out_dir") + "/mksnapshot",
+                            root_build_dir),
+          "--turbo_instruction_scheduling",
+
+          # In cross builds, the snapshot may be generated for both the host and
+          # target toolchains.  The same host binary is used to generate both, so
+          # mksnapshot needs to know which target OS to use at runtime.  It's weird,
+          # but the target OS is really |current_os|.
+          "--target_os=$current_os",
+          "--target_arch=$current_cpu",
+
+          "--embedded_src",
+          rebase_path("$target_gen_dir/embedded${suffix}.S", root_build_dir),
+        ]
+      } else {
+        # Use QEMU usermode
+        assert(qemu_user_bin != "")
+        assert(qemu_user_dylibs != "")
+        args = [
+          "${qemu_user_bin}",
+          "-L",
+          "${qemu_user_dylibs}",
+          "./" + rebase_path(get_label_info(":mksnapshot($v8_cheri_snapshot_toolchain)",
+                                            "root_out_dir") + "/mksnapshot",
+                            root_build_dir),
+          # Multithreading is not supported in QEMU CHERI
+          "--single-threaded",
+          "--turbo_instruction_scheduling",
+
+          # In cross builds, the snapshot may be generated for both the host and
+          # target toolchains.  The same host binary is used to generate both, so
+          # mksnapshot needs to know which target OS to use at runtime.  It's weird,
+          # but the target OS is really |current_os|.
+          "--target_os=$current_os",
+          "--target_arch=$current_cpu",
+
+          "--embedded_src",
+          rebase_path("$target_gen_dir/embedded${suffix}.S", root_build_dir),
+        ]
+      }
+    } else {
+      args = [
+        "./" + rebase_path(get_label_info(":mksnapshot($v8_snapshot_toolchain)",
+                                          "root_out_dir") + "/mksnapshot",
+                           root_build_dir),
+        "--turbo_instruction_scheduling",
+
+        # In cross builds, the snapshot may be generated for both the host and
+        # target toolchains.  The same host binary is used to generate both, so
+        # mksnapshot needs to know which target OS to use at runtime.  It's weird,
+        # but the target OS is really |current_os|.
+        "--target_os=$current_os",
+        "--target_arch=$current_cpu",
+
+        "--embedded_src",
+        rebase_path("$target_gen_dir/embedded${suffix}.S", root_build_dir),
+      ]
+    }
 
     if (v8_cheri_debug) {
       args += [ "--trace-serializer-bytes" ]
@@ -6536,7 +6622,8 @@ if (current_toolchain == v8_generator_toolchain) {
   }
 }
 
-if (current_toolchain == v8_snapshot_toolchain) {
+if ((!is_cheri && (current_toolchain == v8_snapshot_toolchain)) ||
+    (is_cheri && (current_toolchain == v8_cheri_snapshot_toolchain))) {
   v8_executable("mksnapshot") {
     visibility = [ ":*" ]  # Only targets in this file can depend on this.
 

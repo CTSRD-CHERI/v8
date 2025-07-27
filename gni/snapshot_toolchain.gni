@@ -25,6 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import("//build/config/cheri.gni")
 import("//build/config/v8_target_cpu.gni")
 
 declare_args() {
@@ -32,6 +33,8 @@ declare_args() {
   # toolchain that matches the bit-width of the target CPU, but runs on
   # the host.
   v8_snapshot_toolchain = ""
+
+  v8_cheri_snapshot_toolchain = ""
 }
 
 # Try to infer the appropriate snapshot toolchain for the v8_current_cpu
@@ -50,30 +53,36 @@ if (v8_snapshot_toolchain == "") {
     # This is not a cross-compile, so build the snapshot with the current
     # toolchain.
     v8_snapshot_toolchain = current_toolchain
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (current_os == host_os && current_cpu == "x86" &&
              host_cpu == "x64") {
     # This is an x64 -> x86 cross-compile, but x64 hosts can usually run x86
     # binaries built for the same OS, so build the snapshot with the current
     # toolchain here, too.
     v8_snapshot_toolchain = current_toolchain
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (current_os == host_os && host_cpu == "arm64" &&
              current_cpu == "arm") {
     # Trying to compile 32-bit arm on arm64. Good luck!
     v8_snapshot_toolchain = current_toolchain
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (host_cpu == "x64" && v8_current_cpu == "mips64") {
     # We don't support snapshot generation for big-endian targets,
     # therefore snapshots will need to be built using native mksnapshot
     # in combination with qemu
     v8_snapshot_toolchain = current_toolchain
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (host_cpu == current_cpu) {
     # Cross-build from same ISA on one OS to another. For example:
     # * targeting win/x64 on a linux/x64 host
     # * targeting win/arm64 on a mac/arm64 host
     v8_snapshot_toolchain = host_toolchain
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (host_cpu == "arm64" && current_cpu == "x64") {
     # Cross-build from arm64 to intel (likely on an Apple Silicon mac).
     v8_snapshot_toolchain =
         "//build/toolchain/${host_os}:clang_arm64_v8_$v8_current_cpu"
+    v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
   } else if (host_cpu == "x64") {
     # This is a cross-compile from an x64 host to either a non-Intel target
     # cpu or to 32-bit x86 on a different target OS.
@@ -103,6 +112,14 @@ if (v8_snapshot_toolchain == "") {
     } else if (is_win && v8_current_cpu == "arm64") {
       # cross compile Windows arm64 with host toolchain.
       v8_snapshot_toolchain = host_toolchain
+    }
+    # FIXME(cheri): This currently only allows cross-compiling to CHERI from
+    # x64. We would like to support cross-compilation to CHERI from other
+    # architectures.
+    if (is_cheri) {
+      v8_cheri_snapshot_toolchain = current_toolchain
+    } else {
+      v8_cheri_snapshot_toolchain = v8_snapshot_toolchain
     }
   } else if (host_cpu == "arm64" && current_cpu == "arm64" &&
              host_os == "mac") {
