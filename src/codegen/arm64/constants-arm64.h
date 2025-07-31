@@ -3048,8 +3048,12 @@ constexpr SealImmediateForm kSealFormRb = 0b01;
 constexpr SealImmediateForm kSealFormLpb = 0b10;
 constexpr SealImmediateForm kSealFormLb = 0b11;
 }
-
+#else
+namespace Cheri {
+using SealImmediateForm = uint32_t;
+}
 #endif
+
 
 }  // namespace internal
 }  // namespace v8

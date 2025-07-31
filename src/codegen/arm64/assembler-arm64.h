@@ -819,7 +819,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Store integer or FP register.
   void str(const CPURegister& rt, const MemOperand& dst);
 
-#if V8_TARGET_CHERI
+  // Start of CHERI methods
   // Conditional select: cd = cond ? cn : cm.
   void cselc(const Register& cd, const Register& cn, const Register& cm,
             Condition cond);
@@ -857,7 +857,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Seal a capability using an immediate form.
   void seal(const Register& cd, const Register& cn,
             Cheri::SealImmediateForm form);
-#endif
+  // End of CHERI methods
 
   // Load word with sign extension.
   void ldrsw(const Register& rt, const MemOperand& src);

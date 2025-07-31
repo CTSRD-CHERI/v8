@@ -172,7 +172,6 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
     UNREACHABLE();
   }
 
-#if V8_TARGET_CHERI
   Register InputRegisterCapability(size_t index) {
     return ToRegister(instr_->InputAt(index)).C();
   }
@@ -237,7 +236,6 @@ class Arm64OperandConverter final : public InstructionOperandConverter {
     }
     UNREACHABLE();
   }
-#endif
 
   // FIXME(cheri): This breaks the build on non-CHERI. Create a shim for
   // capability helpers.
@@ -3650,9 +3648,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
 #endif
   constexpr int instructions_per_case = 1 + instructions_per_jump_target;
   __ Add(temp, temp, Operand(input, UXTW, entry_size_log2));
-#if V8_TARGET_CHERI
   __ PrepareC64Jump(temp);
-#endif
   __ Br(temp);
   {
     const size_t instruction_count =

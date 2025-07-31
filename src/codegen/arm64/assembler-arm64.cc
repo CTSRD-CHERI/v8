@@ -1547,11 +1547,6 @@ void Assembler::alignd(const Register& cd, const Register& cn,
   Emit(ALIGND | AlignImmLiteral(immediate) | Cn(cn) | Cd(cd));
 }
 
-bool Assembler::IsImmAddSubCapability(int64_t immediate) {
-  return is_uint12(immediate) ||
-         (is_uint12(immediate >> 12) && ((immediate & 0xFFF) == 0));
-}
-
 void Assembler::scvalue(const Register& cd, const Register& cn,
                         const Register& rm) {
   DCHECK(cn.Is128Bits() && cd.Is128Bits());
@@ -1581,6 +1576,42 @@ void Assembler::seal(const Register& cd, const Register& cn,
   DCHECK_NE(form & 0b11, 0);
   Emit(SEAL | ImmSealForm(form) | CnCSP(cn) | CdCSP(cd));
 }
+#else
+void Assembler::cpy(const Register& cd, const Register& cn) {}
+
+void Assembler::cselc(const Register& cd, const Register& cn,
+                      const Register& cm, Condition cond) {}
+
+void Assembler::gctag(const Register& rd, const Register& cn) {}
+
+void Assembler::gcvalue(const Register& rd, const Register& cn) {}
+
+void Assembler::gclen(const Register& rd, const Register& cn) {}
+
+void Assembler::gcbase(const Register& rd, const Register& cn) {}
+
+void Assembler::gcseal(const Register& rd, const Register& cn) {}
+
+void Assembler::subsc(const Register& rd, const Register& cn,
+                      const Operand& operand) {}
+
+void Assembler::alignu(const Register& cd, const Register& cn,
+                       const Operand& operand) {}
+
+void Assembler::alignd(const Register& cd, const Register& cn,
+                       const Operand& operand) {}
+
+void Assembler::scvalue(const Register& cd, const Register& cn,
+                        const Register& rm) {}
+
+void Assembler::scbndse(const Register& cd, const Register& cn,
+                        const Register& rm) {}
+
+void Assembler::build(const Register& cd, const Register& cn,
+                      const Register& cm) {}
+
+void Assembler::seal(const Register& cd, const Register& cn,
+                     Cheri::SealImmediateForm form) {}
 #endif
 
 void Assembler::ldrsw(const Register& rt, const MemOperand& src) {
@@ -4483,6 +4514,13 @@ bool Assembler::IsImmAddSub(int64_t immediate) {
   return is_uint12(immediate) ||
          (is_uint12(immediate >> 12) && ((immediate & 0xFFF) == 0));
 }
+
+#if V8_TARGET_CHERI
+bool Assembler::IsImmAddSubCapability(int64_t immediate) {
+  return is_uint12(immediate) ||
+         (is_uint12(immediate >> 12) && ((immediate & 0xFFF) == 0));
+}
+#endif
 
 void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
                           LoadStoreOp op) {

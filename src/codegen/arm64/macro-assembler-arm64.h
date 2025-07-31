@@ -249,11 +249,10 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
   inline void InitializeRootRegister();
 
-#if V8_TARGET_CHERI
   void CheriSentryAdd(const Register& cd, const Register& cn,
                       const Operand& operand);
   void PrepareC64Jump(const Register& cd);
-#endif
+
   void Mov(const Register& rd, const Operand& operand,
            DiscardMoveMode discard_mode = kDontDiscardForSameWReg);
   void Mov(const Register& rd, uint64_t imm);
@@ -926,7 +925,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // to 64-bit before calling this function.
   void Switch(Register scratch, Register value, int case_value_base,
               Label** labels, int num_labels);
-#if V8_TARGET_CHERI
+
+  // Start of CHERI methods
   inline void Cmpc(const Register& cn, const Operand& operand);
   inline void Cpy(const Register& cd, const Register& cn);
   inline void Gcvalue(const Register& rd, const Register& cn);
@@ -945,7 +945,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
                      const Operand& operand);
   inline void AlignD(const Register& cd, const Register& cn,
                      const Operand& operand);
-#endif
+  // End of CHERI methods
 
   // Push or pop up to 4 registers of the same width to or from the stack.
   //
@@ -1717,9 +1717,9 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Cinc(const Register& rd, const Register& rn, Condition cond);
   inline void Cinv(const Register& rd, const Register& rn, Condition cond);
   inline void CzeroX(const Register& rd, Condition cond);
-#if V8_TARGET_CHERI
+  // Start of CHERI methods
   inline void CzeroC(const Register& cd, Condition cond);
-#endif
+  // End of CHERI methods
   inline void Csinv(const Register& rd, const Register& rn, const Register& rm,
                     Condition cond);
   inline void Csneg(const Register& rd, const Register& rn, const Register& rm,
@@ -2360,9 +2360,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
                                 uint8_t* pc);
 
   void JumpHelper(int64_t offset, RelocInfo::Mode rmode, Condition cond = al);
-#if V8_TARGET_CHERI
   void PrepareC64JumpHelper(const Register& cd, const Register& tempC);
-#endif
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(MacroAssembler);
 };

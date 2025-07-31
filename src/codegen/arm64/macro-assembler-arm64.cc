@@ -1366,9 +1366,7 @@ void MacroAssembler::Switch(Register scratch, Register value,
   B(&fallthrough, hs);
   Adr(table, &jump_table);
   Ldr(table, MemOperand(table, value, LSL, kSystemPointerSizeLog2));
-#if V8_TARGET_CHERI
   PrepareC64Jump(table);
-#endif  // V8_TARGET_CHERI
   Br(table);
   // Emit the jump table inline, under the assumption that it's not too big.
   Align(kSystemPointerSize);
@@ -2629,9 +2627,7 @@ void MacroAssembler::Jump(Register target, Condition cond) {
   if (cond == nv) return;
   Label done;
   if (cond != al) B(NegateCondition(cond), &done);
-#if V8_TARGET_CHERI
   PrepareC64Jump(target);
-#endif  // V8_TARGET_CHERI
   Br(target);
   Bind(&done);
 }
@@ -2795,17 +2791,13 @@ void MacroAssembler::LoadEntryFromBuiltinIndex(Register builtin_index,
     }
     Ldr(target, MemOperand(target, IsolateData::builtin_entry_table_offset()));
   }
-#if V8_TARGET_CHERI
   PrepareC64Jump(target);
-#endif  // V8_TARGET_CHERI
 }
 
 void MacroAssembler::LoadEntryFromBuiltin(Builtin builtin,
                                           Register destination) {
   Ldr(destination, EntryFromBuiltinAsOperand(builtin));
-#if V8_TARGET_CHERI
   PrepareC64Jump(destination);
-#endif  // V8_TARGET_CHERI
 }
 
 MemOperand MacroAssembler::EntryFromBuiltinAsOperand(Builtin builtin) {
@@ -2884,9 +2876,7 @@ void MacroAssembler::TailCallBuiltin(Builtin builtin, Condition cond) {
   switch (options().builtin_call_jump_mode) {
     case BuiltinCallJumpMode::kAbsolute: {
       Ldr(temp, Operand(BuiltinEntry(builtin), RelocInfo::OFF_HEAP_TARGET));
-#if V8_TARGET_CHERI
       PrepareC64Jump(temp);
-#endif  // V8_TARGET_CHERI
       Jump(temp, cond);
       break;
     }
@@ -2940,9 +2930,7 @@ void MacroAssembler::JumpCodeObject(Register code_object, JumpMode jump_mode) {
   ASM_CODE_COMMENT(this);
   DCHECK_EQ(JumpMode::kJump, jump_mode);
   LoadCodeInstructionStart(code_object, code_object);
-#if V8_TARGET_CHERI
   PrepareC64Jump(code_object);
-#endif  // V8_TARGET_CHERI
   UseScratchRegisterScope temps(this);
   if (code_object != c17) {
     temps.Exclude(c17);
@@ -2983,9 +2971,7 @@ void MacroAssembler::StoreReturnAddressAndCall(Register target) {
     Cmp(c16, c17);
     Check(eq, AbortReason::kReturnAddressNotFoundInFrame);
   }
-#if V8_TARGET_CHERI
   PrepareC64Jump(target);
-#endif
 
   Blr(target);
   Bind(&return_location);
@@ -2996,9 +2982,7 @@ void MacroAssembler::IndirectCall(Address target, RelocInfo::Mode rmode) {
   UseScratchRegisterScope temps(this);
   Register temp = temps.AcquireC();
   Mov(temp, Immediate(target, rmode));
-#if V8_TARGET_CHERI
   PrepareC64Jump(temp);
-#endif  // V8_TARGET_CHERI
   Blr(temp);
 }
 
@@ -4610,9 +4594,7 @@ void MacroAssembler::Printf(const char* format, CPURegister arg0,
 void MacroAssembler::ComputeCodeStartAddress(const Register& rd) {
   // We can use adr to load a pc relative location.
   adr(rd, -pc_offset());
-#if V8_TARGET_CHERI
   PrepareC64Jump(rd);
-#endif  // V8_TARGET_CHERI
 }
 
 void MacroAssembler::RestoreFPAndLR() {

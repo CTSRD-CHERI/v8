@@ -321,7 +321,9 @@ void MacroAssembler::AlignD(const Register& cd, const Register& cn,
 }
 #else
 void MacroAssembler::Cpy(const Register& cd, const Register& cn) {}
-void MacroAssembler::CzeroC(const Register& cd, Condition cond) {}
+void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
+  CzeroX(cd, cond);
+}
 void MacroAssembler::Gctag(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gcvalue(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gclen(const Register& rd, const Register& cn) {}
