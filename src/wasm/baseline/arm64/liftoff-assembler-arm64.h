@@ -411,7 +411,7 @@ void LiftoffAssembler::LoadCapabilityConstant(LiftoffRegister reg,
 #ifdef __CHERI_PURE_CAPABILITY__
   DCHECK(V8_CHERI_TAG_GET(value));
 #endif  // __CHERI_PURE_CAPABILITY__
-  Ldr(reg.gp().C(), value);
+  Ldr(reg.gp().C(), Operand(value, RelocInfo::CAPABILITY_CONSTANT));
 }
 #endif
 
