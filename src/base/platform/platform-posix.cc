@@ -34,13 +34,13 @@
 #include <cmath>
 #include <cstdlib>
 
-#include "src/base/platform/platform-posix.h"
-
 #include "src/base/lazy-instance.h"
 #include "src/base/macros.h"
+#include "src/base/platform/platform-posix.h"
 #include "src/base/platform/platform.h"
 #include "src/base/platform/time.h"
 #include "src/base/utils/random-number-generator.h"
+#include "src/common/cheri.h"
 
 #ifdef V8_FAST_TLS_SUPPORTED
 #include <atomic>
@@ -175,6 +175,9 @@ void* Allocate(void* hint, size_t size, OS::MemoryPermission access,
 #endif  // __CHERI_PURE_CAPABILITY__
   void* result = mmap(hint, size, prot, flags, kMmapFd, kMmapFdOffset);
   if (result == MAP_FAILED) return nullptr;
+  if (CheriShouldMadvise()) {
+    CHECK_EQ(madvise(result, size, MADV_RANDOM), 0);
+  }
 #if ENABLE_HUGEPAGE
   if (result != nullptr && size >= kHugePageSize) {
     const uintptr_t huge_start =

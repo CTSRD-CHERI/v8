@@ -15,6 +15,7 @@
 #include "src/base/platform/mutex.h"
 #include "src/base/platform/platform.h"
 #include "src/common/assert-scope.h"
+#include "src/common/cheri.h"
 #include "src/common/code-memory-access-inl.h"
 #include "src/execution/isolate-data.h"
 #include "src/execution/isolate.h"
@@ -241,6 +242,13 @@ AllocationResult Heap::AllocateRaw(int size_in_bytes, AllocationType type,
 Address Heap::AllocateRawOrFail(int size, AllocationType allocation,
                                 AllocationOrigin origin,
                                 AllocationAlignment alignment) {
+  base::CheriMadviseScope cheri_madvise(
+      allocation == AllocationType::kYoung ||
+      allocation == AllocationType::kOld ||
+      allocation == AllocationType::kMap ||
+      allocation == AllocationType::kReadOnly ||
+      allocation == AllocationType::kSharedOld ||
+      allocation == AllocationType::kSharedMap);
   return heap_allocator_
       .AllocateRawWith<HeapAllocator::kRetryOrFail>(size, allocation, origin,
                                                     alignment)

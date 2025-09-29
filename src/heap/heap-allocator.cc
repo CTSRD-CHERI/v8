@@ -36,15 +36,21 @@ AllocationResult HeapAllocator::AllocateRawLargeInternal(
     AllocationAlignment alignment) {
   DCHECK_GT(size_in_bytes, heap_->MaxRegularHeapObjectSize(allocation));
   switch (allocation) {
-    case AllocationType::kYoung:
+    case AllocationType::kYoung: {
+      base::CheriMadviseScope cheri_scope(true);
       return new_lo_space()->AllocateRaw(size_in_bytes);
-    case AllocationType::kOld:
+    }
+    case AllocationType::kOld: {
+      base::CheriMadviseScope cheri_scope(true);
       return lo_space()->AllocateRaw(size_in_bytes);
+    }
     case AllocationType::kCode:
       return code_lo_space()->AllocateRaw(size_in_bytes);
-    case AllocationType::kSharedOld:
+    case AllocationType::kSharedOld: {
+      base::CheriMadviseScope cheri_scope(true);
       return shared_lo_space()->AllocateRawBackground(
           heap_->main_thread_local_heap(), size_in_bytes);
+    }
     case AllocationType::kMap:
     case AllocationType::kReadOnly:
     case AllocationType::kSharedMap:

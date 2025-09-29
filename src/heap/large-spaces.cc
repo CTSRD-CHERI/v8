@@ -6,6 +6,7 @@
 
 #include "src/base/platform/mutex.h"
 #include "src/base/sanitizer/msan.h"
+#include "src/common/cheri.h"
 #include "src/common/globals.h"
 #include "src/execution/isolate.h"
 #include "src/heap/combined-heap.h"
@@ -147,6 +148,7 @@ AllocationResult OldLargeObjectSpace::AllocateRaw(int object_size) {
 AllocationResult OldLargeObjectSpace::AllocateRaw(int object_size,
                                                   Executability executable) {
   object_size = ALIGN_TO_ALLOCATION_ALIGNMENT(object_size);
+  base::CheriMadviseScope cheri_madvise(true);
   DCHECK(!v8_flags.enable_third_party_heap);
   // Check if we want to force a GC before growing the old space further.
   // If so, fail the allocation.
@@ -457,6 +459,7 @@ NewLargeObjectSpace::NewLargeObjectSpace(Heap* heap, size_t capacity)
     : LargeObjectSpace(heap, NEW_LO_SPACE), capacity_(capacity) {}
 
 AllocationResult NewLargeObjectSpace::AllocateRaw(int object_size) {
+  base::CheriMadviseScope cheri_madvise(true);
   object_size = ALIGN_TO_ALLOCATION_ALIGNMENT(object_size);
   DCHECK(!v8_flags.enable_third_party_heap);
   // Do not allocate more objects if promoting the existing object would exceed
@@ -566,6 +569,7 @@ SharedLargeObjectSpace::SharedLargeObjectSpace(Heap* heap)
 
 AllocationResult SharedLargeObjectSpace::AllocateRawBackground(
     LocalHeap* local_heap, int object_size) {
+  base::CheriMadviseScope cheri_madvise(true);
   DCHECK(!v8_flags.enable_third_party_heap);
   return OldLargeObjectSpace::AllocateRawBackground(local_heap, object_size,
                                                     NOT_EXECUTABLE);

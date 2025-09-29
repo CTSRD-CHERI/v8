@@ -7,6 +7,7 @@
 
 #include "src/base/logging.h"
 #include "src/common/globals.h"
+#include "src/common/cheri.h"
 #include "src/heap/concurrent-allocator-inl.h"
 #include "src/heap/heap-allocator.h"
 #include "src/heap/large-spaces.h"
@@ -96,15 +97,19 @@ V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult HeapAllocator::AllocateRaw(
           AllocateRawLargeInternal(size_in_bytes, type, origin, alignment);
     } else {
       switch (type) {
-        case AllocationType::kYoung:
+        case AllocationType::kYoung: {
+          base::CheriMadviseScope cheri_scope(true);
           allocation =
               new_space()->AllocateRaw(size_in_bytes, alignment, origin);
           break;
+        }
         case AllocationType::kMap:
-        case AllocationType::kOld:
+        case AllocationType::kOld: {
+          base::CheriMadviseScope cheri_scope(true);
           allocation =
               old_space()->AllocateRaw(size_in_bytes, alignment, origin);
           break;
+        }
         case AllocationType::kCode: {
           DCHECK_EQ(alignment, AllocationAlignment::kTaggedAligned);
           DCHECK(AllowCodeAllocation::IsAllowed());
@@ -119,16 +124,20 @@ V8_WARN_UNUSED_RESULT V8_INLINE AllocationResult HeapAllocator::AllocateRaw(
 #endif
           break;
         }
-        case AllocationType::kReadOnly:
+        case AllocationType::kReadOnly: {
+          base::CheriMadviseScope cheri_scope(true);
           DCHECK(read_only_space()->writable());
           DCHECK_EQ(AllocationOrigin::kRuntime, origin);
           allocation = read_only_space()->AllocateRaw(size_in_bytes, alignment);
           break;
+        }
         case AllocationType::kSharedMap:
-        case AllocationType::kSharedOld:
+        case AllocationType::kSharedOld: {
+          base::CheriMadviseScope cheri_scope(true);
           allocation = shared_old_allocator_->AllocateRaw(size_in_bytes,
                                                           alignment, origin);
           break;
+        }
       }
     }
   }
@@ -209,6 +218,12 @@ V8_WARN_UNUSED_RESULT V8_INLINE HeapObject HeapAllocator::AllocateRawWith(
   AllocationResult result;
   HeapObject object;
   size = ALIGN_TO_ALLOCATION_ALIGNMENT(size);
+  base::CheriMadviseScope cheri_madvise(
+      allocation == AllocationType::kYoung ||
+      allocation == AllocationType::kOld ||
+      allocation == AllocationType::kMap ||
+      allocation == AllocationType::kSharedOld ||
+      allocation == AllocationType::kSharedMap);
   if (allocation == AllocationType::kYoung) {
     result = AllocateRaw<AllocationType::kYoung>(size, origin, alignment);
     if (result.To(&object)) {

@@ -3095,6 +3095,7 @@ v8_header_set("v8_internal_headers") {
     "src/codegen/unoptimized-compilation-info.h",
     "src/common/assert-scope.h",
     "src/common/checks.h",
+    "src/common/cheri.h",
     "src/common/code-memory-access-inl.h",
     "src/common/code-memory-access.h",
     "src/common/high-allocation-throughput-scope.h",
@@ -4872,6 +4873,7 @@ v8_source_set("v8_base_without_compiler") {
     "src/codegen/tnode.cc",
     "src/codegen/unoptimized-compilation-info.cc",
     "src/common/assert-scope.cc",
+    "src/common/cheri.cc",
     "src/common/code-memory-access.cc",
     "src/common/ptr-compr.cc",
     "src/compiler-dispatcher/lazy-compile-dispatcher.cc",
@@ -5945,6 +5947,8 @@ v8_component("v8_libbase") {
     "src/base/vlq-base64.cc",
     "src/base/vlq-base64.h",
     "src/base/vlq.h",
+    "src/common/cheri.h",
+    "src/common/cheri.cc",
   ]
 
   configs = [ ":internal_config_base" ]
@@ -6131,6 +6135,8 @@ v8_component("v8_libplatform") {
     "include/libplatform/libplatform-export.h",
     "include/libplatform/libplatform.h",
     "include/libplatform/v8-tracing.h",
+    "src/common/cheri.h",
+    "src/common/cheri.cc",
     "src/libplatform/default-foreground-task-runner.cc",
     "src/libplatform/default-foreground-task-runner.h",
     "src/libplatform/default-job.cc",

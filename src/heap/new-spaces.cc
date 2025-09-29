@@ -481,6 +481,7 @@ SemiSpaceNewSpace::SemiSpaceNewSpace(Heap* heap,
       from_space_(heap, kFromSpace) {
   DCHECK(initial_semispace_capacity <= max_semispace_capacity);
 
+  base::CheriMadviseScope cheri_madvise(true);
   to_space_.SetUp(initial_semispace_capacity, max_semispace_capacity);
   from_space_.SetUp(initial_semispace_capacity, max_semispace_capacity);
   if (!to_space_.Commit()) {

@@ -10,6 +10,7 @@
 #include "src/base/macros.h"
 #include "src/base/optional.h"
 #include "src/base/platform/mutex.h"
+#include "src/common/cheri.h"
 #include "src/common/globals.h"
 #include "src/execution/isolate.h"
 #include "src/execution/vm-state-inl.h"
@@ -360,6 +361,9 @@ void PagedSpaceBase::ShrinkImmortalImmovablePages() {
 
 Page* PagedSpaceBase::TryExpandImpl(
     MemoryAllocator::AllocationMode allocation_mode) {
+  base::CheriMadviseScope cheri_madvise(identity() == RO_SPACE ||
+                                        identity() == OLD_SPACE ||
+                                        identity() == SHARED_SPACE);
   Page* page = heap()->memory_allocator()->AllocatePage(allocation_mode, this,
                                                         executable());
   if (page == nullptr) return nullptr;
