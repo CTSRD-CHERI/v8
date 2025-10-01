@@ -223,6 +223,12 @@ void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
   cselc(cd, czr, cd, cond);
 }
 
+void MacroAssembler::Chktgd(const Register& cn) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cn.Is128Bits());
+  chktgd(cn);
+}
+
 void MacroAssembler::Gctag(const Register& rd, const Register& cn) {
   DCHECK(allow_macro_instructions());
   DCHECK(cn.Is128Bits());
@@ -319,11 +325,18 @@ void MacroAssembler::AlignD(const Register& cd, const Register& cn,
   DCHECK(operand.IsImmediate());
   alignd(cd, cn, operand);
 }
+
+void MacroAssembler::Sigprot(Register sentinel_register, int imm9) {
+  ASM_CODE_COMMENT(this);
+  DCHECK(is_uint9(imm9));
+  ldr_alternate(sentinel_register, sentinel_register.X(), imm9);
+}
 #else
 void MacroAssembler::Cpy(const Register& cd, const Register& cn) {}
 void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
   CzeroX(cd, cond);
 }
+void MacroAssembler::Chktgd(const Register& cn) {}
 void MacroAssembler::Gctag(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gcvalue(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gclen(const Register& rd, const Register& cn) {}
@@ -343,6 +356,7 @@ void MacroAssembler::AlignU(const Register& cd, const Register& cn,
                             const Operand& operand) {}
 void MacroAssembler::AlignD(const Register& cd, const Register& cn,
                             const Operand& operand) {}
+void MacroAssembler::Sigprot(Register sentinel_register, int imm9) {}
 #endif
 
 void MacroAssembler::Sub(const Register& rd, const Register& rn,

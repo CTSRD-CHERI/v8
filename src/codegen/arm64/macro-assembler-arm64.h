@@ -933,6 +933,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Gcbase(const Register& rd, const Register& cn);
   inline void Gclen(const Register& rd, const Register& cn);
   inline void Gcseal(const Register& rd, const Register& cn);
+  inline void Chktgd(const Register& cn);
   inline void Gctag(const Register& rd, const Register& cn);
   inline void Scvalue(const Register& cd, const Register& cn, const Register& rm);
   inline void Scbndse(const Register& cd, const Register& cn, const Register& rm);
@@ -945,6 +946,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
                      const Operand& operand);
   inline void AlignD(const Register& cd, const Register& cn,
                      const Operand& operand);
+  inline void Sigprot(Register sentinel_register, int imm9);
   // End of CHERI methods
 
   // Push or pop up to 4 registers of the same width to or from the stack.

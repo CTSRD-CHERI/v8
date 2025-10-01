@@ -1150,6 +1150,11 @@ Instr Assembler::ImmRotate(unsigned immr, unsigned reg_size) {
 }
 
 #if V8_TARGET_CHERI
+Instr Assembler::AlternateImmLiteral(int imm9) {
+  CHECK(is_uint9(imm9));
+  return truncate_to_int9(imm9) << AlternateImmLiteral_offset;
+}
+
 Instr Assembler::ImmSealForm(Cheri::SealImmediateForm form) {
   return form << 13;
 }

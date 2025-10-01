@@ -820,6 +820,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void str(const CPURegister& rt, const MemOperand& dst);
 
   // Start of CHERI methods
+  // Alternate base ldr. Used only as a sentinel/SIGPROT trigger.
+  void ldr_alternate(const Register& cd, const Register& rn, int imm9);
   // Conditional select: cd = cond ? cn : cm.
   void cselc(const Register& cd, const Register& cn, const Register& cm,
             Condition cond);
@@ -837,6 +839,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Load a pair of capabilities
   void ldpc(const Register& ct, const Register& ct2,
             const MemOperand& src);
+  // Set PSTATE.C if capability is tagged.
+  void chktgd(const Register& cn);
   // Load a capability tag field
   void gctag(const Register& rd, const Register& cn);
   // Load a capability value field
@@ -2948,6 +2952,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline static Instr ImmSetBits(unsigned imms, unsigned reg_size);
   inline static Instr ImmRotate(unsigned immr, unsigned reg_size);
 #if V8_TARGET_CHERI
+  inline static Instr AlternateImmLiteral(int imm9);
   inline static Instr ImmSealForm(Cheri::SealImmediateForm form);
   inline static Instr AlignImmLiteral(int imm6);
   inline static Instr CImmLLiteral(int imm17);

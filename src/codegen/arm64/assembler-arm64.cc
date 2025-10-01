@@ -1478,6 +1478,11 @@ void Assembler::str(const CPURegister& rt, const MemOperand& src) {
 }
 
 #if V8_TARGET_CHERI
+void Assembler::ldr_alternate(const Register& cd, const Register& rn,
+                              int imm9) {
+  Emit(LDR_alternate | Cd(cd) | Rn(rn) | AlternateImmLiteral(imm9));
+}
+
 void Assembler::cpy(const Register& cd, const Register& cn) {
   Emit(CPY | CdCSP(cd) | CnCSP(cn));
 }
@@ -1487,6 +1492,11 @@ void Assembler::cselc(const Register& cd, const Register& cn,
   DCHECK(cd.SizeInBits() == cn.SizeInBits());
   DCHECK(cd.SizeInBits() == cm.SizeInBits());
   Emit(CSEL_c | Cm(cm) | Cond(cond) | Cn(cn) | Cd(cd));
+}
+
+void Assembler::chktgd(const Register& cn) {
+  DCHECK(cn.Is128Bits());
+  Emit(CHKTGD | CnCSP(cn));
 }
 
 void Assembler::gctag(const Register& rd, const Register& cn) {

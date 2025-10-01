@@ -299,7 +299,9 @@ using float16 = uint16_t;
   /* Morello ImmLLiteral (Imm17 as opposed to Imm19) */            \
   V_(CImmLLiteral, 21, 5, Bits)                                    \
   /* Morello AlignU/AlignD 6-bit immediate */                      \
-  V_(AlignImmLiteral, 20, 15, Bits)
+  V_(AlignImmLiteral, 20, 15, Bits)                                \
+  /* Morello alternate base load instruction */                    \
+  V_(AlternateImmLiteral, 20, 12, Bits)
 #endif
 
 #define SYSTEM_REGISTER_FIELDS_LIST(V_, M_) \
@@ -1117,6 +1119,9 @@ constexpr LoadStoreUnscaledOffsetOp LDUR_c_normal =
 // 4.4.148 STUR (capability, normal base)
 constexpr LoadStoreUnscaledOffsetOp STUR_c_normal =
   LoadStoreCapUnscaledOffsetNormalFixed | StoreCapUnscaledOffsetNormal;
+
+using LoadStoreAlternate = uint32_t;
+constexpr LoadStoreAlternate LDR_alternate = 0x82600000;
 #endif
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFixed = 0x38000000;
 constexpr LoadStoreUnscaledOffsetOp LoadStoreUnscaledOffsetFMask = 0x3B200C00;
@@ -2975,6 +2980,9 @@ static_assert(ALIGND == 0xc2c01800);
 #endif
 
 #if V8_TARGET_CHERI
+using ChktgdOp = uint32_t;
+constexpr ChktgdOp CHKTGD = 0xC2C23001;
+
 using CopyCapabilityOp = uint32_t;
 constexpr CopyCapabilityOp CopyCapabilityFixed = 0xC2C19000;
 constexpr CopyCapabilityOp CopyCapabilityFMask = 0xFFFF9C00;
