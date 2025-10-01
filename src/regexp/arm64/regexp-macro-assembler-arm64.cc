@@ -1710,20 +1710,13 @@ void RegExpMacroAssemblerARM64::RestoreLinkRegister() {
   // TODO(v8:10026): Remove when we stop compacting for code objects that are
   // active on the call stack.
   __ Pop<MacroAssembler::kAuthLR>(padregc, lr);
-  __ Add(lr, lr, Operand(masm_->CodeObject()));
 #if V8_TARGET_CHERI
-  {
-    Label done;
-    UseScratchRegisterScope temps(masm_.get());
-    Register temp = temps.AcquireC();
-    // FIXME(ds815): This probably doesn't work in every case -- the capability
-    // returned by adr might be in a different mapping from the return point.
-    __ Gcseal(temp.X(), lr);
-    __ Tbz(temp.X(), 0, &done);
-    __ adr(temp, 0);
-    __ Scvalue(lr, temp, lr.X());
-    __ Bind(&done);
-  }
+  UseScratchRegisterScope temps(masm_.get());
+  Register temp = temps.AcquireC();
+  __ Ldr(temp, masm_->CodeObject());
+  __ Add(lr, temp, lr.X());
+#else
+  __ Add(lr, lr, Operand(masm_->CodeObject()));
 #endif
 }
 
