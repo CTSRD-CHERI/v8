@@ -20,6 +20,7 @@ import argparse
 import subprocess
 import sys
 import os
+import glob
 from pathlib import Path
 from typing import Iterable
 
@@ -104,6 +105,8 @@ def main() -> int:
     remote_cmd = f"cd {args.remote_dir} && " + " ".join(args.command)
 
     try:
+        # Push libraries
+        scp_to_remote([Path(s) for s in glob.glob("*.so")], args.keyfile, args.hostname, args.port, f"{args.remote_dir}/{args.mksnapshot.parent}")
         # Push files
         scp_to_remote([args.mksnapshot], args.keyfile, args.hostname, args.port, f"{args.remote_dir}/{args.mksnapshot.parent}")
         # Ensure these directories exist in remote even though we don't scp anything there
