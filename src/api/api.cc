@@ -425,6 +425,9 @@ class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
       region_alloc_ = std::make_unique<base::RegionAllocator>(
           backing_memory_base, backing_memory_size, kAllocationGranularity);
       end_of_accessible_region_ = region_alloc_->begin();
+#ifdef __CHERI_PURE_CAPABILITY__
+      DCHECK(V8_CHERI_TAG_GET(end_of_accessible_region_));
+#endif
 
       // Install a on-merge callback to discard or decommit unused pages.
       region_alloc_->set_on_merge_callback([this](i::Address start,
@@ -443,6 +446,9 @@ class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
                 nullptr, "ArrayBufferAllocator::BackendAllocator()");
           }
           end_of_accessible_region_ = new_end_of_accessible_region;
+#ifdef __CHERI_PURE_CAPABILITY__
+          DCHECK(V8_CHERI_TAG_GET(end_of_accessible_region_));
+#endif
         } else if (size >= 2 * kChunkSize) {
           // Can discard pages. The pages stay accessible, so the size of the
           // accessible region doesn't change.
@@ -495,6 +501,9 @@ class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
         // memset until the previous end of the accessible region.
         length_to_memset = end_of_accessible_region_ - region;
         end_of_accessible_region_ = new_end_of_accessible_region;
+#ifdef __CHERI_PURE_CAPABILITY__
+        DCHECK(V8_CHERI_TAG_GET(end_of_accessible_region_));
+#endif
       }
 
       void* mem = reinterpret_cast<void*>(region);
@@ -521,7 +530,7 @@ class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
     static constexpr size_t kChunkSize = 1 * i::MB;
 
     std::unique_ptr<base::RegionAllocator> region_alloc_;
-    size_t end_of_accessible_region_;
+    i::Address end_of_accessible_region_;
     base::Mutex mutex_;
   };
 
