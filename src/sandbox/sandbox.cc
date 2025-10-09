@@ -222,7 +222,7 @@ bool Sandbox::InitializeAsPartiallyReservedSandbox(v8::VirtualAddressSpace* vas,
     reservation_base_ = vas->AllocatePages(
 #if defined(__CHERI_PURE_CAPABILITY__)
         hint, size_to_reserve, kSandboxAlignment, PagePermissions::kNoAccess,
-	PagePermissions::kNoAccess);
+        PagePermissions::kReadWrite);
 #else   // !__CHERI_PURE_CAPABILITY__
         hint, size_to_reserve, kSandboxAlignment, PagePermissions::kNoAccess);
 #endif  // !__CHERI_PURE_CAPABILITY__
