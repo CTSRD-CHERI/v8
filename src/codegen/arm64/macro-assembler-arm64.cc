@@ -2912,11 +2912,6 @@ void MacroAssembler::TailCallBuiltin(Builtin builtin, Condition cond) {
 void MacroAssembler::LoadCodeInstructionStart(Register destination,
                                               Register code_object) {
   ASM_CODE_COMMENT(this);
-#if V8_TARGET_CHERI
-  if (COMPRESS_POINTERS_BOOL) {
-    AlignU(code_object, code_object, Operand(kSystemPointerSize));
-  }
-#endif  // V8_TARGET_CHERI
   Ldr(destination, FieldMemOperand(code_object, Code::kInstructionStartOffset));
 }
 
