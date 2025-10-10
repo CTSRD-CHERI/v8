@@ -310,7 +310,7 @@ class MachineType {
         return MachineType::SandboxedPointer();
 #if V8_TARGET_CHERI
       case MachineRepresentation::kCapability32:
-	[[fallthrough]];
+        [[fallthrough]];
       case MachineRepresentation::kCapability64:
         return MachineType::Pointer();
 #endif
