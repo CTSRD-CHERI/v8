@@ -2971,11 +2971,11 @@ constexpr UnallocatedOp UnallocatedFMask = 0x00000000;
 
 #if V8_TARGET_CHERI
 using AlignCapabilityOp = uint32_t;
-constexpr AlignCapabilityOp AlignCapabilityFixed = 0x42C01800;
-constexpr AlignCapabilityOp ALIGNU = AlignCapabilityFixed | 0x20004000;
-constexpr AlignCapabilityOp ALIGND = AlignCapabilityFixed | 0x80000000;
+constexpr AlignCapabilityOp AlignCapabilityFixed = 0xC2C01800;
+constexpr AlignCapabilityOp ALIGNU = AlignCapabilityFixed | 0x00004000;
+constexpr AlignCapabilityOp ALIGND = AlignCapabilityFixed;
 
-static_assert(ALIGNU == 0x62c05800);
+static_assert(ALIGNU == 0xc2c05800);
 static_assert(ALIGND == 0xc2c01800);
 #endif
 
