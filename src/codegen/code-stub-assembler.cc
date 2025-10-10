@@ -1543,7 +1543,8 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
 
     result = BitcastWordToTagged(
         IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
-    DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, result.IsCapability());
+    DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL,
+                   result.IsCapability());
     Goto(&out);
   }
 

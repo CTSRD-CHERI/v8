@@ -730,6 +730,24 @@ CODE_ASSEMBLER_UNARY_OP_LIST(DEFINE_CODE_ASSEMBLER_UNARY_OP)
 #undef DEFINE_CODE_ASSEMBLER_UNARY_OP
 
 #if V8_TARGET_CHERI
+#ifdef V8_COMPRESS_POINTERS
+TNode<IntPtrT> CodeAssembler::BitcastTaggedToWord(TNode<Object> a) {
+  return UncheckedCast<IntPtrT>(raw_assembler()->BitcastTaggedToWord(a))
+      .MarkAsCapability();
+}
+TNode<IntPtrT> CodeAssembler::BitcastMaybeObjectToWord(TNode<MaybeObject> a) {
+  return UncheckedCast<IntPtrT>(raw_assembler()->BitcastMaybeObjectToWord(a))
+      .MarkAsCapability();
+}
+TNode<Object> CodeAssembler::BitcastWordToTagged(TNode<WordT> a) {
+  return UncheckedCast<Object>(raw_assembler()->BitcastWordToTagged(a))
+      .MarkAsInteger();
+}
+TNode<Smi> CodeAssembler::BitcastWordToTaggedSigned(TNode<WordT> a) {
+  return UncheckedCast<Smi>(raw_assembler()->BitcastWordToTaggedSigned(a))
+      .MarkAsInteger();
+}
+#else
 #define DEFINE_CODE_ASSEMBLER_BITCAST_OP(name, ResType, ArgType)             \
   TNode<ResType> CodeAssembler::name(TNode<ArgType> a) {                     \
     if (a.IsCapability()) {                                                  \
@@ -739,6 +757,7 @@ CODE_ASSEMBLER_UNARY_OP_LIST(DEFINE_CODE_ASSEMBLER_UNARY_OP)
     return UncheckedCast<ResType>(raw_assembler()->name(a)).MarkAsInteger(); \
   }
 CODE_ASSEMBLER_BITCAST_OP_LIST(DEFINE_CODE_ASSEMBLER_BITCAST_OP)
+#endif
 #undef DEFINE_CODE_ASSEMBLER_BITCAST_OP
 #endif
 
