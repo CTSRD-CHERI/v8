@@ -30,6 +30,9 @@ class V8_NODISCARD SanitizeNativeContextScope final {
     if (!allow_active_isolate_for_testing) {
       // Microtasks.
       MicrotaskQueue* microtask_queue = native_context_.microtask_queue();
+#ifdef __CHERI_PURE_CAPABILITY__
+      DCHECK(V8_CHERI_TAG_GET(microtask_queue));
+#endif
       DCHECK_EQ(0, microtask_queue->size());
       DCHECK(!microtask_queue->HasMicrotasksSuppressions());
       DCHECK_EQ(0, microtask_queue->GetMicrotasksScopeDepth());

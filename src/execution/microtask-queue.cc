@@ -38,6 +38,9 @@ void MicrotaskQueue::SetUpDefaultMicrotaskQueue(Isolate* isolate) {
   microtask_queue->next_ = microtask_queue;
   microtask_queue->prev_ = microtask_queue;
   isolate->set_default_microtask_queue(microtask_queue);
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(V8_CHERI_TAG_GET(isolate->default_microtask_queue()));
+#endif
 }
 
 // static

@@ -1276,9 +1276,9 @@ class ObjectLiteralBoilerplateBuilder final : public LiteralBoilerplateBuilder {
   }
   Handle<ObjectBoilerplateDescription> boilerplate_description() const {
     DCHECK(!boilerplate_description_.is_null());
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
     DCHECK(IsAligned(boilerplate_description_.address(), kSystemPointerSize));
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif
     return boilerplate_description_;
   }
   // Determines whether the {CreateShallowArrayLiteral} builtin can be used.
@@ -1306,9 +1306,9 @@ class ObjectLiteralBoilerplateBuilder final : public LiteralBoilerplateBuilder {
     if (boilerplate_description_.is_null()) {
       BuildBoilerplateDescription(isolate);
     }
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
     DCHECK(IsAligned(boilerplate_description_.address(), kSystemPointerSize));
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif
     return boilerplate_description_;
   }
 
@@ -1403,9 +1403,9 @@ class ArrayLiteralBoilerplateBuilder final : public LiteralBoilerplateBuilder {
                                  int first_spread_index)
       : values_(values), first_spread_index_(first_spread_index) {}
   Handle<ArrayBoilerplateDescription> boilerplate_description() const {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
     DCHECK(IsAligned(boilerplate_description_.address(), kSystemPointerSize));
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif
     return boilerplate_description_;
   }
 
@@ -1429,9 +1429,9 @@ class ArrayLiteralBoilerplateBuilder final : public LiteralBoilerplateBuilder {
     if (boilerplate_description_.is_null()) {
       BuildBoilerplateDescription(isolate);
     }
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
     DCHECK(IsAligned(boilerplate_description_.address(), kSystemPointerSize));
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif
     return boilerplate_description_;
   }
 
