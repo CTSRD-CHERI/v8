@@ -279,17 +279,17 @@ int JSObject::GetHeaderSize(Map map) {
 
 // static
 int JSObject::GetEmbedderFieldsStartOffset(Map map) {
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
   // Embedder fields are located after the object header, but we need to round
   // it up to capability alignment.
   // FIXME(cheri): This should probably happen for compressed pointers too, but
   // requires resolving a lot of other issues first.
   static_assert(kEmbedderDataSlotSize == kSystemPointerSize);
   return RoundUp(GetHeaderSize(map), kEmbedderDataSlotSize);
-#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
+#else
   // Embedder fields are located after the object header.
   return GetHeaderSize(map);
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif
 }
 
 int JSObject::GetEmbedderFieldsStartOffset() {
