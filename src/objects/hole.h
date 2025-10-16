@@ -37,7 +37,7 @@ class Hole : public HeapObject {
   // Holes. This way, a hole will look like a NaN HeapNumber to optimized code.
   DECL_FIELD_OFFSET_TQ(RawNumericValue, HeapObject::kHeaderSize, "float64")
   DECL_FIELD_OFFSET_TQ(Kind,
-                       AlignToCapSize(kRawNumericValueOffset + kDoubleSize),
+                       AlignToTaggedSize(kRawNumericValueOffset + kDoubleSize),
                        "Smi")
   static constexpr int kSize = kKindOffset + kTaggedSize;
   static_assert(HeapNumber::kValueOffset == Hole::kRawNumericValueOffset);

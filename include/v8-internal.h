@@ -15,10 +15,16 @@
 #include "v8-version.h"  // NOLINT(build/include_directory)
 #include "v8config.h"    // NOLINT(build/include_directory)
 
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#ifdef __CHERI_PURE_CAPABILITY__
 #define AlignToCapSize(x) ((x) + 15) & (~15)
+#ifdef V8_COMPRESS_POINTERS
+#define AlignToTaggedSize(x) (x)  // Not needed.
+#else
+#define AlignToTaggedSize(x) AlignToCapSize(x)
+#endif
 #else
 #define AlignToCapSize(x) (x)
+#define AlignToTaggedSize(x) AlignToCapSize(x)
 #endif
 
 namespace v8 {
@@ -595,7 +601,7 @@ class Internals {
       AlignToCapSize(1 * kApiTaggedSize + 2 * kApiInt32Size);
 
   static const int kOddballKindOffset =
-      AlignToCapSize(4 * kApiTaggedSize + kApiDoubleSize);
+      AlignToTaggedSize(4 * kApiTaggedSize + kApiDoubleSize);
   static const int kJSObjectHeaderSize = 3 * kApiTaggedSize;
   static const int kFixedArrayHeaderSize = 2 * kApiTaggedSize;
   static const int kEmbedderDataArrayHeaderSize = 2 * kApiTaggedSize;

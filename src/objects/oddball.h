@@ -53,7 +53,7 @@ class Oddball : public PrimitiveHeapObject {
   // Layout description.
   DECL_FIELD_OFFSET_TQ(ToNumberRaw, HeapObject::kHeaderSize, "float64")
   DECL_FIELD_OFFSET_TQ(ToString,
-                       AlignToCapSize(kToNumberRawOffset + kDoubleSize),
+                       AlignToTaggedSize(kToNumberRawOffset + kDoubleSize),
                        "String")
   DECL_FIELD_OFFSET_TQ(ToNumber, kToStringOffset + kTaggedSize, "Number")
   DECL_FIELD_OFFSET_TQ(TypeOf, kToNumberOffset + kTaggedSize, "String")

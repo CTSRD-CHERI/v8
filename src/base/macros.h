@@ -8,6 +8,7 @@
 #include <limits>
 #include <type_traits>
 
+#include "include/v8-internal.h"
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 
@@ -58,13 +59,6 @@
 #define CheriDiagnosticPop
 #define V8_CHERI_ADDR_GET(cap) (cap)
 #endif  // __CHERI_PURE_CAPABILITY__
-
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-#define AlignToCapSize(x) ((x) + 15) & (~15)
-#else
-#define AlignToCapSize(x) (x)
-#endif
-
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.
 #define EXPAND(x) x
