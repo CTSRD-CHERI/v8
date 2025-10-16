@@ -126,7 +126,7 @@ void DeclareMethods(AggregateType* container_type,
 }
 
 uint8_t AlignToCapabilitySize(ResidueClass& offset) {
-  if (GlobalContext::cheri_abi() && !COMPRESS_POINTERS_BOOL) {
+  if (GlobalContext::cheri_abi()) {
     auto offset_opt = offset.SingleValue();
     if (!offset_opt.has_value()) return 0;
     auto maybe_unaligned_offset = offset_opt.value();

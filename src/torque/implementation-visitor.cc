@@ -3807,7 +3807,8 @@ class FieldOffsetsGenerator {
   }
   void UpdateSection(const Field& f) {
     FieldSectionType type = GetSectionFor(f);
-    if (current_section_ == type) return;
+    if (current_section_ == type || ImplementationVisitor::IsInternal(f))
+      return;
     if (IsPointerSection(type)) {
       if (completed_sections_ & type) {
         std::stringstream s;
@@ -4188,7 +4189,7 @@ void CppClassGenerator::GenerateClass() {
   } else if (type_->ShouldGenerateBodyDescriptor() ||
              (!type_->IsAbstract() &&
               !type_->IsSubtypeOf(TypeOracle::GetJSObjectType()))) {
-    if (GlobalContext::cheri_abi() && !COMPRESS_POINTERS_BOOL) {
+    if (GlobalContext::cheri_abi()) {
       // Add a helper to determine how much padding we have on CHERI systems.
       cpp::Function f(&c, "AddedCheriPadding");
       f.SetReturnType("int32_t");
@@ -4218,7 +4219,7 @@ void CppClassGenerator::GenerateClass() {
                << *type_->size().SingleValue() << ");\n";
       }
       stream << "    int32_t size = kHeaderSize;\n";
-      if (GlobalContext::cheri_abi() && !COMPRESS_POINTERS_BOOL) {
+      if (GlobalContext::cheri_abi()) {
         for (const Field& field : type_->fields()) {
           DCHECK_EQ(field.aggregate, type_);
           if (ImplementationVisitor::IsInternal(field)) {
