@@ -1829,7 +1829,7 @@ void Builtins::Generate_InterpreterEnterAtNextBytecode(MacroAssembler* masm) {
   // Advance to the next bytecode.
   Label if_return;
   AdvanceBytecodeOffsetOrReturn(masm, kInterpreterBytecodeArrayRegister,
-                                kInterpreterBytecodeOffsetRegister, x1, x2, x3,
+                                kInterpreterBytecodeOffsetRegister, x1, c2, x3,
                                 &if_return);
 
   __ bind(&enter_bytecode);
