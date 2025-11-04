@@ -158,8 +158,8 @@ inline void CopyImpl(T* dst_ptr, const T* src_ptr, size_t count) {
 // must not overlap. |src| and |dst| must be kSystemPointerSize-aligned.
 inline void CopyWords(Address dst, const Address src, size_t num_words) {
   static const size_t kBlockCopyLimit = 16;
-  CopyImpl<kBlockCopyLimit>(reinterpret_cast<Address*>(dst),
-                            reinterpret_cast<const Address*>(src), num_words);
+  CopyImpl<kBlockCopyLimit>(reinterpret_cast<ptraddr_t*>(dst),
+                            reinterpret_cast<const ptraddr_t*>(src), num_words);
 }
 
 // Copies data from |src| to |dst|.  The data spans must not overlap.

@@ -344,7 +344,7 @@ void CopyDoubleToDoubleElements(FixedArrayBase from_base, uint32_t from_start,
   CopyTagged(to_address, from_address,
              static_cast<size_t>(words_per_double * copy_size));
 #else
-  int words_per_double = (kDoubleSize / kSystemPointerSize);
+  int words_per_double = (kDoubleSize / kSystemPointerAddrSize);
   CopyWords(to_address, from_address,
             static_cast<size_t>(words_per_double * copy_size));
 #endif
