@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "src/base/bit-field.h"
+#include "src/base/memory.h"
 #include "src/heap/base/basic-slot-set.h"
 #include "src/objects/compressed-slots.h"
 #include "src/objects/slots.h"
@@ -56,7 +57,8 @@ class PossiblyEmptyBuckets {
     if (IsAllocated()) {
       InsertAllocated(bucket_index);
     } else if (bucket_index + 1 < kBitsPerWord) {
-      bitmap_ |= static_cast<uintptr_t>(1) << (bucket_index + 1);
+      bitmap_ = static_cast<WordType>(bitmap_) | static_cast<WordType>(1)
+                                                     << (bucket_index + 1);
     } else {
       Allocate(buckets);
       InsertAllocated(bucket_index);
@@ -66,11 +68,13 @@ class PossiblyEmptyBuckets {
   bool Contains(size_t bucket_index) {
     if (IsAllocated()) {
       size_t word_idx = bucket_index / kBitsPerWord;
-      uintptr_t* word = BitmapArray() + word_idx;
+      WordType* word = BitmapArray() + word_idx;
+      DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(word));
       return *word &
-             (static_cast<uintptr_t>(1) << (bucket_index % kBitsPerWord));
+             (static_cast<WordType>(1) << (bucket_index % kBitsPerWord));
     } else if (bucket_index + 1 < kBitsPerWord) {
-      return bitmap_ & (static_cast<uintptr_t>(1) << (bucket_index + 1));
+      return static_cast<WordType>(bitmap_) &
+             (static_cast<WordType>(1) << (bucket_index + 1));
     } else {
       return false;
     }
@@ -79,44 +83,44 @@ class PossiblyEmptyBuckets {
   bool IsEmpty() const { return bitmap_ == kNullAddress; }
 
  private:
-#if defined(__CHERI_PURE_CAPABILITY__)
-  static constexpr ptraddr_t kPointerTag = 1;
-#else   // !__CHERI_PURE_CAPABILITY__
-  static constexpr Address kPointerTag = 1;
-#endif  // !__CHERI_PURE_CAPABILITY__
-  static constexpr int kWordSize = sizeof(uintptr_t);
+  using WordType = ptraddr_t;
+  static constexpr WordType kPointerTag = 1;
+  static constexpr int kWordSize = sizeof(WordType);
   static constexpr int kBitsPerWord = kWordSize * kBitsPerByte;
 
-  bool IsAllocated() { return bitmap_ & kPointerTag; }
+  bool IsAllocated() { return static_cast<WordType>(bitmap_) & kPointerTag; }
 
   void Allocate(size_t buckets) {
     DCHECK(!IsAllocated());
     size_t words = WordsForBuckets(buckets);
-    uintptr_t* ptr = reinterpret_cast<uintptr_t*>(
+    WordType* ptr = reinterpret_cast<WordType*>(
         AlignedAllocWithRetry(words * kWordSize, kSystemPointerSize));
-    ptr[0] = bitmap_ >> 1;
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(ptr));
+    ptr[0] = static_cast<WordType>(bitmap_) >> 1;
 
     for (size_t word_idx = 1; word_idx < words; word_idx++) {
       ptr[word_idx] = 0;
     }
     bitmap_ = reinterpret_cast<Address>(ptr) + kPointerTag;
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(bitmap_));
     DCHECK(IsAllocated());
   }
 
   void InsertAllocated(size_t bucket_index) {
     DCHECK(IsAllocated());
     size_t word_idx = bucket_index / kBitsPerWord;
-    uintptr_t* word = BitmapArray() + word_idx;
-    *word |= static_cast<uintptr_t>(1) << (bucket_index % kBitsPerWord);
+    WordType* word = BitmapArray() + word_idx;
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(word));
+    *word |= static_cast<WordType>(1) << (bucket_index % kBitsPerWord);
   }
 
   static size_t WordsForBuckets(size_t buckets) {
     return (buckets + kBitsPerWord - 1) / kBitsPerWord;
   }
 
-  uintptr_t* BitmapArray() {
+  WordType* BitmapArray() {
     DCHECK(IsAllocated());
-    return reinterpret_cast<uintptr_t*>(bitmap_ & ~kPointerTag);
+    return reinterpret_cast<WordType*>(bitmap_ & ~kPointerTag);
   }
 
   Address bitmap_ = kNullAddress;

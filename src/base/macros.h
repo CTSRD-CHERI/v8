@@ -58,6 +58,8 @@
 #define CheriDiagnosticOff(...)
 #define CheriDiagnosticPop
 #define V8_CHERI_ADDR_GET(cap) (cap)
+// XXX(cheri): Currently assume that everything is untagged on non-CHERI.
+#define V8_CHERI_TAG_GET(cap) false
 #endif  // __CHERI_PURE_CAPABILITY__
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.
