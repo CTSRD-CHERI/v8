@@ -293,6 +293,14 @@ static int DecodeIt(Isolate* isolate, ExternalReferenceEncoder* ref_encoder,
   int constants = -1;  // no constants being decoded at the start
 
   while (pc < end) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    // If we are on CHERI, we want to re-derive a data pointer to any sentry we
+    // encounter first.
+    if (V8_CHERI_SEALED(pc)) {
+      pc = reinterpret_cast<uint8_t*>(
+          V8_CHERI_ADDR_SET(V8_CHERI_PCC, V8_CHERI_ADDR_GET(pc)));
+    }
+#endif
     // First decode instruction so that we know its length.
     uint8_t* prev_pc = pc;
     bool decoding_constant_pool = constants > 0;
