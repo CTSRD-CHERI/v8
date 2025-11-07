@@ -2431,10 +2431,21 @@ Handle<FixedDoubleArray> Factory::CopyFixedDoubleArray(
   DCHECK_GE(
       V8_CHERI_LENGTH_GET(array->address()) - FixedDoubleArray::kLengthOffset,
       bytes_to_copy);
-#endif  // __CHERI_PURE_CAPABILITY__
+  CHECK(IsAligned(bytes_to_copy, kSystemPointerAddrSize));
+  if (COMPRESS_POINTERS_BOOL) {
+    Heap::CopyBlock(result->address() + FixedDoubleArray::kLengthOffset,
+                    array->address() + FixedDoubleArray::kLengthOffset,
+                    bytes_to_copy);
+  } else {
+    CopyWords(result->address() + FixedDoubleArray::kLengthOffset,
+              array->address() + FixedDoubleArray::kLengthOffset,
+              bytes_to_copy / kSystemPointerAddrSize);
+  }
+#else
   Heap::CopyBlock(result->address() + FixedDoubleArray::kLengthOffset,
                   array->address() + FixedDoubleArray::kLengthOffset,
                   bytes_to_copy);
+#endif  // __CHERI_PURE_CAPABILITY__
   return result;
 }
 
