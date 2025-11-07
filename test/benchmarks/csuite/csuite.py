@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Copyright 2018 the V8 project authors. All rights reserved.
 '''
 C S u i t e                                         because who can remember?
@@ -138,7 +138,7 @@ if __name__ == '__main__':
   if opts.verbose:
     print("calling d8 like so: %s." % inner_command)
 
-  cmdline_base = "python %s %s -fv -r %d -d %s" \
+  cmdline_base = "python3 %s %s -fv -r %d -d %s" \
       % (benchmark_py_path, inner_command, runs, output_path_base)
 
   if mode == "baseline":
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     print("Run %s again with compare mode to see results." % suite)
   else:
     print("Wrote %s." % output_file_compare)
-    cmdline = "python %s  %s -f %s" % (compare_baseline_py_path, output_file, output_file_compare)
+    cmdline = "python3 %s  %s -f %s" % (compare_baseline_py_path, output_file, output_file_compare)
     if opts.verbose:
       print("Spawning subprocess: %s." % cmdline)
     return_code = subprocess.call(cmdline, shell=True, cwd=suite_path)
