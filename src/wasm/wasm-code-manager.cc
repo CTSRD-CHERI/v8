@@ -2167,6 +2167,12 @@ std::shared_ptr<NativeModule> WasmCodeManager::NewNativeModule(
   // floating garbage.
   static constexpr int kAllocationRetries = 2;
   VirtualMemory code_space;
+#ifdef __CHERI_PURE_CAPABILITY__
+  // FIXME(cheri): This is a hack to work around the issue that we can't mremap
+  // merged ranges in the DisjointAllocationPool. It might also not be
+  // sufficient on its own, but it seems to behave for now.
+  code_vmem_size = 1024 * MB;
+#endif
   for (int retries = 0;; ++retries) {
     code_space = TryAllocate(code_vmem_size);
     if (code_space.IsReserved()) break;
