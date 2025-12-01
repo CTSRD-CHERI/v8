@@ -2110,7 +2110,13 @@ Object Isolate::UnwindAndFindHandler() {
         Code code = frame->LookupCode();
         HandlerTable table(code);
         Address instruction_start = code.instruction_start();
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
+        // Account for the C64 bit.
+        int return_offset =
+            static_cast<int>(frame->pc() - 1 - instruction_start);
+#else
         int return_offset = static_cast<int>(frame->pc() - instruction_start);
+#endif
         int handler_offset = table.LookupReturn(return_offset);
         DCHECK_NE(-1, handler_offset);
         // Compute the stack pointer from the frame pointer. This ensures that
