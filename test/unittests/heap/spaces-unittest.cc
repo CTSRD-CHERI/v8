@@ -21,6 +21,8 @@ namespace internal {
 
 using SpacesTest = TestWithIsolate;
 
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
+// FIXME(ds815): Test is broken because it uses AllocateRawUnaligned.
 TEST_F(SpacesTest, CompactionSpaceMerge) {
   Heap* heap = i_isolate()->heap();
   OldSpace* old_space = heap->old_space();
@@ -59,6 +61,7 @@ TEST_F(SpacesTest, CompactionSpaceMerge) {
 
   delete compaction_space;
 }
+#endif
 
 TEST_F(SpacesTest, WriteBarrierFromHeapObject) {
   constexpr Address address1 = Page::kPageSize;
