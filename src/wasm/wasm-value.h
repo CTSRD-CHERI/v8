@@ -219,7 +219,7 @@ class WasmValue {
 
  private:
   ValueType type_;
-  uint8_t bit_pattern_[16];
+  alignas(kSystemPointerSize) uint8_t bit_pattern_[16];
 };
 
 #define DECLARE_CAST(name, localtype, ctype, ...) \
