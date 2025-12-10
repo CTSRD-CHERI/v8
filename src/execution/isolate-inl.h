@@ -58,6 +58,9 @@ NativeContext Isolate::raw_native_context() {
 
 void Isolate::set_pending_message(Object message_obj) {
   DCHECK(message_obj.IsTheHole(this) || message_obj.IsJSMessageObject());
+#ifdef __CHERI_PURE_CAPABILITY__
+  DCHECK(V8_CHERI_TAG_GET(message_obj.ptr()));
+#endif
   thread_local_top()->pending_message_ = message_obj;
 }
 

@@ -2629,13 +2629,23 @@ class MachineLoweringReducer : public Next {
   }
 
   V<Object> REDUCE(LoadMessage)(V<WordPtr> offset) {
+#if V8_TARGET_CHERI
+    return __ BitcastWordToTagged(__ template LoadField<WordPtr>(
+        offset, AccessBuilder::ForExternalPointer()));
+#else
     return __ BitcastWordToTagged(__ template LoadField<WordPtr>(
         offset, AccessBuilder::ForExternalIntPtr()));
+#endif
   }
 
   OpIndex REDUCE(StoreMessage)(V<WordPtr> offset, V<Object> object) {
+#if V8_TARGET_CHERI
+    __ StoreField(offset, AccessBuilder::ForExternalPointer(),
+                  __ BitcastTaggedToWord(object));
+#else
     __ StoreField(offset, AccessBuilder::ForExternalIntPtr(),
                   __ BitcastTaggedToWord(object));
+#endif
     return OpIndex::Invalid();
   }
 

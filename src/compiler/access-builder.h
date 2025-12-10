@@ -28,6 +28,9 @@ class V8_EXPORT_PRIVATE AccessBuilder final
   // Provides access to an IntPtr field identified by an external reference.
   static FieldAccess ForExternalIntPtr();
 
+  // Provides access to a Pointer field identified by an external reference.
+  static FieldAccess ForExternalPointer();
+
   // ===========================================================================
   // Access to heap object fields and elements (based on tagged pointer).
 

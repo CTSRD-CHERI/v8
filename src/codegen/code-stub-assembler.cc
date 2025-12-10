@@ -6601,6 +6601,9 @@ void CodeStubAssembler::SetPendingMessage(TNode<HeapObject> message) {
                                               JS_MESSAGE_OBJECT_TYPE)));
   TNode<ExternalReference> pending_message = ExternalConstant(
       ExternalReference::address_of_pending_message(isolate()));
+  CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<UintPtrT>(message)));
+  CSA_DCHECK(this,
+             CapabilityIsTagged(ReinterpretCast<UintPtrT>(pending_message)));
   StoreFullTaggedNoWriteBarrier(pending_message, message);
 }
 

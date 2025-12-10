@@ -2689,6 +2689,8 @@ IGNITION_HANDLER(CreateRestParameter, InterpreterAssembler) {
 // previous pending message in the accumulator.
 IGNITION_HANDLER(SetPendingMessage, InterpreterAssembler) {
   TNode<HeapObject> previous_message = GetPendingMessage();
+  CSA_DCHECK(this,
+             CapabilityIsTagged(ReinterpretCast<UintPtrT>(previous_message)));
   SetPendingMessage(CAST(GetAccumulator()));
   SetAccumulator(previous_message);
   Dispatch();

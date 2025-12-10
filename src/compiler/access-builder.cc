@@ -1418,6 +1418,15 @@ FieldAccess AccessBuilder::ForFeedbackVectorClosureFeedbackCellArray() {
   return access;
 }
 
+// static
+FieldAccess AccessBuilder::ForExternalPointer() {
+  FieldAccess access = {kUntaggedBase,       0,
+                        MaybeHandle<Name>(), OptionalMapRef(),
+                        Type::Any(),         MachineType::Pointer(),
+                        kNoWriteBarrier,     "ExternalPointer"};
+  return access;
+}
+
 }  // namespace compiler
 }  // namespace internal
 }  // namespace v8

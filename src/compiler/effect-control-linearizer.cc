@@ -6587,8 +6587,13 @@ void EffectControlLinearizer::LowerTransitionElementsKind(Node* node) {
 Node* EffectControlLinearizer::LowerLoadMessage(Node* node) {
   DCHECK(!v8_flags.turboshaft);
   Node* offset = node->InputAt(0);
+#if V8_TARGET_CHERI
+  Node* object_pattern =
+      __ LoadField(AccessBuilder::ForExternalPointer(), offset);
+#else
   Node* object_pattern =
       __ LoadField(AccessBuilder::ForExternalIntPtr(), offset);
+#endif
   return __ BitcastWordToTagged(object_pattern);
 }
 
@@ -6597,7 +6602,11 @@ void EffectControlLinearizer::LowerStoreMessage(Node* node) {
   Node* offset = node->InputAt(0);
   Node* object = node->InputAt(1);
   Node* object_pattern = __ BitcastTaggedToWord(object);
+#if V8_TARGET_CHERI
+  __ StoreField(AccessBuilder::ForExternalPointer(), offset, object_pattern);
+#else
   __ StoreField(AccessBuilder::ForExternalIntPtr(), offset, object_pattern);
+#endif
 }
 
 Node* EffectControlLinearizer::AdaptFastCallTypedArrayArgument(
