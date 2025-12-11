@@ -987,6 +987,8 @@ class V8_EXPORT_PRIVATE CodeAssembler {
     return UncheckedCast<Type>(UnalignedLoad(mt, base, offset));
   }
 
+  TNode<IntPtrT> SetBounds(Node* pointer, Node* size);
+
   // Store value to raw memory location.
   void Store(Node* base, Node* value);
   void Store(Node* base, Node* offset, Node* value);

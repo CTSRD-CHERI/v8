@@ -680,6 +680,13 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
         value);
   }
 
+  Node* SetBounds(Node* pointer, Node* size) {
+    if (V8_TARGET_CHERI_BOOL) {
+      return AddNode(machine()->SetBounds(), pointer, size);
+    }
+    return pointer;
+  }
+
   // Always true on non-CHERI.
   Node* CapabilityIsTagged(Node* value) {
     return AddNode(machine()->CapabilityIsTagged(), value);

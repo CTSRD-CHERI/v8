@@ -854,6 +854,11 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Store a capability value field
   void scvalue(const Register& cd, const Register& cn,
 	       const Register& rm);
+  // Set capability bounds
+  void scbnds_reg(const Register& cd, const Register& cn, const Register& rm);
+  void scbnds_imm_unscaled(const Register& cd, const Register& cn,
+                           uint64_t imm);
+  void scbnds_imm_scaled(const Register& cd, const Register& cn, uint64_t imm);
   // Set capability bounds exact
   void scbndse(const Register& cd, const Register& cn, const Register& rm);
   // Build a capability from a bit pattern.
@@ -2954,6 +2959,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
 #if V8_TARGET_CHERI
   inline static Instr AlternateImmLiteral(int imm9);
   inline static Instr ImmSealForm(Cheri::SealImmediateForm form);
+  inline static Instr ScbndsImmLiteral(int imm6);
   inline static Instr AlignImmLiteral(int imm6);
   inline static Instr CImmLLiteral(int imm17);
 #endif
@@ -3147,6 +3153,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   static bool IsImmLSUnscaled(int64_t offset);
   static bool IsImmLSScaled(int64_t offset, unsigned size);
 #if V8_TARGET_CHERI
+  static bool IsImmSBUnscaled(uint64_t imm);
+  static bool IsImmSBScaled(uint64_t imm);
   static bool IsCImmLLiteral(int64_t offset);
 #endif
   static bool IsImmLLiteral(int64_t offset);

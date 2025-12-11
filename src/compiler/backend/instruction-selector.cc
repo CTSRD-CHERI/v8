@@ -2692,6 +2692,8 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitAlignU(node);
     case IrOpcode::kAlignD:
       return MarkAsCapability(node), VisitAlignD(node);
+    case IrOpcode::kSetBounds:
+      return MarkAsCapability(node), VisitSetBounds(node);
 #endif
     case IrOpcode::kCapabilityIsTagged:
       return MarkAsRepresentation(MachineRepresentation::kWord8, node),
@@ -3618,6 +3620,12 @@ void InstructionSelector::VisitAlignD(Node* node) {
   DCHECK_EQ(to_boundary->opcode(), IrOpcode::kInt64Constant);
   Emit(kArchAlignD, g.DefineAsRegister(node), g.UseRegister(node->InputAt(0)),
        g.UseImmediate(to_boundary));
+}
+
+void InstructionSelector::VisitSetBounds(Node* node) {
+  OperandGenerator g(this);
+  Emit(kArchSetBounds, g.DefineAsRegister(node),
+       g.UseRegister(node->InputAt(0)), g.UseAny(node->InputAt(1)));
 }
 #endif
 

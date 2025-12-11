@@ -301,7 +301,9 @@ using float16 = uint16_t;
   /* Morello AlignU/AlignD 6-bit immediate */                      \
   V_(AlignImmLiteral, 20, 15, Bits)                                \
   /* Morello alternate base load instruction */                    \
-  V_(AlternateImmLiteral, 20, 12, Bits)
+  V_(AlternateImmLiteral, 20, 12, Bits)                            \
+  /* Morello immediate scbnds instruction */                       \
+  V_(ScbndsImmLiteral, 20, 15, Bits)
 #endif
 
 #define SYSTEM_REGISTER_FIELDS_LIST(V_, M_) \
@@ -3023,6 +3025,21 @@ using SetField1Op = uint32_t;
 constexpr SetField1Op SetField1Fixed = 0xC2C00000;
 constexpr SetField1Op SetField1FMask = 0xFFE09C00;
 constexpr SetField1Op SetField1Mask = 0xFFE0FC00;
+// 4.4.114 SCBNDS (immediate)
+// Set Bounds (immediate) derives Capability Bounds using the source Capability
+// register and a length from an immediate offset and writes the result to the
+// destination Capability register. If the source capability is sealed, the
+// Capability Tag written to the destination Capability register is cleared
+constexpr SetField1Op SCBNDS_IMM_SCALED = SetField1Fixed | 0x00007800;
+constexpr SetField1Op SCBNDS_IMM_UNSCALED = SetField1Fixed | 0x00003800;
+
+// 4.4.115 SCBNDS (register)
+// Set Bounds derives Capability Bounds using the source Capability register and
+// a length from a 64-bit register and writes the result to the destination
+// Capability register. If the source capability is sealed, the Capability Tag
+// written to the destination Capability register is cleared
+constexpr SetField1Op SCBNDS_REG = SetField1Fixed;
+
 // 4.4.116 SCBNDSE (register)
 // Set Bounds derives Capability Bounds using the source Capability register and
 // a length from a 64-bit register and writes the result to the destination

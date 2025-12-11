@@ -1824,6 +1824,15 @@ struct MachineOperatorGlobalCache {
   STACK_POINTER_GREATER_THAN(Wasm)
 #undef STACK_POINTER_GREATER_THAN
 
+#if V8_TARGET_CHERI
+  struct SetBoundsOperator : public Operator {
+    SetBoundsOperator()
+        : Operator(IrOpcode::kSetBounds, Operator::kNoThrow, "SetBounds", 2, 0,
+                   0, 1, 0, 0) {}
+  };
+  SetBoundsOperator kSetBounds;
+#endif
+
   struct CapabilityIsTaggedOperator : public Operator {
     CapabilityIsTaggedOperator()
         : Operator(IrOpcode::kCapabilityIsTagged, Operator::kNoThrow,
@@ -2256,6 +2265,12 @@ const Operator* MachineOperatorBuilder::AbortCSADcheck() {
 const Operator* MachineOperatorBuilder::DebugBreak() {
   return &cache_.kDebugBreak;
 }
+
+#if V8_TARGET_CHERI
+const Operator* MachineOperatorBuilder::SetBounds() {
+  return &cache_.kSetBounds;
+}
+#endif
 
 const Operator* MachineOperatorBuilder::CapabilityIsTagged() {
   return &cache_.kCapabilityIsTagged;

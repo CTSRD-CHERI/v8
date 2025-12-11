@@ -1564,6 +1564,30 @@ void Assembler::scvalue(const Register& cd, const Register& cn,
   Emit(SCVALUE | Rm(rm) | CdCSP(cd) | CnCSP(cn));
 }
 
+void Assembler::scbnds_reg(const Register& cd, const Register& cn,
+                           const Register& rm) {
+  DCHECK(cn.IsC());
+  DCHECK(cd.IsC());
+  DCHECK(rm.Is64Bits());
+  Emit(SCBNDS_REG | Rm(rm) | CdCSP(cd) | CnCSP(cn));
+}
+
+void Assembler::scbnds_imm_unscaled(const Register& cd, const Register& cn,
+                                    uint64_t imm) {
+  DCHECK(cn.IsC());
+  DCHECK(cd.IsC());
+  DCHECK(is_uint6(imm));
+  Emit(SCBNDS_IMM_UNSCALED | ScbndsImmLiteral(imm) | CdCSP(cd) | CnCSP(cn));
+}
+
+void Assembler::scbnds_imm_scaled(const Register& cd, const Register& cn,
+                                  uint64_t imm) {
+  DCHECK(cn.IsC());
+  DCHECK(cd.IsC());
+  DCHECK(is_uint6(imm));
+  Emit(SCBNDS_IMM_SCALED | ScbndsImmLiteral(imm) | CdCSP(cd) | CnCSP(cn));
+}
+
 void Assembler::scbndse(const Register& cd, const Register& cn,
                         const Register& rm) {
   DCHECK(cn.Is128Bits() && cd.Is128Bits());
@@ -4641,6 +4665,13 @@ bool Assembler::IsImmLSPair(int64_t offset, unsigned size) {
 }
 
 #if V8_TARGET_CHERI
+bool Assembler::IsImmSBUnscaled(uint64_t imm) { return is_uint8(imm); }
+
+bool Assembler::IsImmSBScaled(uint64_t imm) {
+  bool imm_is_size_multiple = ((imm >> 4) << 4) == imm;
+  return imm_is_size_multiple && is_uint6(imm >> 4);
+}
+
 bool Assembler::IsCImmLLiteral(int64_t offset) {
   bool offset_is_ptr_multiple =
       (static_cast<int64_t>(

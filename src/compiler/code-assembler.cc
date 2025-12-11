@@ -855,6 +855,12 @@ Node* CodeAssembler::UnalignedLoad(MachineType type, TNode<RawPtrT> base,
   return raw_assembler()->UnalignedLoad(type, static_cast<Node*>(base), offset);
 }
 
+TNode<IntPtrT> CodeAssembler::SetBounds(Node* pointer, Node* size) {
+  return TNode<IntPtrT>::UncheckedCast(
+             raw_assembler()->SetBounds(pointer, size))
+      .MarkAsCapability();
+}
+
 // XXX(cheri): This seems to be unused and we don't really fix it for CHERI, so
 // ifdef it out for now.
 #if !V8_TARGET_CHERI

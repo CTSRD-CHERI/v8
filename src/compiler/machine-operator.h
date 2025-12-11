@@ -1162,6 +1162,10 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
   // applied for kFunctionEntry stack checks.
   const Operator* StackPointerGreaterThan(StackCheckKind kind);
 
+  // Returns the original pointer provided to it with the bounds set to the
+  // value of the second argument.
+  const Operator* SetBounds();
+
   // Returns a boolean which determines if the capability is tagged or not. On
   // non-CHERI systems, this is always true.
   const Operator* CapabilityIsTagged();

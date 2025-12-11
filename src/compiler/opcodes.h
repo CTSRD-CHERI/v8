@@ -1255,7 +1255,8 @@
   V(CapSub)                \
   V(CapabilityIsTagged)    \
   V(AlignU)                \
-  V(AlignD)
+  V(AlignD)                \
+  V(SetBounds)
 #else
 #define PURECAP_OP_LIST(V) V(CapabilityIsTagged)
 #endif

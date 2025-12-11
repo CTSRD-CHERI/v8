@@ -54,12 +54,14 @@
    V8_CHERI_TOP_GET(ptr) <= V8_CHERI_TOP_GET(parent) &&   \
    (V8_CHERI_PERMS(ptr) & V8_CHERI_PERMS(parent)) == V8_CHERI_PERMS(ptr))
 
+#define V8_CHERI_SET_BOUNDS(cap, len) __builtin_cheri_bounds_set(cap, len)
 #else  // !__CHERI_PURE_CAPABILITY__
 #define CheriDiagnosticOff(...)
 #define CheriDiagnosticPop
 #define V8_CHERI_ADDR_GET(cap) (cap)
 // XXX(cheri): Currently assume that everything is untagged on non-CHERI.
 #define V8_CHERI_TAG_GET(cap) false
+#define V8_CHERI_SET_BOUNDS(cap, len) (cap)
 #endif  // __CHERI_PURE_CAPABILITY__
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.

@@ -1529,6 +1529,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
       DCHECK(!padding_needed.IsCapability());
       address = IntPtrAdd(UncheckedCast<IntPtrT>(top).MarkAsCapability(),
                           padding_needed);
+      address = SetBounds(address.value(), adjusted_size.value());
       DCHECK(address.IsCapability());
 #else
       // Store a filler and increase the address by 4.

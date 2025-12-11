@@ -1229,6 +1229,15 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
 #endif
       break;
 #if V8_TARGET_CHERI
+    case kArchSetBounds:
+      if (instr->InputAt(1)->IsImmediate()) {
+        __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                  i.InputInt64(1));
+      } else {
+        __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                  i.InputRegister64(1));
+      }
+      break;
     case kArchAlignU:
       __ AlignU(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
                 i.InputInt64(1));

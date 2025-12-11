@@ -936,6 +936,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Chktgd(const Register& cn);
   inline void Gctag(const Register& rd, const Register& cn);
   inline void Scvalue(const Register& cd, const Register& cn, const Register& rm);
+  inline void Scbnds(const Register& cd, const Register& cn,
+                     const Operand& operand);
   inline void Scbndse(const Register& cd, const Register& cn, const Register& rm);
   inline void Build(const Register& cd, const Register& cn, const Register& cm);
   inline void Seal(const Register& cd, const Register& cn,

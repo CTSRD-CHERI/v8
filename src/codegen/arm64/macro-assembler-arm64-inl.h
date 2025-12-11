@@ -270,6 +270,29 @@ void MacroAssembler::Scvalue(const Register& cd, const Register& cn,
   scvalue(cd, cn, rm);
 }
 
+void MacroAssembler::Scbnds(const Register& cd, const Register& cn,
+                            const Operand& operand) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.IsC());
+  DCHECK(cn.IsC());
+  if (operand.IsImmediate()) {
+    uint64_t imm = static_cast<uint64_t>(operand.ImmediateValue());
+    if (IsImmSBUnscaled(imm)) {
+      scbnds_imm_unscaled(cd, cn, imm);
+    } else if (IsImmSBScaled(imm)) {
+      scbnds_imm_scaled(cd, cn, imm << 4);
+    } else {
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      Mov(temp, imm);
+      scbnds_reg(cd, cn, temp);
+    }
+  } else {
+    DCHECK(operand.reg().Is64Bits());
+    scbnds_reg(cd, cn, operand.reg());
+  }
+}
+
 void MacroAssembler::Scbndse(const Register& cd, const Register& cn,
                              const Register& rm) {
   DCHECK(allow_macro_instructions());

@@ -1159,6 +1159,11 @@ Instr Assembler::ImmSealForm(Cheri::SealImmediateForm form) {
   return form << 13;
 }
 
+Instr Assembler::ScbndsImmLiteral(int imm6) {
+  CHECK(is_uint6(imm6));
+  return truncate_to_int6(imm6) << AlignImmLiteral_offset;
+}
+
 Instr Assembler::AlignImmLiteral(int imm6) {
   CHECK(is_uint6(imm6));
   return truncate_to_int6(imm6) << AlignImmLiteral_offset;
