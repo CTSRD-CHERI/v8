@@ -1634,6 +1634,11 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                           Builtin::kObjectPreventExtensions, 1, true);
     SimpleInstallFunction(isolate_, object_function, "seal",
                           Builtin::kObjectSeal, 1, false);
+    SimpleInstallFunction(isolate_, object_function, "getElements",
+                          Builtin::kObjectGetElements, 1, false);
+    SimpleInstallFunction(isolate_, object_function, "writeOffset",
+                          Builtin::kObjectWriteOffset, 3, false);
+
 
     SimpleInstallFunction(isolate_, object_function, "create",
                           Builtin::kObjectCreate, 2, false);

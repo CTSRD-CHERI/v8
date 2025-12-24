@@ -8,6 +8,7 @@
 #include "src/execution/isolate.h"
 #include "src/heap/heap-inl.h"  // For ToBoolean. TODO(jkummerow): Drop.
 #include "src/objects/keys.h"
+#include "src/objects/js-array-inl.h"
 #include "src/objects/lookup.h"
 #include "src/objects/objects-inl.h"
 #include "src/objects/property-descriptor.h"
@@ -365,6 +366,41 @@ BUILTIN(ObjectSeal) {
         ReadOnlyRoots(isolate).exception());
   }
   return *object;
+}
+
+BUILTIN(ObjectWriteOffset) {
+  HandleScope scope(isolate);
+
+  Handle<Object> obj = args.at(1);
+  Handle<Object> offset_raw = args.at(2);
+  Handle<Object> val_raw = args.at(3);
+
+  Handle<Object> not_yet_offset;
+  Handle<Object> not_yet_val;
+  ASSIGN_RETURN_FAILURE_ON_EXCEPTION(isolate, not_yet_offset,
+                                     Object::ToInteger(isolate, offset_raw));
+   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(isolate, not_yet_val,
+                                     Object::ToInteger(isolate, val_raw));
+
+  size_t offset, val;
+  if (!TryNumberToSize(*not_yet_offset, &offset)) {
+    return ReadOnlyRoots(isolate).false_value();
+  }
+  if (!TryNumberToSize(*not_yet_val, &val)) {
+    return ReadOnlyRoots(isolate).false_value();
+  }
+
+  // Gomen
+  *(int *)(obj->ptr() + offset - 1) = (int)val;
+  return ReadOnlyRoots(isolate).true_value();
+}
+
+BUILTIN(ObjectGetElements) {
+  HandleScope scope(isolate);
+
+  Handle<JSArray> array = Handle<JSArray>::cast(args.at(1));
+
+  return array->elements();
 }
 
 }  // namespace internal

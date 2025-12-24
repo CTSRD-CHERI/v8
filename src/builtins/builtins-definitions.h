@@ -823,6 +823,8 @@ namespace internal {
   CPP(ObjectPrototypeGetProto)                                                 \
   CPP(ObjectPrototypeSetProto)                                                 \
   CPP(ObjectSeal)                                                              \
+  CPP(ObjectGetElements)                                                       \
+  CPP(ObjectWriteOffset)                                                       \
   TFS(ObjectToString, kReceiver)                                               \
   TFJ(ObjectValues, kJSArgcReceiverSlots + 1, kReceiver, kObject)              \
                                                                                \
