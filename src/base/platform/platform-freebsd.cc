@@ -41,7 +41,8 @@
 namespace v8 {
 namespace base {
 
-#ifdef __CHERI_PURE_CAPABILITY__
+// #ifdef __CHERI_PURE_CAPABILITY__
+#if 0
 struct OS::C18n::TrustedFrameState::TrustedFrameStateImpl {
   TrustedFrameStateImpl() = default;
   ~TrustedFrameStateImpl() = default;
