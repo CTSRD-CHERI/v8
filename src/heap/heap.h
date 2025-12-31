@@ -133,6 +133,8 @@ enum class ClearFreedMemoryMode { kClearFreedMemory, kDontClearFreedMemory };
 
 enum class RetainingPathOption { kDefault, kTrackEphemeronPath };
 
+enum class VerifyNoSlotsRecorded { kYes, kNo };
+
 enum class GCIdleTimeAction : uint8_t;
 
 enum class SkipRoot {
@@ -527,6 +529,13 @@ class Heap final {
   void CopyRange(HeapObject dst_object, TSlot dst_slot, TSlot src_slot, int len,
                  WriteBarrierMode mode);
 
+  // Creates a filler object in the specified memory area. This method is the
+  // internal method used by all CreateFillerObjectAtXXX-methods.
+  V8_EXPORT_PRIVATE void CreateFillerObjectAtRaw(Address addr, int size,
+                               ClearFreedMemoryMode clear_memory_mode,
+                               ClearRecordedSlots clear_slots_mode,
+                               VerifyNoSlotsRecorded verify_no_slots_recorded);
+  
   // Initialize a filler object to keep the ability to iterate over the heap
   // when introducing gaps within pages. This method will verify that no slots
   // are recorded in this free memory.
@@ -1783,15 +1792,6 @@ class Heap final {
   // Zaps the memory of a code object.
   V8_EXPORT_PRIVATE void ZapCodeObject(Address start_address,
                                        int size_in_bytes);
-
-  enum class VerifyNoSlotsRecorded { kYes, kNo };
-
-  // Creates a filler object in the specified memory area. This method is the
-  // internal method used by all CreateFillerObjectAtXXX-methods.
-  void CreateFillerObjectAtRaw(Address addr, int size,
-                               ClearFreedMemoryMode clear_memory_mode,
-                               ClearRecordedSlots clear_slots_mode,
-                               VerifyNoSlotsRecorded verify_no_slots_recorded);
 
   // Range write barrier implementation.
   template <int kModeMask, typename TSlot>

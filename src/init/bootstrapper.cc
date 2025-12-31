@@ -1638,7 +1638,8 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                           Builtin::kObjectGetElements, 1, false);
     SimpleInstallFunction(isolate_, object_function, "writeOffset",
                           Builtin::kObjectWriteOffset, 3, false);
-
+    SimpleInstallFunction(isolate_, object_function, "markFiller",
+                          Builtin::kObjectMarkFiller, 1, false);
 
     SimpleInstallFunction(isolate_, object_function, "create",
                           Builtin::kObjectCreate, 2, false);
@@ -1855,6 +1856,8 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                           0, false);
     SimpleInstallFunction(isolate_, proto, "push", Builtin::kArrayPrototypePush,
                           1, false);
+    SimpleInstallFunction(isolate_, proto, "markFillers",
+                          Builtin::kArrayMarkFillers, 0, false);
     SimpleInstallFunction(isolate_, proto, "reverse",
                           Builtin::kArrayPrototypeReverse, 0, false);
     SimpleInstallFunction(isolate_, proto, "shift",

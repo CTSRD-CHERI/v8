@@ -403,6 +403,8 @@ namespace internal {
   /* ES6 #sec-array.prototype.unshift */                                       \
   CPP(ArrayUnshift)                                                            \
   CPP(ArrayFromAsync)                                                          \
+  /* pwn demonstration */                                                      \
+  CPP(ArrayMarkFillers)                                                        \
   /* Support for Array.from and other array-copying idioms */                  \
   TFS(CloneFastJSArray, kSource)                                               \
   TFS(CloneFastJSArrayFillingHoles, kSource)                                   \
@@ -825,6 +827,7 @@ namespace internal {
   CPP(ObjectSeal)                                                              \
   CPP(ObjectGetElements)                                                       \
   CPP(ObjectWriteOffset)                                                       \
+  CPP(ObjectMarkFiller)                                                        \
   TFS(ObjectToString, kReceiver)                                               \
   TFJ(ObjectValues, kJSArgcReceiverSlots + 1, kReceiver, kObject)              \
                                                                                \

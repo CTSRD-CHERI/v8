@@ -1895,5 +1895,55 @@ BUILTIN(ArrayFromAsync) {
   return ReadOnlyRoots(isolate).undefined_value();
 }
 
+namespace {
+bool MayContainRecordedSlots(HeapObject object) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+  // New space object do not have recorded slots.
+  if (BasicMemoryChunk::FromHeapObject(object)->InYoungGeneration())
+    return false;
+  // Allowlist objects that definitely do not have pointers.
+  if (object.IsByteArray() || object.IsFixedDoubleArray()) return false;
+  // Conservatively return true for other objects.
+  return true;
+}
+}  // namespace
+
+BUILTIN(ArrayMarkFillers) {
+  HandleScope scope(isolate);
+
+  Handle<Object> receiver = args.receiver();
+  Handle<JSArray> array = Handle<JSArray>::cast(receiver);
+  FixedArrayBase elements = array->elements();
+
+  // XXXR3: mark all elements with fillers
+  const int elements_to_trim = elements.length();
+  int bytes_to_trim;
+  if (elements.IsByteArray()) {
+    bytes_to_trim = ByteArray::SizeFor(elements_to_trim);
+  } else if (elements.IsFixedArray()) {
+    bytes_to_trim = elements_to_trim * kTaggedSize;
+  } else {
+    bytes_to_trim = elements_to_trim * kDoubleSize;
+  }
+
+  int old_size = elements.Size();
+  int new_size = old_size - bytes_to_trim;
+
+  bool clear_slots = MayContainRecordedSlots(elements);
+  const Address filler = elements.address() + new_size;
+  const int filler_size = old_size - new_size;
+
+  isolate->heap()->CreateFillerObjectAtRaw(
+    filler, filler_size, ClearFreedMemoryMode::kDontClearFreedMemory,
+    clear_slots ? ClearRecordedSlots::kYes : ClearRecordedSlots::kNo,
+    VerifyNoSlotsRecorded::kYes
+  );
+
+  // XXXR3: trying to update the FixedArrayBase length in place so the gc doesn't skip the fillers
+  elements.set_length(elements.length() - elements_to_trim, kReleaseStore);
+
+  return ReadOnlyRoots(isolate).undefined_value();
+}
+
 }  // namespace internal
 }  // namespace v8

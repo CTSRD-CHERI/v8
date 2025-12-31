@@ -403,5 +403,20 @@ BUILTIN(ObjectGetElements) {
   return array->elements();
 }
 
+BUILTIN(ObjectMarkFiller) {
+  HandleScope scope(isolate);
+
+  Handle<HeapObject> object = args.at<HeapObject>(1);
+  int size = object->Size();
+  Address addr = object->address();
+
+  DisallowGarbageCollection no_gc;
+  isolate->heap()->NotifyObjectLayoutChange(*object, no_gc,
+                                            InvalidateRecordedSlots::kYes);
+  isolate->heap()->CreateFillerObjectAt(addr, size);
+
+  return ReadOnlyRoots(isolate).undefined_value();
+}
+
 }  // namespace internal
 }  // namespace v8
