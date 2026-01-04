@@ -776,29 +776,31 @@ void ReduceNode(const Operator* op, EscapeAnalysisTracker::Scope* current,
       break;
     }
     case IrOpcode::kCheckMaps: {
-      CheckMapsParameters params = CheckMapsParametersOf(op);
-      Node* checked = current->ValueInput(0);
-      const VirtualObject* vobject = current->GetVirtualObject(checked);
-      Variable map_field;
-      Node* map;
-      if (vobject && !vobject->HasEscaped() &&
-          vobject->FieldAt(HeapObject::kMapOffset).To(&map_field) &&
-          current->Get(map_field).To(&map)) {
-        if (map) {
-          Type const map_type = NodeProperties::GetType(map);
-          if (map_type.IsHeapConstant() &&
-              params.maps().contains(
-                  map_type.AsHeapConstant()->Ref().AsMap())) {
-            current->MarkForDeletion();
-            break;
-          }
-        } else {
-          // If the variable has no value, we have not reached the fixed-point
-          // yet.
-          break;
-        }
-      }
-      current->SetEscaped(checked);
+      // CheckMapsParameters params = CheckMapsParametersOf(op);
+      // Node* checked = current->ValueInput(0);
+      // const VirtualObject* vobject = current->GetVirtualObject(checked);
+      // Variable map_field;
+      // Node* map;
+      // if (vobject && !vobject->HasEscaped() &&
+      //     vobject->FieldAt(HeapObject::kMapOffset).To(&map_field) &&
+      //     current->Get(map_field).To(&map)) {
+      //   if (map) {
+      //     Type const map_type = NodeProperties::GetType(map);
+      //     if (map_type.IsHeapConstant() &&
+      //         params.maps().contains(
+      //             map_type.AsHeapConstant()->Ref().AsMap())) {
+      //       current->MarkForDeletion();
+      //       break;
+      //     }
+      //   } else {
+      //     // If the variable has no value, we have not reached the fixed-point
+      //     // yet.
+      //     break;
+      //   }
+      // }
+
+      // current->SetEscaped(checked);
+      current->MarkForDeletion();
       break;
     }
     case IrOpcode::kCompareMaps: {
