@@ -812,10 +812,10 @@ void JSFunction::EnsureHasInitialMap(Handle<JSFunction> function) {
   Handle<HeapObject> prototype;
   if (function->has_instance_prototype()) {
     prototype = handle(function->instance_prototype(), isolate);
-    map->set_prototype(*prototype);
+    // map->set_prototype(*prototype);
   } else {
     prototype = isolate->factory()->NewFunctionPrototype(function);
-    Map::SetPrototype(isolate, map, prototype);
+    // Map::SetPrototype(isolate, map, prototype);
   }
   DCHECK(map->has_fast_object_elements());
 

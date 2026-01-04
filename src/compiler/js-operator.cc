@@ -1403,7 +1403,7 @@ const Operator* JSOperatorBuilder::CloneObject(FeedbackSource const& feedback,
 const Operator* JSOperatorBuilder::StackCheck(StackCheckKind kind) {
   return zone()->New<Operator1<StackCheckKind>>(  // --
       IrOpcode::kJSStackCheck,                    // opcode
-      Operator::kNoProperties,                    // properties
+      Operator::kNoProperties | Operator::kNoWrite, // properties
       "JSStackCheck",                             // name
       0, 1, 1, 0, 1, 2,                           // counts
       kind);                                      // parameter
