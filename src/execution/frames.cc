@@ -2669,7 +2669,14 @@ int WasmFrame::position() const {
 
 int WasmFrame::generated_code_offset() const {
   wasm::WasmCode* code = wasm_code();
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  // NOTE(zyj20): Take into account that the LSB of sealed PCC is set.
+  // The resulting capability could be invalid but it won't be
+  // used as a pointer anyways.
+  int offset = static_cast<int>((pc() & ~1) - code->instruction_start());
+#else
   int offset = static_cast<int>(pc() - code->instruction_start());
+#endif
   return code->GetSourceOffsetBefore(offset);
 }
 
@@ -2686,7 +2693,14 @@ void WasmFrame::Summarize(std::vector<FrameSummary>* functions) const {
   // since this code object is part of our stack.
   wasm::WasmCodeRefScope code_ref_scope;
   wasm::WasmCode* code = wasm_code();
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  // NOTE(zyj20): Take into account that the LSB of sealed PCC is set.
+  // The resulting capability could be invalid but it won't be
+  // used as a pointer anyways.
+  int offset = static_cast<int>((pc() & ~1) - code->instruction_start());
+#else
   int offset = static_cast<int>(pc() - code->instruction_start());
+#endif
   Handle<WasmInstanceObject> instance(wasm_instance(), isolate());
   // Push regular non-inlined summary.
   SourcePosition pos = code->GetSourcePositionBefore(offset);
@@ -2725,7 +2739,14 @@ bool WasmFrame::at_to_number_conversion() const {
           ? wasm::GetWasmCodeManager()->LookupCode(callee_pc())
           : nullptr;
   if (!code || code->kind() != wasm::WasmCode::kWasmToJsWrapper) return false;
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  // NOTE(zyj20): Take into account that the LSB of sealed PCC is set.
+  // The resulting capability could be invalid but it won't be
+  // used as a pointer anyways.
+  int offset = static_cast<int>((callee_pc() & ~1) - code->instruction_start());
+#else
   int offset = static_cast<int>(callee_pc() - code->instruction_start());
+#endif
   int pos = code->GetSourceOffsetBefore(offset);
   // The imported call has position 0, ToNumber has position 1.
   // If there is no source position available, this is also not a ToNumber call.
@@ -2737,7 +2758,14 @@ int WasmFrame::LookupExceptionHandlerInTable() {
   wasm::WasmCode* code = wasm::GetWasmCodeManager()->LookupCode(pc());
   if (!code->IsAnonymous() && code->handler_table_size() > 0) {
     HandlerTable table(code);
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+    // NOTE(zyj20): Take into account that the LSB of sealed PCC is set.
+    // The resulting capability could be invalid but it won't be
+    // used as a pointer anyways.
+    int pc_offset = static_cast<int>((pc() & ~1) - code->instruction_start());
+#else
     int pc_offset = static_cast<int>(pc() - code->instruction_start());
+#endif
     return table.LookupReturn(pc_offset);
   }
   return -1;
