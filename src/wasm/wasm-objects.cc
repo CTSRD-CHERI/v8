@@ -768,7 +768,7 @@ Handle<WasmMemoryObject> WasmMemoryObject::New(Isolate* isolate,
 MaybeHandle<WasmMemoryObject> WasmMemoryObject::New(
     Isolate* isolate, int initial, int maximum, SharedFlag shared,
     WasmMemoryFlag memory_type) {
-  bool has_maximum = maximum != kNoMaximum;
+//  bool has_maximum = maximum != kNoMaximum;
 
   int engine_maximum = memory_type == WasmMemoryFlag::kWasmMemory64
                            ? static_cast<int>(wasm::max_mem64_pages())
@@ -776,10 +776,11 @@ MaybeHandle<WasmMemoryObject> WasmMemoryObject::New(
 
   if (initial > engine_maximum) return {};
 
+  constexpr int kGBPages = 1024 * 1024 * 1024 / wasm::kWasmPageSize;
 #ifdef V8_TARGET_ARCH_32_BIT
   // On 32-bit platforms we need an heuristic here to balance overall memory
   // and address space consumption.
-  constexpr int kGBPages = 1024 * 1024 * 1024 / wasm::kWasmPageSize;
+
   // We allocate the smallest of the following sizes, but at least the initial
   // size:
   // 1) the module-defined maximum;
@@ -804,8 +805,8 @@ MaybeHandle<WasmMemoryObject> WasmMemoryObject::New(
     heuristic_maximum = initial;
   }
 #else
-  int heuristic_maximum =
-      has_maximum ? std::min(engine_maximum, maximum) : engine_maximum;
+  int heuristic_maximum = kGBPages;
+//      has_maximum ? std::min(engine_maximum, maximum) : engine_maximum;
 #endif
 
   std::unique_ptr<BackingStore> backing_store =

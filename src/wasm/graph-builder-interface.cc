@@ -2113,7 +2113,7 @@ class WasmGraphBuildingInterface {
 
     // The exceptional operation could have modified memory size; we need to
     // reload the memory context into the exceptional control path.
-    ReloadInstanceCacheIntoSsa(ssa_env_, decoder->module_);
+    // ReloadInstanceCacheIntoSsa(ssa_env_, decoder->module_);
 
     if (emit_loop_exits()) {
       ValueVector values;
