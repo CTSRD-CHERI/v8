@@ -77,10 +77,18 @@ namespace internal {
 #define V8_EMBEDDED_CONSTANT_POOL_BOOL false
 #endif
 
+// Determine if the compiler should target CHERI.
 #if V8_TARGET_CHERI
 #define V8_TARGET_CHERI_BOOL true
 #else
 #define V8_TARGET_CHERI_BOOL false
+#endif
+
+// Determine if we are currently being compiled as a purecap binary.
+#ifdef __CHERI_PURE_CAPABILITY__
+#define V8_CHERI_PURECAP_BOOL true
+#else
+#define V8_CHERI_PURECAP_BOOL false
 #endif
 
 #ifdef DEBUG
@@ -311,11 +319,11 @@ const size_t kShortBuiltinCallsOldSpaceSizeThreshold = size_t{2} * GB;
 #if V8_SFI_HAS_UNIQUE_ID && TAGGED_SIZE_8_BYTES
 #define V8_SFI_NEEDS_PADDING true
 #else
-#if (__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
 #define V8_SFI_NEEDS_PADDING true
-#else  // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
+#else  // !(V8_TARGET_CHERI && !V8_COMPRESS_POINTERS)
 #define V8_SFI_NEEDS_PADDING false
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
+#endif  // V8_TARGET_CHERI && !V8_COMPRESS_POINTERS
 #endif
 
 #if defined(V8_OS_WIN) && defined(V8_TARGET_ARCH_X64)

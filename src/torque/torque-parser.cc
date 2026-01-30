@@ -90,7 +90,7 @@ class BuildFlags : public base::ContextualClass<BuildFlags> {
     build_flags_["CHERI_PURECAP_UNCOMPRESSED"] =
         options.cheri_abi && !COMPRESS_POINTERS_BOOL;
     build_flags_["V8_CHERI_SFI_NEEDS_PADDING"] =
-        options.cheri_abi && V8_SFI_NEEDS_PADDING;
+        options.cheri_abi && !COMPRESS_POINTERS_BOOL;
     build_flags_["V8_NONCHERI_SFI_NEEDS_PADDING"] =
         !options.cheri_abi && V8_SFI_NEEDS_PADDING;
 #endif  // __CHERI_PURE_CAPABILITY__

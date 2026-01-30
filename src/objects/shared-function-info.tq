@@ -82,7 +82,6 @@ extern class SharedFunctionInfo extends HeapObject {
 
   @if(V8_CHERI_SFI_NEEDS_PADDING) optional_padding: uintptr;
   @if(V8_NONCHERI_SFI_NEEDS_PADDING) optional_padding: uint32;
-  @ifnot(V8_SFI_NEEDS_PADDING) optional_padding: void;
 }
 
 const kDontAdaptArgumentsSentinel: constexpr int32

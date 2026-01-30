@@ -382,9 +382,9 @@ void SharedFunctionInfo::set_function_map_index(int index) {
 }
 
 void SharedFunctionInfo::clear_padding() {
-#if V8_SFI_NEEDS_PADDING && defined(__CHERI_PURE_CAPABILITY__)
+#if V8_SFI_NEEDS_PADDING
   set_optional_padding(0);
-#endif  // V8_SFI_NEEDS_PADDING && __CHERI_PURE_CAPABILITY__
+#endif  // V8_SFI_NEEDS_PADDING
 }
 
 void SharedFunctionInfo::UpdateFunctionMapIndex() {
