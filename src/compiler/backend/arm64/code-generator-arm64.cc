@@ -4034,7 +4034,7 @@ AllocatedOperand CodeGenerator::Push(InstructionOperand* source) {
   int slot_id = last_frame_slot_id + sp_delta + new_slots;
   AllocatedOperand stack_slot(LocationOperand::STACK_SLOT, rep, slot_id);
   if (source->IsRegister()) {
-    __ Push(g.ToRegister(source).C(), padregc);
+    __ Push(g.ToCapabilityRegister(source), padregc);
     frame_access_state()->IncreaseSPDelta(new_slots);
 #if V8_TARGET_CHERI
   } else if (source->IsCapabilityStackSlot()) {
@@ -4297,13 +4297,10 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
   switch (MoveType::InferMove(source, destination)) {
     case MoveType::kRegisterToRegister:
       if (source->IsRegister()) {
-        if ((source->IsCapabilityRegister()) ||
-            (destination->IsCapabilityRegister())) {
-          DCHECK(V8_TARGET_CHERI_BOOL);
-          __ Mov(g.ToRegister(destination).C(), g.ToRegister(source).C());
-          return;
-        }
-        __ Mov(g.ToRegister(destination), g.ToRegister(source));
+        // Always perform this move with capability registers. There shouldn't
+        // exist a case where mov xd, xs is desirable over mov cd, cs.
+        __ Mov(g.ToCapabilityRegister(destination),
+               g.ToCapabilityRegister(source));
       } else if (source->IsFloatRegister() || source->IsDoubleRegister()) {
         __ Mov(g.ToDoubleRegister(destination), g.ToDoubleRegister(source));
       } else {
@@ -4317,7 +4314,7 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       if (source->IsRegister()) {
         // As the stack slots are capability width, perform a capability width
         // store.
-        __ Str(g.ToRegister(source).C(), dst);
+        __ Str(g.ToCapabilityRegister(source), dst);
       } else {
         VRegister src = g.ToDoubleRegister(source);
         if (source->IsFloatRegister() || source->IsDoubleRegister()) {
@@ -4332,9 +4329,9 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
     case MoveType::kStackToRegister: {
       MemOperand src = g.ToMemOperand(source, masm());
       if (destination->IsRegister()) {
-        // As the stack slots are capability width, perform
-        // a capability width load.
-        __ Ldr(g.ToRegister(destination).C(), src);
+        // As the stack slots are capability width, perform a capability width
+        // load.
+        __ Ldr(g.ToCapabilityRegister(destination), src);
       } else {
         VRegister dst = g.ToDoubleRegister(destination);
         if (destination->IsFloatRegister() || destination->IsDoubleRegister()) {
@@ -4437,13 +4434,8 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
   switch (MoveType::InferSwap(source, destination)) {
     case MoveType::kRegisterToRegister:
       if (source->IsRegister()) {
-        if ((source->IsCapabilityRegister()) ||
-            (destination->IsCapabilityRegister())) {
-          DCHECK(V8_TARGET_CHERI_BOOL);
-          __ Swap(g.ToRegister(source).C(), g.ToRegister(destination).C());
-          return;
-        }
-        __ Swap(g.ToRegister(source), g.ToRegister(destination));
+        __ Swap(g.ToCapabilityRegister(source),
+                g.ToCapabilityRegister(destination));
       } else {
         VRegister src = g.ToDoubleRegister(source);
         VRegister dst = g.ToDoubleRegister(destination);
@@ -4459,17 +4451,8 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
       UseScratchRegisterScope scope(masm());
       MemOperand dst = g.ToMemOperand(destination, masm());
       if (source->IsRegister()) {
-        if (source->IsCapabilityRegister()) {
-          DCHECK(V8_TARGET_CHERI_BOOL);
-          Register temp = scope.AcquireC();
-          Register src = g.ToRegister(source).C();
-          __ Mov(temp, src);
-          __ Ldr(src, dst);
-          __ Str(temp, dst);
-          return;
-        }
-        Register temp = scope.AcquireX();
-        Register src = g.ToRegister(source);
+        Register temp = scope.AcquireC();
+        Register src = g.ToCapabilityRegister(source);
         __ Mov(temp, src);
         __ Ldr(src, dst);
         __ Str(temp, dst);
