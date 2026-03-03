@@ -4026,6 +4026,7 @@ void CodeGenerator::PrepareForDeoptimizationExits(
 AllocatedOperand CodeGenerator::Push(InstructionOperand* source) {
   auto rep = LocationOperand::cast(source)->representation();
   int new_slots = RoundUp<2>(ElementSizeInPointers(rep));
+  DCHECK_NE(new_slots, 0);
   Arm64OperandConverter g(this, nullptr);
   int last_frame_slot_id =
       frame_access_state_->frame()->GetTotalFrameSlotCount() - 1;
@@ -4062,6 +4063,7 @@ AllocatedOperand CodeGenerator::Push(InstructionOperand* source) {
 
 void CodeGenerator::Pop(InstructionOperand* dest, MachineRepresentation rep) {
   int new_slots = RoundUp<2>(ElementSizeInPointers(rep));
+  DCHECK_NE(new_slots, 0);
   frame_access_state()->IncreaseSPDelta(-new_slots);
   Arm64OperandConverter g(this, nullptr);
   if (dest->IsRegister()) {
