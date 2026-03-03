@@ -283,8 +283,18 @@ void AtomicStoreTagged(MachineType type, AtomicMemoryOrder order) {
       m.AtomicStore(store_params, out_base, out_index, load);
     } else {
       DCHECK(m.machine()->Is64());
+#if V8_TARGET_CHERI
+      if (std::is_same_v<TaggedT, Smi>) {
+        load = m.AtomicLoad64(load_params, in_base, in_index);
+        m.AtomicStore64(store_params, out_base, out_index, load, nullptr);
+      } else {
+        load = m.AtomicLoadCapability(load_params, in_base, in_index);
+        m.AtomicStoreCapability(store_params, out_base, out_index, load);
+      }
+#else
       load = m.AtomicLoad64(load_params, in_base, in_index);
       m.AtomicStore64(store_params, out_base, out_index, load, nullptr);
+#endif
     }
 
     m.Return(m.Int32Constant(OK));

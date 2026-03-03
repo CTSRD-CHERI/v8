@@ -2693,6 +2693,10 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitAlignD(node);
     case IrOpcode::kSetBounds:
       return MarkAsCapability(node), VisitSetBounds(node);
+    case IrOpcode::kCapabilityAtomicLoad:
+      return MarkAsCapability(node), VisitCapabilityAtomicLoad(node);
+    case IrOpcode::kCapabilityAtomicStore:
+      return VisitCapabilityAtomicStore(node);
 #endif
     case IrOpcode::kCapabilityIsTagged:
       return MarkAsRepresentation(MachineRepresentation::kWord8, node),
@@ -3085,6 +3089,16 @@ void InstructionSelector::VisitWord64AtomicLoad(Node* node) { UNIMPLEMENTED(); }
 void InstructionSelector::VisitWord64AtomicStore(Node* node) {
   UNIMPLEMENTED();
 }
+
+#if !V8_TARGET_CHERI
+void InstructionSelector::VisitCapabilityAtomicLoad(Node* node) {
+  UNIMPLEMENTED();
+}
+
+void InstructionSelector::VisitCapabilityAtomicStore(Node* node) {
+  UNIMPLEMENTED();
+}
+#endif
 
 void InstructionSelector::VisitWord64AtomicAdd(Node* node) { UNIMPLEMENTED(); }
 

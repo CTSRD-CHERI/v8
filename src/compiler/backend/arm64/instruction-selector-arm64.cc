@@ -2973,6 +2973,9 @@ void VisitAtomicLoad(InstructionSelector* selector, Node* node,
     case MachineRepresentation::kWord32:
       code = kAtomicLoadWord32;
       break;
+#ifndef V8_COMPRESS_POINTERS
+    case MachineRepresentation::kTaggedSigned:  // Fall through.
+#endif
     case MachineRepresentation::kWord64:
       code = kArm64Word64AtomicLoadUint64;
       break;
@@ -2987,9 +2990,11 @@ void VisitAtomicLoad(InstructionSelector* selector, Node* node,
       code = kArm64LdarDecompressTagged;
       break;
 #else
-    case MachineRepresentation::kTaggedSigned:   // Fall through.
     case MachineRepresentation::kTaggedPointer:  // Fall through.
     case MachineRepresentation::kTagged:
+#if V8_TARGET_CHERI
+    case MachineRepresentation::kCapability64:
+#endif
 #if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
       code = kArm64CapabilityAtomicLoad;
 #else
@@ -3064,13 +3069,18 @@ void VisitAtomicStore(InstructionSelector* selector, Node* node,
       case MachineRepresentation::kWord32:
         code = kAtomicStoreWord32;
         break;
+#ifndef V8_COMPRESS_POINTERS
+      case MachineRepresentation::kTaggedSigned:  // Fall through.
+#endif
       case MachineRepresentation::kWord64:
         DCHECK_EQ(width, AtomicWidth::kWord64);
         code = kArm64Word64AtomicStoreWord64;
         break;
-      case MachineRepresentation::kTaggedSigned:   // Fall through.
       case MachineRepresentation::kTaggedPointer:  // Fall through.
       case MachineRepresentation::kTagged:
+#if V8_TARGET_CHERI
+      case MachineRepresentation::kCapability64:
+#endif
         DCHECK_EQ(AtomicWidthSize(width), kTaggedSize);
 #if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
         code = kArm64CapabilityAtomicStore;
@@ -3740,6 +3750,16 @@ void InstructionSelector::VisitWord32AtomicStore(Node* node) {
 void InstructionSelector::VisitWord64AtomicStore(Node* node) {
   VisitAtomicStore(this, node, AtomicWidth::kWord64);
 }
+
+#if V8_TARGET_CHERI
+void InstructionSelector::VisitCapabilityAtomicLoad(Node* node) {
+  VisitAtomicLoad(this, node, AtomicWidth::kCapability64);
+}
+
+void InstructionSelector::VisitCapabilityAtomicStore(Node* node) {
+  VisitAtomicStore(this, node, AtomicWidth::kCapability64);
+}
+#endif
 
 void InstructionSelector::VisitWord32AtomicExchange(Node* node) {
   ArchOpcode opcode;

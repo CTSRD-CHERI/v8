@@ -185,8 +185,14 @@ LoadRepresentation LoadRepresentationOf(Operator const* op) {
 }
 
 AtomicLoadParameters AtomicLoadParametersOf(Operator const* op) {
+#if V8_TARGET_CHERI
+  DCHECK(IrOpcode::kWord32AtomicLoad == op->opcode() ||
+         IrOpcode::kWord64AtomicLoad == op->opcode() ||
+         IrOpcode::kCapabilityAtomicLoad == op->opcode());
+#else
   DCHECK(IrOpcode::kWord32AtomicLoad == op->opcode() ||
          IrOpcode::kWord64AtomicLoad == op->opcode());
+#endif
   return OpParameter<AtomicLoadParameters>(op);
 }
 
@@ -208,8 +214,14 @@ StorePairRepresentation const& StorePairRepresentationOf(Operator const* op) {
 }
 
 AtomicStoreParameters const& AtomicStoreParametersOf(Operator const* op) {
+#if V8_TARGET_CHERI
+  DCHECK(IrOpcode::kWord32AtomicStore == op->opcode() ||
+         IrOpcode::kWord64AtomicStore == op->opcode() ||
+         IrOpcode::kCapabilityAtomicStore == op->opcode());
+#else
   DCHECK(IrOpcode::kWord32AtomicStore == op->opcode() ||
          IrOpcode::kWord64AtomicStore == op->opcode());
+#endif
   return OpParameter<AtomicStoreParameters>(op);
 }
 
@@ -1017,6 +1029,11 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
 #error "This configuration is only supported with purecap"
 #endif
 
+#define ATOMIC64_TAGGED_TYPE_LIST(V) \
+  V(TaggedSigned)                    \
+  V(CompressedPointer)               \
+  V(AnyCompressed)
+
 #define ATOMIC_TAGGED_TYPE_LIST(V) \
   V(TaggedSigned)                  \
   V(TaggedPointer)                 \
@@ -1026,8 +1043,6 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   ATOMIC_TAGGED_TYPE_LIST(V)           \
   V(Pointer)
 #endif  // V8_COMPRESS_POINTERS
-
-#define ATOMIC64_TAGGED_TYPE_LIST(V)
 
 #endif  // TAGGED_SIZE_8_BYTES
 
@@ -1085,7 +1100,7 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(kCapability64)
 #endif  // V8_COMPRESS_POINTERS
 
-#define ATOMIC64_TAGGED_REPRESENTATION_LIST(V)
+#define ATOMIC64_TAGGED_REPRESENTATION_LIST(V) V(kTaggedSigned)
 
 #endif  // TAGGED_SIZE_8_BYTES
 

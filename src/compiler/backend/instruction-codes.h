@@ -281,7 +281,13 @@ enum MemoryAccessMode {
   kMemoryAccessProtectedNullDereference = 2,
 };
 
-enum class AtomicWidth { kWord32, kWord64 };
+enum class AtomicWidth {
+  kWord32,
+  kWord64,
+#if V8_TARGET_CHERI
+  kCapability64,
+#endif
+};
 
 inline size_t AtomicWidthSize(AtomicWidth width) {
   switch (width) {
@@ -289,6 +295,10 @@ inline size_t AtomicWidthSize(AtomicWidth width) {
       return 4;
     case AtomicWidth::kWord64:
       return 8;
+#if V8_TARGET_CHERI
+    case AtomicWidth::kCapability64:
+      return 16;
+#endif
   }
   UNREACHABLE();
 }

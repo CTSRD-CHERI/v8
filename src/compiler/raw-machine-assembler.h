@@ -272,8 +272,12 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
 #if V8_TARGET_CHERI
   Node* AtomicLoadCapability(AtomicLoadParameters rep, Node* base,
                              Node* index) {
-    DCHECK_EQ(rep.representation().representation(),
-              MachineType::PointerRepresentation());
+    DCHECK(rep.representation().representation() ==
+               MachineType::PointerRepresentation() ||
+           rep.representation().representation() ==
+               MachineRepresentation::kTaggedPointer ||
+           rep.representation().representation() ==
+               MachineRepresentation::kTagged);
     return AddNode(machine()->CapabilityAtomicLoad(rep), base, index);
   }
 #else
@@ -314,7 +318,9 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
   Node* AtomicStoreCapability(AtomicStoreParameters params, Node* base,
                               Node* index, Node* value) {
     DCHECK(!IsMapOffsetConstantMinusTag(index));
-    DCHECK_EQ(params.representation(), MachineType::PointerRepresentation());
+    DCHECK(params.representation() == MachineType::PointerRepresentation() ||
+           params.representation() == MachineRepresentation::kTaggedPointer ||
+           params.representation() == MachineRepresentation::kTagged);
     return AddNode(machine()->CapabilityAtomicStore(params), base, index,
                    value);
   }
