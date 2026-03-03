@@ -5,6 +5,7 @@
 *.idb
 *.lib
 *.log
+*.log.old
 *.map
 *.mk
 *.ncb
