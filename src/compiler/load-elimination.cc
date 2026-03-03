@@ -1085,7 +1085,6 @@ Reduction LoadElimination::ReduceLoadElement(Node* node) {
     case MachineRepresentation::kTagged:
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
-    case MachineRepresentation::kCapability32:
 #endif
     case MachineRepresentation::kMapWord:
       if (Node* replacement = state->LookupElement(
@@ -1147,7 +1146,6 @@ Reduction LoadElimination::ReduceStoreElement(Node* node) {
     case MachineRepresentation::kTagged:
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
-    case MachineRepresentation::kCapability32:
 #endif
     case MachineRepresentation::kMapWord:
       state = state->AddElement(object, index, new_value,
@@ -1446,7 +1444,6 @@ LoadElimination::IndexRange LoadElimination::FieldIndexOf(
     case MachineRepresentation::kTagged:
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
-    case MachineRepresentation::kCapability32:
 #endif
     case MachineRepresentation::kMapWord:
     case MachineRepresentation::kCompressedPointer:

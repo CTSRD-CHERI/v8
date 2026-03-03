@@ -2684,7 +2684,6 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitCapAdd(node);
     case IrOpcode::kCapSub:
       return MarkAsCapability(node), VisitCapSub(node);
-    case IrOpcode::kCapability32Constant:
     case IrOpcode::kCapability64Constant:
     case IrOpcode::kRelocatableCapability64Constant:
       return MarkAsCapability(node), VisitConstant(node);

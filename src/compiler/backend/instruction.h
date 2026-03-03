@@ -640,8 +640,6 @@ class LocationOperand : public InstructionOperand {
       case MachineRepresentation::kSandboxedPointer:
 #if V8_TARGET_CHERI
         [[fallthrough]];
-      case MachineRepresentation::kCapability32:
-        [[fallthrough]];
       case MachineRepresentation::kCapability64:
 #endif
         return true;

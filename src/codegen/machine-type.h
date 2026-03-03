@@ -25,13 +25,12 @@ enum class MachineRepresentation : uint8_t {
   kWord32,
   kWord64,
 #if V8_TARGET_CHERI
-  // kCapability is the representation of a capabiltiy value, it is double the
+  // kCapability is the representation of a capability value, it is double the
   // width of the native integer pointer type of the baseline architecture.
   // Each capability consists of an integer (virtual) address of the natural
   // size for the architecture (e.g. 32 or 64 bit), and also additional
   // metadata that is is compressed to fit in the remaining 32 or 64 bits of
   // the capability.
-  kCapability32,
   kCapability64,
 #endif
   // (uncompressed) MapWord
@@ -166,8 +165,7 @@ class MachineType {
   }
   constexpr static MachineRepresentation TaggedRepresentation() {
 #if V8_TARGET_CHERI
-    return (kTaggedSize == 4) ? MachineRepresentation::kCapability32
-                              : MachineRepresentation::kCapability64;
+    return MachineRepresentation::kCapability64;
 #else
     return (kTaggedSize == 4) ? MachineRepresentation::kWord32
                               : MachineRepresentation::kWord64;
@@ -175,8 +173,7 @@ class MachineType {
   }
   constexpr static MachineRepresentation PointerRepresentation() {
 #if V8_TARGET_CHERI
-    return (kSystemPointerAddrSize == 4) ? MachineRepresentation::kCapability32
-                                         : MachineRepresentation::kCapability64;
+    return MachineRepresentation::kCapability64;
 #else
     return (kSystemPointerSize == 4) ? MachineRepresentation::kWord32
                                      : MachineRepresentation::kWord64;
@@ -309,8 +306,6 @@ class MachineType {
       case MachineRepresentation::kSandboxedPointer:
         return MachineType::SandboxedPointer();
 #if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-        [[fallthrough]];
       case MachineRepresentation::kCapability64:
         return MachineType::Pointer();
 #endif
@@ -427,9 +422,8 @@ inline bool IsAnyCompressed(MachineRepresentation rep) {
 
 #if V8_TARGET_CHERI
 inline bool IsCapability(MachineRepresentation rep) {
-  return ((rep == MachineRepresentation::kCapability32) ||
-          (rep == MachineRepresentation::kCapability64) ||
-          CanBeTaggedPointer(rep));
+  return (rep == MachineRepresentation::kCapability64) ||
+         CanBeTaggedPointer(rep);
 }
 #endif
 
@@ -464,8 +458,6 @@ V8_EXPORT_PRIVATE inline constexpr int ElementSizeLog2Of(
       // will point into the sandbox.
       return kSystemPointerAddrSizeLog2;
 #if V8_TARGET_CHERI
-    case MachineRepresentation::kCapability32:
-      [[fallthrough]];
     case MachineRepresentation::kCapability64:
       return kSystemPointerSizeLog2;
 #endif
@@ -503,8 +495,6 @@ inline constexpr uint64_t MaxUnsignedValue(MachineRepresentation rep) {
     case MachineRepresentation::kWord64:
       return std::numeric_limits<uint64_t>::max();
 #if V8_TARGET_CHERI
-    case MachineRepresentation::kCapability32:
-      [[fallthrough]];
     case MachineRepresentation::kCapability64:
       [[fallthrough]];
 #endif

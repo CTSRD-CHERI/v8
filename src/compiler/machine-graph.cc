@@ -30,10 +30,6 @@ Node* MachineGraph::Int64Constant(int64_t value) {
   return *loc;
 }
 #if V8_TARGET_CHERI
-Node* MachineGraph::Capability32Constant(intptr_t value) {
-  return graph()->NewNode(common()->Capability32Constant(value));
-}
-
 Node* MachineGraph::Capability64Constant(intptr_t value) {
   return graph()->NewNode(common()->Capability64Constant(value));
 }

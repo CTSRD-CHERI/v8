@@ -64,8 +64,6 @@ const char* MachineReprToString(MachineRepresentation rep) {
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
       return "kRepCapability64";
-    case MachineRepresentation::kCapability32:
-      return "kRepCapability32";
 #endif
   }
   UNREACHABLE();

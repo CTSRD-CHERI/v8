@@ -186,7 +186,6 @@ class MachineRepresentationInferrer {
 #if V8_TARGET_CHERI
           case IrOpcode::kCapAdd:
           case IrOpcode::kCapSub:
-          case IrOpcode::kCapability32Constant:
           case IrOpcode::kCapability64Constant:
           case IrOpcode::kRelocatableCapability64Constant:
 #endif
@@ -711,8 +710,7 @@ class MachineRepresentationChecker {
  private:
   static bool Is32() {
 #if V8_TARGET_CHERI
-    return MachineType::PointerRepresentation() ==
-           MachineRepresentation::kCapability32;
+    return false;
 #else
     return MachineType::PointerRepresentation() ==
            MachineRepresentation::kWord32;
@@ -736,17 +734,9 @@ class MachineRepresentationChecker {
 #if V8_TARGET_CHERI
     switch (input_representation) {
       case MachineRepresentation::kWord32:
-        if (representation == MachineRepresentation::kCapability32) {
-          return;
-        }
         break;
       case MachineRepresentation::kWord64:
         if (representation == MachineRepresentation::kCapability64) {
-          return;
-        }
-        break;
-      case MachineRepresentation::kCapability32:
-        if (representation == MachineRepresentation::kWord32) {
           return;
         }
         break;
@@ -844,9 +834,6 @@ class MachineRepresentationChecker {
       case MachineRepresentation::kWord8:
       case MachineRepresentation::kWord16:
       case MachineRepresentation::kWord32:
-#if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-#endif
         if (Is32()) {
           return;
         }
@@ -1065,12 +1052,8 @@ class MachineRepresentationChecker {
                 actual == MachineRepresentation::kWord16 ||
                 actual == MachineRepresentation::kWord32);
 #if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-      return (actual == MachineRepresentation::kWord32 ||
-              actual == expected);
       case MachineRepresentation::kCapability64:
-      return (actual == MachineRepresentation::kWord64 ||
-              actual == expected);
+        return (actual == MachineRepresentation::kWord64 || actual == expected);
 #endif
       case MachineRepresentation::kNone:
         UNREACHABLE();

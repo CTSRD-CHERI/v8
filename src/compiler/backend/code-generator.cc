@@ -1310,10 +1310,8 @@ void CodeGenerator::AddTranslationForOperand(Instruction* instr,
         break;
 #if V8_TARGET_CHERI
       case Constant::kIntPtr:
-        DCHECK((8 == kSystemPointerSize) || (16 == kSystemPointerSize));
-        DCHECK(
-            (type.representation() == MachineRepresentation::kCapability32) ||
-            (type.representation() == MachineRepresentation::kCapability64));
+        DCHECK(16 == kSystemPointerSize);
+        DCHECK(type.representation() == MachineRepresentation::kCapability64);
         CHECK_EQ(
             constant.ToIntPtr(),
             static_cast<intptr_t>(static_cast<intptr_t>(constant.ToIntPtr())));

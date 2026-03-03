@@ -889,8 +889,6 @@ Type Typer::Visitor::TypeInt32Constant(Node* node) { return Type::Machine(); }
 Type Typer::Visitor::TypeInt64Constant(Node* node) { return Type::Machine(); }
 
 #if V8_TARGET_CHERI
-Type Typer::Visitor::TypeCapability32Constant(Node* node) { return Type::Machine(); }
-
 Type Typer::Visitor::TypeCapability64Constant(Node* node) { return Type::Machine(); }
 #endif
 

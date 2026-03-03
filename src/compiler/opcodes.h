@@ -37,7 +37,6 @@
 #define MACHINE_LEVEL_CONSTANT_OP_LIST(V) \
   V(Int32Constant)                        \
   V(Int64Constant)                        \
-  V(Capability32Constant)                 \
   V(Capability64Constant)                 \
   V(TaggedIndexConstant)                  \
   V(Float32Constant)                      \

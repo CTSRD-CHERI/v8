@@ -48,7 +48,6 @@ class V8_EXPORT_PRIVATE MachineGraph : public NON_EXPORTED_BASE(ZoneObject) {
     return Int64Constant(base::bit_cast<int64_t>(value));
   }
 #if V8_TARGET_CHERI
-  Node* Capability32Constant(intptr_t value);
   Node* Capability64Constant(intptr_t value);
 #endif
 

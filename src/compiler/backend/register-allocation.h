@@ -60,7 +60,6 @@ inline int ByteWidthForStackSlot(MachineRepresentation rep) {
     case MachineRepresentation::kSandboxedPointer:
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
-    case MachineRepresentation::kCapability32:
 #endif
       return kSystemPointerSize;
     case MachineRepresentation::kTaggedSigned:

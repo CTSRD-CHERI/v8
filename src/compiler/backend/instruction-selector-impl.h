@@ -346,8 +346,6 @@ class OperandGenerator {
       case IrOpcode::kInt64Constant:
         return Constant(OpParameter<int64_t>(node->op()));
 #if V8_TARGET_CHERI
-      case IrOpcode::kCapability32Constant:
-        return Constant(OpParameter<intptr_t>(node->op()));
       case IrOpcode::kCapability64Constant:
         return Constant(OpParameter<intptr_t>(node->op()));
 #endif
@@ -404,7 +402,6 @@ class OperandGenerator {
           case MachineRepresentation::kCompressedPointer:
 #if V8_TARGET_CHERI
           case MachineRepresentation::kCapability64:
-          case MachineRepresentation::kCapability32:
 #endif
             return Constant(static_cast<int32_t>(0));
           case MachineRepresentation::kWord64:

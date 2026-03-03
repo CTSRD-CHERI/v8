@@ -284,8 +284,6 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& op) {
           os << "|sb";
           break;
 #if V8_TARGET_CHERI
-        case MachineRepresentation::kCapability32:
-          [[fallthrough]];
         case MachineRepresentation::kCapability64:
           os << "|cap";
           break;
@@ -976,7 +974,6 @@ static MachineRepresentation FilterRepresentation(MachineRepresentation rep) {
     case MachineRepresentation::kSandboxedPointer:
 #if V8_TARGET_CHERI
     case MachineRepresentation::kCapability64:
-    case MachineRepresentation::kCapability32:
 #endif
       return rep;
     case MachineRepresentation::kNone:

@@ -23,7 +23,6 @@ class RegisterRepresentation {
     kWord32,
     kWord64,
 #if V8_TARGET_CHERI
-    kCapability32,
     kCapability64,
 #endif
     kFloat32,
@@ -48,9 +47,6 @@ class RegisterRepresentation {
     return RegisterRepresentation(Enum::kWord64);
   }
 #if V8_TARGET_CHERI
-  static constexpr RegisterRepresentation Capability32() {
-    return RegisterRepresentation(Enum::kCapability32);
-  }
   static constexpr RegisterRepresentation Capability64() {
     return RegisterRepresentation(Enum::kCapability64);
   }
@@ -76,12 +72,7 @@ class RegisterRepresentation {
   static constexpr RegisterRepresentation PointerSized() {
 #if V8_TARGET_CHERI
     static_assert(kSystemPointerSize == 2 * kSystemPointerAddrSize);
-    if constexpr (kSystemPointerAddrSize == 4) {
-      return Capability32();
-    } else {
-      DCHECK_EQ(kSystemPointerAddrSize, 8);
-      return Capability64();
-    }
+    return Capability64();
 #else
     if constexpr (kSystemPointerSize == 4) {
       return Word32();
@@ -97,7 +88,6 @@ class RegisterRepresentation {
       case Enum::kWord32:
       case Enum::kWord64:
 #if V8_TARGET_CHERI
-      case Enum::kCapability32:
       case Enum::kCapability64:
 #endif
         return true;
@@ -115,10 +105,8 @@ class RegisterRepresentation {
       case Enum::kFloat64:
         return true;
 #if V8_TARGET_CHERI
-      case Enum::kCapability32:
-	[[fallthrough]];
       case Enum::kCapability64:
-	[[fallthrough]];
+        [[fallthrough]];
 #endif
       case Enum::kWord32:
       case Enum::kWord64:
@@ -135,8 +123,6 @@ class RegisterRepresentation {
       case Word64():
         return std::numeric_limits<uint64_t>::max();
 #if V8_TARGET_CHERI
-      case Enum::kCapability32:
-	[[fallthrough]];
       case Enum::kCapability64:
 #endif
       case Enum::kFloat32:
@@ -162,8 +148,6 @@ class RegisterRepresentation {
       case Compressed():
         return MachineRepresentation::kCompressed;
 #if V8_TARGET_CHERI
-      case Enum::kCapability32:
-        return MachineRepresentation::kCapability32;
       case Enum::kCapability64:
         return MachineRepresentation::kCapability64;
 #endif
@@ -185,8 +169,6 @@ class RegisterRepresentation {
       case Compressed():
         return kSystemPointerSize;
 #if V8_TARGET_CHERI
-      case Enum::kCapability32:
-        [[fallthrough]];
       case Enum::kCapability64:
         return kSystemPointerSize;
 #endif
@@ -204,8 +186,6 @@ class RegisterRepresentation {
       case MachineRepresentation::kWord64:
         return Word64();
 #if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-        return Capability32();
       case MachineRepresentation::kCapability64:
         return Capability64();
 #endif
@@ -366,7 +346,6 @@ class MemoryRepresentation {
     kInt64,
     kUint64,
 #if V8_TARGET_CHERI
-    kCapability32,
     kCapability64,
 #endif
     kFloat32,
@@ -410,9 +389,6 @@ class MemoryRepresentation {
     return MemoryRepresentation(Enum::kUint64);
   }
 #if V8_TARGET_CHERI
-  static constexpr MemoryRepresentation Capability32() {
-    return MemoryRepresentation(Enum::kCapability32);
-  }
   static constexpr MemoryRepresentation Capability64() {
     return MemoryRepresentation(Enum::kCapability64);
   }
@@ -438,14 +414,9 @@ class MemoryRepresentation {
   static constexpr MemoryRepresentation PointerSized() {
 #if V8_TARGET_CHERI
     static_assert(kSystemPointerSize == 2 * kSystemPointerAddrSize);
-    if constexpr (kSystemPointerAddrSize == 4) {
-      return Capability32();
-    } else {
-      DCHECK_EQ(kSystemPointerAddrSize, 8);
-      return Capability64();
-    }
+    return Capability64();
 #else
-  if constexpr (kSystemPointerSize == 4) {
+    if constexpr (kSystemPointerSize == 4) {
       return Uint32();
     } else {
       DCHECK_EQ(kSystemPointerSize, 8);
@@ -465,7 +436,6 @@ class MemoryRepresentation {
       case Int64():
       case Uint64():
 #if V8_TARGET_CHERI
-      case Capability32():
       case Capability64():
 #endif
         return true;
@@ -492,10 +462,8 @@ class MemoryRepresentation {
       case Uint64():
         return false;
 #if V8_TARGET_CHERI
-      case Capability32():
-	[[fallthrough]];
       case Capability64():
-	[[fallthrough]];
+        [[fallthrough]];
 #endif
       case Float32():
       case Float64():
@@ -523,10 +491,8 @@ class MemoryRepresentation {
       case Uint32():
       case Uint64():
 #if V8_TARGET_CHERI
-      case Capability32():
-	[[fallthrough]];
       case Capability64():
-	[[fallthrough]];
+        [[fallthrough]];
 #endif
       case Float32():
       case Float64():
@@ -550,10 +516,8 @@ class MemoryRepresentation {
       case Uint32():
       case Uint64():
 #if V8_TARGET_CHERI
-      case Capability32():
-	[[fallthrough]];
       case Capability64():
-	[[fallthrough]];
+        [[fallthrough]];
 #endif
       case Float32():
       case Float64():
@@ -575,8 +539,6 @@ class MemoryRepresentation {
       case Uint64():
         return RegisterRepresentation::Word64();
 #if V8_TARGET_CHERI
-      case Capability32():
-        return RegisterRepresentation::Capability64();
       case Capability64():
         return RegisterRepresentation::Capability64();
 #endif
@@ -625,8 +587,6 @@ class MemoryRepresentation {
       case Uint64():
         return MachineType::Uint64();
 #if V8_TARGET_CHERI
-      case Capability32():
-        return MachineType::Pointer();
       case Capability64():
         return MachineType::Pointer();
 #endif
@@ -656,8 +616,6 @@ class MemoryRepresentation {
       case MachineRepresentation::kWord64:
         return type.IsSigned() ? Int64() : Uint64();
 #if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-        return Capability32();
       case MachineRepresentation::kCapability64:
         return Capability64();
 #endif
@@ -699,8 +657,6 @@ class MemoryRepresentation {
       case MachineRepresentation::kWord64:
         return Uint64();
 #if V8_TARGET_CHERI
-      case MachineRepresentation::kCapability32:
-        return Capability64();
       case MachineRepresentation::kCapability64:
         return Capability64();
 #endif
@@ -749,10 +705,8 @@ class MemoryRepresentation {
       case SandboxedPointer():
         return 3;
 #if V8_TARGET_CHERI
-      case Capability32():
-	[[fallthrough]];
       case Capability64():
-	[[fallthrough]];
+        [[fallthrough]];
 #endif
       case AnyTagged():
       case TaggedPointer():

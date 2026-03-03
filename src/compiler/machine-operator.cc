@@ -863,8 +863,7 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(kSandboxedPointer)                 \
   V(kCompressed)                       \
   V(kSimd256)                          \
-  V(kCapability64)                     \
-  V(kCapability32)
+  V(kCapability64)
 #else
 #define MACHINE_REPRESENTATION_LIST(V) \
   V(kFloat32)                          \
@@ -1070,9 +1069,7 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
   V(kCompressedPointer)                      \
   V(kCompressed)
 
-#define ATOMIC_CAPABILITY_REPRESENTATION_LIST(V) \
-  V(kCapability32)                               \
-  V(kCapability64)
+#define ATOMIC_CAPABILITY_REPRESENTATION_LIST(V) V(kCapability64)
 #else  // !V8_COMPRESS_POINTERS && !V8_TARGET_CHERI
 #if !V8_TARGET_CHERI
 #error "This configuration is only supported with purecap"
@@ -1085,7 +1082,6 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
 
 #define ATOMIC_CAPABILITY_REPRESENTATION_LIST(V) \
   ATOMIC_TAGGED_REPRESENTATION_LIST(V)           \
-  V(kCapability32)                               \
   V(kCapability64)
 #endif  // V8_COMPRESS_POINTERS
 
@@ -1877,7 +1873,6 @@ MachineOperatorBuilder::MachineOperatorBuilder(
 #if V8_TARGET_CHERI
   DCHECK(word == MachineRepresentation::kWord32 ||
          word == MachineRepresentation::kWord64 ||
-         word == MachineRepresentation::kCapability32 ||
          word == MachineRepresentation::kCapability64);
 #else
   DCHECK(word == MachineRepresentation::kWord32 ||

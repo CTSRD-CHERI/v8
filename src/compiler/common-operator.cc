@@ -1243,15 +1243,6 @@ const Operator* CommonOperatorBuilder::Int64Constant(int64_t value) {
 }
 
 #if V8_TARGET_CHERI
-const Operator* CommonOperatorBuilder::Capability32Constant(intptr_t value) {
-  return zone()->New<Operator1<intptr_t>>(               // --
-      IrOpcode::kCapability32Constant, Operator::kPure,  // opcode
-      "Capability32Constant",                            // name
-      0, 0, 0, 1, 0, 0,                                  // counts
-      value);                                            // parameter
-}
-
-
 const Operator* CommonOperatorBuilder::Capability64Constant(intptr_t value) {
   return zone()->New<Operator1<intptr_t>>(               // --
       IrOpcode::kCapability64Constant, Operator::kPure,  // opcode

@@ -135,9 +135,6 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
     return AddNode(common()->Projection(index), a);
   }
 #if V8_TARGET_CHERI
-  Node* Capability32Constant(intptr_t value) {
-    return AddNode(common()->Capability32Constant(value));
-  }
   Node* Capability64Constant(intptr_t value) {
     return AddNode(common()->Capability64Constant(value));
   }
