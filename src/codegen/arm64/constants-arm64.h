@@ -3059,13 +3059,19 @@ constexpr SetField1Op SCVALUE = SetField1Fixed | 0x00004000;
 // the built capability to the destination Capability register.
 constexpr SetField1Op BUILD = SetField1Fixed | 0x00000400;
 
-using SealImmediateOp = uint32_t;
+using SealOp = uint32_t;
+constexpr SealOp SEAL_fixed = 0xC2C00000;
 // 4.4.122 SEAL (immediate)
 // Seal capability (immediate) seals a capability by setting the ObjectType of
 // that capability to nonzero, and writes the result to the destination
 // Capability register. An operand of rb seals for use with a register based
 // branch, lpb for a load pair and branch and lb for a load and branch.
-constexpr SealImmediateOp SEAL = 0xC2C31000;
+constexpr SealOp SEAL_imm = SEAL_fixed | 0x00031000;
+// 4.4.121 SEAL (capability)
+// Seal capability seals a capability with a sealing capability, by setting the
+// ObjectType of the capability to the Capability Value of the sealing
+// capability, and writes the result to the destination Capability register.
+constexpr SealOp SEAL_cap = SEAL_fixed | 0x00000800;
 
 namespace Cheri {
 using SealImmediateForm = uint32_t;

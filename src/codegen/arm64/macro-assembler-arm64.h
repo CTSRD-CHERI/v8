@@ -942,6 +942,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void Build(const Register& cd, const Register& cn, const Register& cm);
   inline void Seal(const Register& cd, const Register& cn,
                    Cheri::SealImmediateForm form);
+  inline void Seal(const Register& cd, const Register& cn, const Register& cm);
   inline void Subsc(const Register& rd, const Register& cn,
                     const Operand& operand);
   inline void AlignU(const Register& cd, const Register& cn,

@@ -1608,7 +1608,15 @@ void Assembler::seal(const Register& cd, const Register& cn,
   DCHECK(cd.Is128Bits());
   DCHECK(cn.Is128Bits());
   DCHECK_NE(form & 0b11, 0);
-  Emit(SEAL | ImmSealForm(form) | CnCSP(cn) | CdCSP(cd));
+  Emit(SEAL_imm | ImmSealForm(form) | CnCSP(cn) | CdCSP(cd));
+}
+
+void Assembler::seal(const Register& cd, const Register& cn,
+                     const Register& cm) {
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(cm.Is128Bits());
+  Emit(SEAL_cap | CdCSP(cd) | CnCSP(cn) | Cm(cm));
 }
 #else
 void Assembler::cpy(const Register& cd, const Register& cn) {}

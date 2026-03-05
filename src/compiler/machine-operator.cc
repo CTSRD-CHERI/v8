@@ -1842,6 +1842,13 @@ struct MachineOperatorGlobalCache {
                    0, 1, 0, 0) {}
   };
   SetBoundsOperator kSetBounds;
+
+  struct SealWithTypeOperator : public Operator {
+    SealWithTypeOperator()
+        : Operator(IrOpcode::kSealWithType, Operator::kNoThrow, "SealWithType",
+                   2, 0, 0, 1, 0, 0) {}
+  };
+  SealWithTypeOperator kSealWithType;
 #endif
 
   struct CapabilityIsTaggedOperator : public Operator {
@@ -2279,6 +2286,9 @@ const Operator* MachineOperatorBuilder::DebugBreak() {
 #if V8_TARGET_CHERI
 const Operator* MachineOperatorBuilder::SetBounds() {
   return &cache_.kSetBounds;
+}
+const Operator* MachineOperatorBuilder::SealWithType() {
+  return &cache_.kSealWithType;
 }
 #endif
 

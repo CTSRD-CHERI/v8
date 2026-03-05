@@ -119,7 +119,8 @@ inline RecordWriteMode WriteBarrierKindToRecordWriteMode(
   V(ArchCapabilityIsTagged)              \
   V(ArchAlignU)                          \
   V(ArchAlignD)                          \
-  V(ArchSetBounds)
+  V(ArchSetBounds)                       \
+  V(ArchSealWithType)
 #else
 #define COMMON_CHERI_ARCH_OPCODE_LIST(V) V(ArchCapabilityIsTagged)
 #endif

@@ -2693,6 +2693,8 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitAlignD(node);
     case IrOpcode::kSetBounds:
       return MarkAsCapability(node), VisitSetBounds(node);
+    case IrOpcode::kSealWithType:
+      return MarkAsCapability(node), VisitSealWithType(node);
     case IrOpcode::kCapabilityAtomicLoad:
       return MarkAsCapability(node), VisitCapabilityAtomicLoad(node);
     case IrOpcode::kCapabilityAtomicStore:
@@ -3638,6 +3640,12 @@ void InstructionSelector::VisitAlignD(Node* node) {
 void InstructionSelector::VisitSetBounds(Node* node) {
   OperandGenerator g(this);
   Emit(kArchSetBounds, g.DefineAsRegister(node),
+       g.UseRegister(node->InputAt(0)), g.UseAny(node->InputAt(1)));
+}
+
+void InstructionSelector::VisitSealWithType(Node* node) {
+  OperandGenerator g(this);
+  Emit(kArchSealWithType, g.DefineAsRegister(node),
        g.UseRegister(node->InputAt(0)), g.UseAny(node->InputAt(1)));
 }
 #endif

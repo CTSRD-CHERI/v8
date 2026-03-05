@@ -1231,11 +1231,24 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
 #if V8_TARGET_CHERI
     case kArchSetBounds:
       if (instr->InputAt(1)->IsImmediate()) {
+        // FIXME(ds815): Make this possible.
+        CHECK(false);
         __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
                   i.InputInt64(1));
       } else {
         __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
                   i.InputRegister64(1));
+      }
+      break;
+    case kArchSealWithType:
+      if (instr->InputAt(1)->IsImmediate()) {
+        // FIXME(ds815): Make this possible.
+        CHECK(false);
+        __ Seal(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                Cheri::SealImmediateForm{i.InputUint32(1)});
+      } else {
+        __ Seal(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                i.InputCapabilityRegister(1));
       }
       break;
     case kArchAlignU:

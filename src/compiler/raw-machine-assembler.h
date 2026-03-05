@@ -690,6 +690,13 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
     return pointer;
   }
 
+  Node* SealWithType(Node* pointer, Node* type) {
+    if (V8_TARGET_CHERI_BOOL) {
+      return AddNode(machine()->SealWithType(), pointer, type);
+    }
+    return pointer;
+  }
+
   // Always true on non-CHERI.
   Node* CapabilityIsTagged(Node* value) {
     return AddNode(machine()->CapabilityIsTagged(), value);

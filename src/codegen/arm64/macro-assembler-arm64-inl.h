@@ -311,12 +311,22 @@ void MacroAssembler::Build(const Register& cd, const Register& cn,
   build(cd, cn, cm);
 }
 
-void MacroAssembler::Seal(const Register& cd, const Register& cn, Cheri::SealImmediateForm form) {
+void MacroAssembler::Seal(const Register& cd, const Register& cn,
+                          Cheri::SealImmediateForm form) {
   DCHECK(allow_macro_instructions());
   DCHECK(cd.Is128Bits());
   DCHECK(cn.Is128Bits());
   DCHECK_NE(form & 0b11, 0);
   seal(cd, cn, form);
+}
+
+void MacroAssembler::Seal(const Register& cd, const Register& cn,
+                          const Register& cm) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cd.Is128Bits());
+  DCHECK(cn.Is128Bits());
+  DCHECK(cm.Is128Bits());
+  seal(cd, cn, cm);
 }
 
 void MacroAssembler::Subsc(const Register& rd, const Register& cn,

@@ -988,6 +988,7 @@ class V8_EXPORT_PRIVATE CodeAssembler {
   }
 
   TNode<IntPtrT> SetBounds(Node* pointer, Node* size);
+  TNode<IntPtrT> SealWithType(Node* pointer, Node* type);
 
   // Store value to raw memory location.
   void Store(Node* base, Node* value);

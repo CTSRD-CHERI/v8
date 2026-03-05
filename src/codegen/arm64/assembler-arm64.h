@@ -866,6 +866,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Seal a capability using an immediate form.
   void seal(const Register& cd, const Register& cn,
             Cheri::SealImmediateForm form);
+  // Seal a capability using a capability register.
+  void seal(const Register& cd, const Register& cn, const Register& cm);
+
   // End of CHERI methods
 
   // Load word with sign extension.

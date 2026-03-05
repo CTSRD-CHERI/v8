@@ -1166,6 +1166,12 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
   // value of the second argument.
   const Operator* SetBounds();
 
+  // Returns the original pointer sealed with the type provided. On CHERI
+  // Morello, this maps to an otype. All other architectures return the pointer
+  // itself.
+  // TODO(cheri): Compiler pass to eliminate this on non-CHERI architectures.
+  const Operator* SealWithType();
+
   // Returns a boolean which determines if the capability is tagged or not. On
   // non-CHERI systems, this is always true.
   const Operator* CapabilityIsTagged();
