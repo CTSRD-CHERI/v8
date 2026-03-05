@@ -422,6 +422,7 @@ class V8_EXPORT_PRIVATE GraphAssembler {
 #if V8_TARGET_CHERI
   Node* CapAdd(Node* a, Node* b);
   Node* CapSub(Node* a, Node* b);
+  Node* SealWithType(Node* pointer, Node* type);
   Node* CapabilityIsTagged(Node* maybe_cap);
 
   Node* AlignU(Node* a, Node* b);

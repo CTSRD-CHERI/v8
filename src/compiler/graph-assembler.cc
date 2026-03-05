@@ -992,6 +992,10 @@ Node* GraphAssembler::CapSub(Node* a, Node* b) {
   return AddNode(graph()->NewNode(machine()->CapSub(), a, b));
 }
 
+Node* GraphAssembler::SealWithType(Node* pointer, Node* type) {
+  return AddNode(graph()->NewNode(machine()->SealWithType(), pointer, type));
+}
+
 Node* GraphAssembler::CapabilityIsTagged(Node* maybe_cap) {
   return AddNode(graph()->NewNode(machine()->CapabilityIsTagged(), maybe_cap));
 }
