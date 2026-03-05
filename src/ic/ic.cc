@@ -2305,17 +2305,17 @@ Handle<Object> KeyedStoreIC::StoreElementHandler(
              receiver_map->has_typed_array_or_rab_gsab_typed_array_elements()) {
     // TODO(jgruber): Update counter name.
     TRACE_HANDLER_STATS(isolate(), KeyedStoreIC_StoreFastElementStub);
-    if (receiver_map->IsJSArgumentsObjectMap() &&
-        receiver_map->has_fast_packed_elements()) {
-      // Allow fast behaviour for in-bounds stores while making it miss and
-      // properly handle the out of bounds store case.
-      code = StoreHandler::StoreFastElementBuiltin(isolate(), STANDARD_STORE);
-    } else {
+    // if (receiver_map->IsJSArgumentsObjectMap() &&
+    //     receiver_map->has_fast_packed_elements()) {
+    //   // Allow fast behaviour for in-bounds stores while making it miss and
+    //   // properly handle the out of bounds store case.
+    //   code = StoreHandler::StoreFastElementBuiltin(isolate(), STANDARD_STORE);
+    // } else {
       code = StoreHandler::StoreFastElementBuiltin(isolate(), store_mode);
       if (receiver_map->has_typed_array_or_rab_gsab_typed_array_elements()) {
         return code;
       }
-    }
+    // }
   } else if (IsStoreInArrayLiteralIC()) {
     // TODO(jgruber): Update counter name.
     TRACE_HANDLER_STATS(isolate(), StoreInArrayLiteralIC_SlowStub);
