@@ -937,11 +937,12 @@ void Scope::Snapshot::Reparent(DeclarationScope* new_parent) {
     new_parent->sibling_ = top_inner_scope_;
   }
 
-  new_parent->unresolved_list_.MoveTail(&outer_scope_->unresolved_list_,
+  Scope* outer_scope = outer_scope_and_calls_eval_.GetPointer();
+  new_parent->unresolved_list_.MoveTail(&outer_scope->unresolved_list_,
                                         top_unresolved_);
 
   // Move temporaries allocated for complex parameter initializers.
-  DeclarationScope* outer_closure = outer_scope_->GetClosureScope();
+  DeclarationScope* outer_closure = outer_scope->GetClosureScope();
   for (auto it = top_local_; it != outer_closure->locals()->end(); ++it) {
     Variable* local = *it;
     DCHECK_EQ(VariableMode::kTemporary, local->mode());
@@ -953,11 +954,13 @@ void Scope::Snapshot::Reparent(DeclarationScope* new_parent) {
   outer_closure->locals_.Rewind(top_local_);
 
   // Move eval calls since Snapshot's creation into new_parent.
-  if (outer_scope_->calls_eval_) {
-    new_parent->RecordEvalCall();
-    outer_scope_->calls_eval_ = false;
-    declaration_scope_->sloppy_eval_can_extend_vars_ = false;
+  if (outer_scope_and_calls_eval_->calls_eval_) {
+    new_parent->RecordDeclarationScopeEvalCall();
+    new_parent->inner_scope_calls_eval_ = true;
   }
+
+  RestoreEvalFlag();
+  Clear();
 }
 
 void Scope::ReplaceOuterScope(Scope* outer) {
@@ -2591,9 +2594,6 @@ void Scope::AllocateVariablesRecursively() {
   this->ForEach([](Scope* scope) -> Iteration {
     DCHECK(!scope->already_resolved_);
     if (WasLazilyParsed(scope)) return Iteration::kContinue;
-    if (scope->sloppy_eval_can_extend_vars_) {
-      scope->num_heap_slots_ = Context::MIN_CONTEXT_EXTENDED_SLOTS;
-    }
     DCHECK_EQ(scope->ContextHeaderLength(), scope->num_heap_slots_);
 
     // Allocate variables for this scope.
