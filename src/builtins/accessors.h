@@ -32,6 +32,8 @@ class JavaScriptFrame;
     kHasSideEffectToReceiver)                                                 \
   V(_, bound_function_name, BoundFunctionName, kHasNoSideEffect,              \
     kHasSideEffectToReceiver)                                                 \
+  V(_, error_stack, ErrorStack, kHasSideEffectToReceiver,                     \
+    kHasSideEffectToReceiver)                                                 \
   V(_, function_arguments, FunctionArguments, kHasNoSideEffect,               \
     kHasSideEffectToReceiver)                                                 \
   V(_, function_caller, FunctionCaller, kHasNoSideEffect,                     \
@@ -55,13 +57,12 @@ class JavaScriptFrame;
 
 #define ACCESSOR_SETTER_LIST(V) \
   V(ArrayLengthSetter)          \
+  V(ErrorStackSetter)           \
   V(FunctionPrototypeSetter)    \
   V(ModuleNamespaceEntrySetter) \
   V(ReconfigureToDataProperty)
 
-#define ACCESSOR_CALLBACK_LIST_GENERATOR(V, _) \
-  V(_, ErrorStackGetter, kHasSideEffect)       \
-  V(_, ErrorStackSetter, kHasSideEffectToReceiver)
+// #define ACCESSOR_CALLBACK_LIST_GENERATOR(V, _)
 
 // Accessors contains all predefined proxy accessors.
 
@@ -87,11 +88,11 @@ class Accessors : public AllStatic {
   ACCESSOR_SETTER_LIST(ACCESSOR_SETTER_DECLARATION)
 #undef ACCESSOR_SETTER_DECLARATION
 
-#define ACCESSOR_CALLBACK_DECLARATION(_, AccessorName, ...) \
-  static void AccessorName(const v8::FunctionCallbackInfo<v8::Value>& info);
-  ACCESSOR_CALLBACK_LIST_GENERATOR(ACCESSOR_CALLBACK_DECLARATION,
-                                   /* not used */)
-#undef ACCESSOR_CALLBACK_DECLARATION
+// #define ACCESSOR_CALLBACK_DECLARATION(_, AccessorName, ...) \
+//   static void AccessorName(const v8::FunctionCallbackInfo<v8::Value>& info);
+//   ACCESSOR_CALLBACK_LIST_GENERATOR(ACCESSOR_CALLBACK_DECLARATION,
+//                                    /* not used */)
+// #undef ACCESSOR_CALLBACK_DECLARATION
 
 #define COUNT_ACCESSOR(...) +1
   static constexpr int kAccessorInfoCount =
@@ -103,8 +104,8 @@ class Accessors : public AllStatic {
   static constexpr int kAccessorSetterCount =
       ACCESSOR_SETTER_LIST(COUNT_ACCESSOR);
 
-  static constexpr int kAccessorCallbackCount =
-      ACCESSOR_CALLBACK_LIST_GENERATOR(COUNT_ACCESSOR, /* not used */);
+  static constexpr int kAccessorCallbackCount = 0;
+  //     ACCESSOR_CALLBACK_LIST_GENERATOR(COUNT_ACCESSOR, /* not used */);
 #undef COUNT_ACCESSOR
 
   static Handle<AccessorInfo> MakeModuleNamespaceEntryInfo(Isolate* isolate,

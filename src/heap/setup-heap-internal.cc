@@ -1293,19 +1293,19 @@ void Heap::CreateInitialMutableObjects() {
   }
 
   // Error.stack accessor callbacks:
-  {
-    // TODO(v8:5962): create these FunctionTemplateInfos in RO space.
-    Handle<FunctionTemplateInfo> function_template;
-    function_template = ApiNatives::CreateAccessorFunctionTemplateInfo(
-        isolate_, Accessors::ErrorStackGetter, 0,
-        SideEffectType::kHasSideEffect);
-    set_error_stack_getter_fun_template(*function_template);
+  // {
+  //   // TODO(v8:5962): create these FunctionTemplateInfos in RO space.
+  //   Handle<FunctionTemplateInfo> function_template;
+  //   function_template = ApiNatives::CreateAccessorFunctionTemplateInfo(
+  //       isolate_, Accessors::ErrorStackGetter, 0,
+  //       SideEffectType::kHasSideEffect);
+  //   set_error_stack_getter_fun_template(*function_template);
 
-    function_template = ApiNatives::CreateAccessorFunctionTemplateInfo(
-        isolate_, Accessors::ErrorStackSetter, 1,
-        SideEffectType::kHasSideEffectToReceiver);
-    set_error_stack_setter_fun_template(*function_template);
-  }
+  //   function_template = ApiNatives::CreateAccessorFunctionTemplateInfo(
+  //       isolate_, Accessors::ErrorStackSetter, 1,
+  //       SideEffectType::kHasSideEffectToReceiver);
+  //   set_error_stack_setter_fun_template(*function_template);
+  // }
 
   // Promises:
   {

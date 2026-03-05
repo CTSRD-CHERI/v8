@@ -1123,15 +1123,20 @@ MaybeHandle<Object> ErrorUtils::CaptureStackTrace(Isolate* isolate,
   }
 
   // Add the stack accessors.
-  PropertyDescriptor desc;
-  desc.set_enumerable(false);
-  desc.set_configurable(true);
-  desc.set_get(factory->error_stack_getter_fun_template());
-  desc.set_set(factory->error_stack_setter_fun_template());
-  Maybe<bool> success = JSReceiver::DefineOwnProperty(
-      isolate, object, name, &desc, Just(kThrowOnError));
+  // PropertyDescriptor desc;
+  // desc.set_enumerable(false);
+  // desc.set_configurable(true);
+  // desc.set_get(factory->error_stack_getter_fun_template());
+  // desc.set_set(factory->error_stack_setter_fun_template());
+  // Maybe<bool> success = JSReceiver::DefineOwnProperty(
+  //     isolate, object, name, &desc, Just(kThrowOnError));
 
-  MAYBE_RETURN(success, {});
+  // MAYBE_RETURN(success, {});
+
+  Handle<AccessorInfo> error_stack = isolate->factory()->error_stack_accessor();
+
+  RETURN_ON_EXCEPTION(
+      isolate, JSObject::SetAccessor(object, name, error_stack, DONT_ENUM), Object);
 
   // Collect the stack trace and store it in |object|'s private
   // "error_stack_symbol" property.

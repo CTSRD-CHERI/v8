@@ -49,8 +49,8 @@ const char* const
         ACCESSOR_INFO_LIST_GENERATOR(ADD_ACCESSOR_INFO_NAME, /* not used */)
         ACCESSOR_GETTER_LIST(ADD_ACCESSOR_GETTER_NAME)
         ACCESSOR_SETTER_LIST(ADD_ACCESSOR_SETTER_NAME)
-        ACCESSOR_CALLBACK_LIST_GENERATOR(ADD_ACCESSOR_CALLBACK_NAME,
-                                         /* not used */)
+        // ACCESSOR_CALLBACK_LIST_GENERATOR(ADD_ACCESSOR_CALLBACK_NAME,
+        //                                 /* not used */)
 
         // === Isolate dependent ===
         // External references (with isolate):
@@ -257,8 +257,9 @@ void ExternalReferenceTable::AddAccessors(int* index) {
       // Setters:
       ACCESSOR_SETTER_LIST(ACCESSOR_SETTER_DECLARATION)
       // Callbacks:
-      ACCESSOR_CALLBACK_LIST_GENERATOR(ACCESSOR_CALLBACK_DECLARATION,
-                                       /* not used */)};
+      // ACCESSOR_CALLBACK_LIST_GENERATOR(ACCESSOR_CALLBACK_DECLARATION,
+      //                               /* not used */)
+   };
 #undef ACCESSOR_INFO_DECLARATION
 #undef ACCESSOR_GETTER_DECLARATION
 #undef ACCESSOR_SETTER_DECLARATION

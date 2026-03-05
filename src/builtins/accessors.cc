@@ -853,35 +853,34 @@ Handle<AccessorInfo> Accessors::MakeWrappedFunctionNameInfo(Isolate* isolate) {
 //
 
 void Accessors::ErrorStackGetter(
-    const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Name> key, const v8::PropertyCallbackInfo<v8::Value>& info) {
   Isolate* isolate = reinterpret_cast<Isolate*>(info.GetIsolate());
   HandleScope scope(isolate);
-  Handle<Object> formatted_stack = isolate->factory()->undefined_value();
-  Handle<JSReceiver> maybe_error_object = Utils::OpenHandle(*info.This());
-  if (maybe_error_object->IsJSObject()) {
-    if (!ErrorUtils::GetFormattedStack(
-             isolate, Handle<JSObject>::cast(maybe_error_object))
-             .ToHandle(&formatted_stack)) {
-      isolate->OptionalRescheduleException(false);
-      return;
-    }
+  Handle<Object> formatted_stack;
+  Handle<JSObject> error_object =
+      Handle<JSObject>::cast(Utils::OpenHandle(*info.Holder()));
+  if (!ErrorUtils::GetFormattedStack(isolate, error_object)
+           .ToHandle(&formatted_stack)) {
+    isolate->OptionalRescheduleException(false);
+    return;
   }
-  v8::Local<v8::Value> result = Utils::ToLocal(formatted_stack);
-  CHECK(result->IsValue());
-  info.GetReturnValue().Set(result);
+  info.GetReturnValue().Set(Utils::ToLocal(formatted_stack));
 }
 
 void Accessors::ErrorStackSetter(
-    const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Name> name, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Boolean>& info) {
   Isolate* isolate = reinterpret_cast<Isolate*>(info.GetIsolate());
   HandleScope scope(isolate);
-  Handle<JSReceiver> maybe_error_object = Utils::OpenHandle(*info.This());
-  if (maybe_error_object->IsJSObject()) {
-    v8::Local<v8::Value> value = info[0];
-    ErrorUtils::SetFormattedStack(isolate,
-                                  Handle<JSObject>::cast(maybe_error_object),
-                                  Utils::OpenHandle(*value));
-  }
+  Handle<JSObject> error_object =
+      Handle<JSObject>::cast(Utils::OpenHandle(*info.Holder()));
+  ErrorUtils::SetFormattedStack(isolate, error_object,
+                                Utils::OpenHandle(*value));
+}
+
+Handle<AccessorInfo> Accessors::MakeErrorStackInfo(Isolate* isolate) {
+  return MakeAccessor(isolate, isolate->factory()->stack_string(),
+                      &ErrorStackGetter, &ErrorStackSetter);
 }
 
 }  // namespace internal
