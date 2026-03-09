@@ -428,13 +428,8 @@ void WasmGraphBuilder::StackCheck(
 
     // A direct call to a wasm runtime stub defined in this module.
     // Just encode the stub index. This will be patched at relocation.
-#if V8_TARGET_CHERI
-    stack_check_code_node_.set(mcgraph()->RelocatableCapability64Constant(
-        wasm::WasmCode::kWasmStackGuard, RelocInfo::WASM_STUB_CALL));
-#else
     stack_check_code_node_.set(mcgraph()->RelocatableIntPtrConstant(
         wasm::WasmCode::kWasmStackGuard, RelocInfo::WASM_STUB_CALL));
-#endif
 
     constexpr Operator::Properties properties =
         Operator::kNoThrow | Operator::kNoWrite;
@@ -2839,12 +2834,7 @@ Node* WasmGraphBuilder::CallDirect(uint32_t index, base::Vector<Node*> args,
   // A direct call to a wasm function defined in this module.
   // Just encode the function index. This will be patched at instantiation.
   Address code = static_cast<Address>(index);
-#if V8_TARGET_CHERI
-  args[0] =
-      mcgraph()->RelocatableCapability64Constant(code, RelocInfo::WASM_CALL);
-#else
   args[0] = mcgraph()->RelocatableIntPtrConstant(code, RelocInfo::WASM_CALL);
-#endif
 
   return BuildWasmCall(sig, args, rets, position, nullptr);
 }
@@ -3152,12 +3142,7 @@ Node* WasmGraphBuilder::ReturnCall(uint32_t index, base::Vector<Node*> args,
   // Just encode the function index. This will be patched during code
   // generation.
   Address code = static_cast<Address>(index);
-#if V8_TARGET_CHERI
-  args[0] =
-      mcgraph()->RelocatableCapability64Constant(code, RelocInfo::WASM_CALL);
-#else
   args[0] = mcgraph()->RelocatableIntPtrConstant(code, RelocInfo::WASM_CALL);
-#endif
 
   return BuildWasmReturnCall(sig, args, position, nullptr);
 }
@@ -4099,13 +4084,8 @@ Node* WasmGraphBuilder::BuildChangeInt64ToBigInt(Node* input,
   Node* target;
   if (mcgraph()->machine()->Is64()) {
     target = (stub_mode == StubCallMode::kCallWasmRuntimeStub)
-#if V8_TARGET_CHERI
-                 ? mcgraph()->RelocatableCapability64Constant(
-                       wasm::WasmCode::kI64ToBigInt, RelocInfo::WASM_STUB_CALL)
-#else
                  ? mcgraph()->RelocatableIntPtrConstant(
                        wasm::WasmCode::kI64ToBigInt, RelocInfo::WASM_STUB_CALL)
-#endif
                  : gasm_->GetBuiltinPointerTarget(Builtin::kI64ToBigInt);
   } else {
     DCHECK(mcgraph()->machine()->Is32());
@@ -4114,13 +4094,8 @@ Node* WasmGraphBuilder::BuildChangeInt64ToBigInt(Node* input,
     // target in the int64-lowering.
     target =
         (stub_mode == StubCallMode::kCallWasmRuntimeStub)
-#if V8_TARGET_CHERI
-            ? mcgraph()->RelocatableCapability64Constant(
-                  wasm::WasmCode::kI32PairToBigInt, RelocInfo::WASM_STUB_CALL)
-#else
             ? mcgraph()->RelocatableIntPtrConstant(
                   wasm::WasmCode::kI32PairToBigInt, RelocInfo::WASM_STUB_CALL)
-#endif
             : gasm_->GetBuiltinPointerTarget(Builtin::kI32PairToBigInt);
   }
   CallDescriptor* descriptor =
@@ -5098,13 +5073,8 @@ Node* WasmGraphBuilder::AtomicOp(wasm::WasmOpcode opcode, Node* const* inputs,
           Builtin::kWasmI32AtomicWait, zone_, kStubMode);
 
       intptr_t target = wasm::WasmCode::kWasmI32AtomicWait;
-#if V8_TARGET_CHERI
-      Node* call_target = mcgraph()->RelocatableCapability64Constant(
-          target, RelocInfo::WASM_STUB_CALL);
-#else
       Node* call_target = mcgraph()->RelocatableIntPtrConstant(
           target, RelocInfo::WASM_STUB_CALL);
-#endif
 
       return gasm_->Call(call_descriptor, call_target, effective_offset,
                          inputs[1],
@@ -5117,13 +5087,8 @@ Node* WasmGraphBuilder::AtomicOp(wasm::WasmOpcode opcode, Node* const* inputs,
           Builtin::kWasmI64AtomicWait, zone_, kStubMode);
 
       intptr_t target = wasm::WasmCode::kWasmI64AtomicWait;
-#if V8_TARGET_CHERI
-      Node* call_target = mcgraph()->RelocatableCapability64Constant(
-          target, RelocInfo::WASM_STUB_CALL);
-#else
       Node* call_target = mcgraph()->RelocatableIntPtrConstant(
           target, RelocInfo::WASM_STUB_CALL);
-#endif
 
       return gasm_->Call(call_descriptor, call_target, effective_offset,
                          BuildChangeInt64ToBigInt(inputs[1], kStubMode),
@@ -6904,13 +6869,8 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
   Node* GetTargetForBuiltinCall(wasm::WasmCode::RuntimeStubId wasm_stub,
                                 Builtin builtin) {
     return (stub_mode_ == StubCallMode::kCallWasmRuntimeStub)
-#if V8_TARGET_CHERI
-               ? mcgraph()->RelocatableCapability64Constant(
-                     wasm_stub, RelocInfo::WASM_STUB_CALL)
-#else
                ? mcgraph()->RelocatableIntPtrConstant(wasm_stub,
                                                       RelocInfo::WASM_STUB_CALL)
-#endif
                : gasm_->GetBuiltinPointerTarget(builtin);
   }
 
@@ -8012,13 +7972,8 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
         mcgraph()->zone(), interface_descriptor,
         interface_descriptor.GetStackParameterCount(), CallDescriptor::kNoFlags,
         Operator::kNoProperties, StubCallMode::kCallWasmRuntimeStub);
-#if V8_TARGET_CHERI
-    Node* call_target = mcgraph()->RelocatableCapability64Constant(
-        wasm::WasmCode::kWasmRethrowExplicitContext, RelocInfo::WASM_STUB_CALL);
-#else
     Node* call_target = mcgraph()->RelocatableIntPtrConstant(
         wasm::WasmCode::kWasmRethrowExplicitContext, RelocInfo::WASM_STUB_CALL);
-#endif
     Node* context = gasm_->Load(
         MachineType::TaggedPointer(), Param(0),
         wasm::ObjectAccess::ToTagged(WasmApiFunctionRef::kNativeContextOffset));

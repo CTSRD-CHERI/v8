@@ -1034,7 +1034,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kArchCallWasmFunction: {
       if (instr->InputAt(0)->IsImmediate()) {
         Constant constant = i.ToConstant(instr->InputAt(0));
-        Address wasm_code = constant.ToIntPtr();
+        Address wasm_code = constant.ToMachineInt();
         __ Call(wasm_code, constant.rmode());
       } else {
         Register target = i.InputCapabilityRegister(0);
@@ -1047,7 +1047,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kArchTailCallWasm: {
       if (instr->InputAt(0)->IsImmediate()) {
         Constant constant = i.ToConstant(instr->InputAt(0));
-        Address wasm_code = constant.ToIntPtr();
+        Address wasm_code = constant.ToMachineInt();
         __ Jump(wasm_code, constant.rmode());
       } else {
         Register target = i.InputCapabilityRegister(0);

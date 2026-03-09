@@ -1319,11 +1319,15 @@ class V8_EXPORT_PRIVATE Constant final {
     DCHECK_EQ(kIntPtr, type());
     return value_;
   }
+  int64_t ToMachineInt() const {
+    return value_;
+  }
 #else
   intptr_t ToIntPtr() const {
     DCHECK_EQ(kInt64, type());
     return value_;
   }
+  intptr_t ToMachineInt() const { return ToIntPtr(); }
 #endif
 
   float ToFloat32() const {

@@ -52,13 +52,8 @@ class WasmGraphAssembler : public GraphAssembler {
         StubCallMode::kCallWasmRuntimeStub, false, properties);
     // A direct call to a wasm runtime stub defined in this module.
     // Just encode the stub index. This will be patched at relocation.
-#if V8_TARGET_CHERI
-    Node* call_target = mcgraph()->RelocatableCapability64Constant(
-        stub_id, RelocInfo::WASM_STUB_CALL);
-#else
     Node* call_target = mcgraph()->RelocatableIntPtrConstant(
         stub_id, RelocInfo::WASM_STUB_CALL);
-#endif
     return Call(call_descriptor, call_target, args...);
   }
 

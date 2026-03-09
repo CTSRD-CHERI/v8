@@ -1040,26 +1040,23 @@ void InstructionSelector::InitializeCallBuffer(Node* call, CallBuffer* buffer,
 #if V8_ENABLE_WEBASSEMBLY
     case CallDescriptor::kCallWasmCapiFunction:
     case CallDescriptor::kCallWasmFunction:
-    case CallDescriptor::kCallWasmImportWrapper:
+    case CallDescriptor::kCallWasmImportWrapper: {
+      auto is_relocatable = [&](IrOpcode::Value op) {
 #if V8_TARGET_CHERI
-      DCHECK_IMPLIES(
-          call_address_immediate,
-          callee->opcode() != IrOpcode::kRelocatableInt64Constant &&
-              callee->opcode() != IrOpcode::kRelocatableInt32Constant);
+        if (op == IrOpcode::kRelocatableCapability64Constant) return true;
 #endif
+        return op == IrOpcode::kRelocatableInt32Constant ||
+               op == IrOpcode::kRelocatableInt64Constant;
+      };
+
       buffer->instruction_args.push_back(
-          (call_address_immediate &&
-#if V8_TARGET_CHERI
-           callee->opcode() == IrOpcode::kRelocatableCapability64Constant)
-#else
-           (callee->opcode() == IrOpcode::kRelocatableInt64Constant ||
-            callee->opcode() == IrOpcode::kRelocatableInt32Constant))
-#endif
+          (call_address_immediate && is_relocatable(callee->opcode()))
               ? g.UseImmediate(callee)
-              : call_use_fixed_target_reg
-                    ? g.UseFixed(callee, kJavaScriptCallCodeStartRegister)
-                    : g.UseRegister(callee));
+          : call_use_fixed_target_reg
+              ? g.UseFixed(callee, kJavaScriptCallCodeStartRegister)
+              : g.UseRegister(callee));
       break;
+    }
 #endif  // V8_ENABLE_WEBASSEMBLY
     case CallDescriptor::kCallBuiltinPointer: {
       // The common case for builtin pointers is to have the target in a
@@ -2686,7 +2683,7 @@ void InstructionSelector::VisitNode(Node* node) {
       return MarkAsCapability(node), VisitCapSub(node);
     case IrOpcode::kCapability64Constant:
     case IrOpcode::kRelocatableCapability64Constant:
-      return MarkAsCapability(node), VisitConstant(node);
+      return VisitConstant(node);
     case IrOpcode::kAlignU:
       return MarkAsCapability(node), VisitAlignU(node);
     case IrOpcode::kAlignD:

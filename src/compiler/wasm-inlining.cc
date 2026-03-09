@@ -54,13 +54,9 @@ Reduction WasmInliner::ReduceCall(Node* call) {
   seen_.insert(call);
 
   Node* callee = NodeProperties::GetValueInput(call, 0);
-#if V8_TARGET_CHERI
-  IrOpcode::Value reloc_opcode = IrOpcode::kRelocatableCapability64Constant;
-#else
   IrOpcode::Value reloc_opcode = mcgraph_->machine()->Is32()
                                      ? IrOpcode::kRelocatableInt32Constant
                                      : IrOpcode::kRelocatableInt64Constant;
-#endif
   if (callee->opcode() != reloc_opcode) {
     TRACE("[function %d: node %d: not a relocatable constant]\n",
           data_.func_index, call->id());
