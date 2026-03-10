@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#-
+# -
 # SPDX-License-Identifier: BSD-2-Clause
 #
 # Copyright (c) 2026 MSB Associates
@@ -68,12 +68,6 @@ from typing import (
     Union,
 )
 
-# Type aliases for readability
-TestId = str
-Machine = str
-SuiteName = str
-
-
 DEFAULT_JS_SUITES: List[str] = [
     "mjsunit",
     "message",
@@ -94,6 +88,9 @@ JS_SUITE_INFO: Dict[str, Dict[str, Any]] = {
     },
     "benchmarks": {
         "path_replace": ("benchmarks/data/", "benchmarks/"),
+    },
+    "wasm-spec-tests": {
+        "path_replace": ("wasm-spec-tests/tests/", "wasm-spec-tests/"),
     },
 }
 CPP_SUITE_INFO: Dict[str, Dict[str, Any]] = {
@@ -142,9 +139,7 @@ DEFAULT_EXCLUDE_IDS: Set[str] = {
     "mjsunit/mjsunit",
     "mjsunit/utils",
     "message/message",
-    "intl/helper",
     "intl/overrides",
-    "wasm-js/helpers",
 }
 
 
@@ -158,7 +153,6 @@ def error(msg: str, exit_code: int = 1) -> None:
 
 
 def sanitize_machine_name(machine: str) -> str:
-    """Replace dots and colons with underscores for safe filenames."""
     return machine.replace(".", "_").replace(":", "_")
 
 
@@ -209,6 +203,24 @@ def list_v8_javascript_test_ids(
             warn(f"JavaScript suite '{suite}' not found, skipping.")
             continue
 
+        if suite == "wasm-js":
+            wasm_tests_dir = suite_dir / "tests"
+            if not wasm_tests_dir.is_dir():
+                warn(f"wasm-js tests directory not found: {wasm_tests_dir}, skipping.")
+                continue
+            for root, dirs, files in os.walk(wasm_tests_dir):
+                dirs[:] = [d for d in dirs if d not in skip_dirs]
+                for f in files:
+                    if not f.endswith(".any.js"):
+                        continue
+                    full_path = Path(root) / f
+                    rel_to_base = full_path.relative_to(wasm_tests_dir)
+                    stem = str(rel_to_base)[: -len(".any.js")]
+                    test_id = f"wasm-js/{stem}"
+                    test_ids.append(test_id)
+            continue
+
+        # Generic handling for other JavaScript suites
         for root, dirs, files in os.walk(suite_dir):
             dirs[:] = [d for d in dirs if d not in skip_dirs]
             for f in files:
