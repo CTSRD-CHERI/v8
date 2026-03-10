@@ -204,7 +204,8 @@ AtomicOpParameters AtomicOpParametersOf(Operator const* op) {
 StoreRepresentation const& StoreRepresentationOf(Operator const* op) {
   DCHECK(IrOpcode::kStore == op->opcode() ||
          IrOpcode::kProtectedStore == op->opcode() ||
-         IrOpcode::kStoreTrapOnNull == op->opcode());
+         IrOpcode::kStoreTrapOnNull == op->opcode() ||
+         IrOpcode::kUnalignedStore == op->opcode());
   return OpParameter<StoreRepresentation>(op);
 }
 

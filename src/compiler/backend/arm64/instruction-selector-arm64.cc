@@ -1205,18 +1205,20 @@ void InstructionSelector::VisitSimd128ReverseBytes(Node* node) {
   UNREACHABLE();
 }
 
-// Architecture supports unaligned access, therefore VisitLoad is used instead
 #if V8_TARGET_CHERI
 void InstructionSelector::VisitUnalignedLoad(Node* node) {
   // FIXME(ds815): Potentially add some extra stuff here for debugging.
   VisitLoad(node);
 }
+void InstructionSelector::VisitUnalignedStore(Node* node) {
+  // FIXME(ds815): Potentially add some extra stuff here for debugging.
+  VisitStore(node);
+}
 #else
 void InstructionSelector::VisitUnalignedLoad(Node* node) { UNREACHABLE(); }
+void InstructionSelector::VisitUnalignedStore(Node* node) { UNREACHABLE(); }
 #endif
 
-// Architecture supports unaligned access, therefore VisitStore is used instead
-void InstructionSelector::VisitUnalignedStore(Node* node) { UNREACHABLE(); }
 
 template <typename Matcher>
 static void VisitLogical(InstructionSelector* selector, Node* node, Matcher* m,
