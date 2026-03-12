@@ -7907,11 +7907,19 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
     // Store arguments on our stack, then align the stack for calling to C.
     int param_bytes = 0;
     for (wasm::ValueType type : sig_->parameters()) {
+#if V8_TARGET_CHERI
+      param_bytes += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
       param_bytes += type.value_kind_size();
+#endif
     }
     int return_bytes = 0;
     for (wasm::ValueType type : sig_->returns()) {
+#if V8_TARGET_CHERI
+      return_bytes += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
       return_bytes += type.value_kind_size();
+#endif
     }
 
     int stack_slot_bytes = std::max(param_bytes, return_bytes);
@@ -7930,7 +7938,11 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
       SetEffect(graph()->NewNode(GetSafeStoreOperator(offset, type), values,
                                  Int32Constant(offset), Param(i + 1), effect(),
                                  control()));
+#if V8_TARGET_CHERI
+      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
       offset += type.value_kind_size();
+#endif
     }
 
     Node* function_node = gasm_->Load(
@@ -7995,7 +8007,11 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
             graph()->NewNode(GetSafeLoadOperator(offset, type), values,
                              Int32Constant(offset), effect(), control()));
         returns[i] = val;
+#if V8_TARGET_CHERI
+        offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
         offset += type.value_kind_size();
+#endif
       }
       Return(base::VectorOf(returns));
     }
@@ -8282,8 +8298,13 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
           graph()->NewNode(GetSafeLoadOperator(offset, type), arg_buffer,
                            Int32Constant(offset), effect(), control()));
       args[pos++] = arg_load;
+#if V8_TARGET_CHERI
+      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
       offset += type.value_kind_size();
+#endif
     }
+    //gasm_->DebugBreak();
 
     args[pos++] = effect();
     args[pos++] = control();
@@ -8314,7 +8335,11 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
       SetEffect(graph()->NewNode(GetSafeStoreOperator(offset, type), arg_buffer,
                                  Int32Constant(offset), value, effect(),
                                  control()));
+#if V8_TARGET_CHERI
+      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+#else
       offset += type.value_kind_size();
+#endif
       pos++;
     }
 

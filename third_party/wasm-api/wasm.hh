@@ -419,6 +419,9 @@ class Val {
 
   Val(ValKind kind, impl impl) : kind_(kind), impl_(impl) {}
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  static_assert(sizeof(impl) == sizeof(uintptr_t));
+#endif
 public:
   Val() : kind_(ANYREF) { impl_.ref = nullptr; }
   Val(int32_t i) : kind_(I32) { impl_.i32 = i; }
@@ -493,6 +496,9 @@ public:
   }
 };
 
+#ifdef __CHERI_PURE_CAPABILITY__
+static_assert(alignof(Val) == alignof(uintptr_t));
+#endif
 
 template<> inline auto Val::make<int32_t>(int32_t x) -> Val { return Val(x); }
 template<> inline auto Val::make<int64_t>(int64_t x) -> Val { return Val(x); }

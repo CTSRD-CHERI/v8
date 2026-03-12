@@ -31,32 +31,52 @@ class CWasmArgumentsPacker {
   explicit CWasmArgumentsPacker(size_t buffer_size)
       : heap_buffer_(buffer_size <= kMaxOnStackBuffer ? 0 : buffer_size),
         buffer_((buffer_size <= kMaxOnStackBuffer) ? on_stack_buffer_
-                                                   : heap_buffer_.data()) {}
+                                                   : heap_buffer_.data()) {
+    DCHECK(IsAligned(reinterpret_cast<Address>(buffer_), kSystemPointerSize));
+  }
   i::Address argv() const { return reinterpret_cast<i::Address>(buffer_); }
   void Reset() { offset_ = 0; }
 
   template <typename T>
   void Push(T val) {
     Address address = reinterpret_cast<Address>(buffer_ + offset_);
+#if V8_TARGET_CHERI
+    size_t old_offset = offset_;
+    offset_ += RoundUp(sizeof(val), kSystemPointerSize);
+#else
     offset_ += sizeof(val);
+#endif
     base::WriteUnalignedValue(address, val);
   }
 
   template <typename T>
   T Pop() {
     Address address = reinterpret_cast<Address>(buffer_ + offset_);
+#if V8_TARGET_CHERI
+    size_t old_offset = offset_;
+    offset_ += RoundUp(sizeof(T), kSystemPointerSize);
+#else
     offset_ += sizeof(T);
+#endif
     return base::ReadUnalignedValue<T>(address);
   }
 
   static int TotalSize(const FunctionSig* sig) {
     int return_size = 0;
     for (ValueType t : sig->returns()) {
+#if V8_TARGET_CHERI
+      return_size += RoundUp(t.value_kind_full_size(), kSystemPointerSize);
+#else
       return_size += t.value_kind_full_size();
+#endif
     }
     int param_size = 0;
     for (ValueType t : sig->parameters()) {
+#if V8_TARGET_CHERI
+      param_size += RoundUp(t.value_kind_full_size(), kSystemPointerSize);
+#else
       param_size += t.value_kind_full_size();
+#endif
     }
     return std::max(return_size, param_size);
   }
@@ -64,8 +84,10 @@ class CWasmArgumentsPacker {
  private:
   static const size_t kMaxOnStackBuffer = 10 * i::kSystemPointerSize;
 
-  uint8_t on_stack_buffer_[kMaxOnStackBuffer];
+  alignas(Address) uint8_t on_stack_buffer_[kMaxOnStackBuffer];
   std::vector<uint8_t> heap_buffer_;
+  static_assert(alignof(heap_buffer_.data()) == alignof(uintptr_t),
+                "heap_buffer_ must be pointer aligned");
   uint8_t* buffer_;
   size_t offset_ = 0;
 };

@@ -1747,19 +1747,35 @@ i::Address FuncData::v8_callback(i::Address host_data_foreign,
     switch (param_types[i]->kind()) {
       case I32:
         params[i] = Val(v8::base::ReadUnalignedValue<int32_t>(p));
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 4;
+#endif
         break;
       case I64:
         params[i] = Val(v8::base::ReadUnalignedValue<int64_t>(p));
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 8;
+#endif
         break;
       case F32:
         params[i] = Val(v8::base::ReadUnalignedValue<float32_t>(p));
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 4;
+#endif
         break;
       case F64:
         params[i] = Val(v8::base::ReadUnalignedValue<float64_t>(p));
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 8;
+#endif
         break;
       case ANYREF:
       case FUNCREF: {
@@ -1791,19 +1807,35 @@ i::Address FuncData::v8_callback(i::Address host_data_foreign,
     switch (result_types[i]->kind()) {
       case I32:
         v8::base::WriteUnalignedValue(p, results[i].i32());
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 4;
+#endif
         break;
       case I64:
         v8::base::WriteUnalignedValue(p, results[i].i64());
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 8;
+#endif
         break;
       case F32:
         v8::base::WriteUnalignedValue(p, results[i].f32());
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 4;
+#endif
         break;
       case F64:
         v8::base::WriteUnalignedValue(p, results[i].f64());
+#if V8_TARGET_CHERI
+        p += sizeof(uintptr_t);
+#else
         p += 8;
+#endif
         break;
       case ANYREF:
       case FUNCREF: {
