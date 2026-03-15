@@ -3880,10 +3880,15 @@ void DisassemblingDecoder::VisitConditionalSelectCap(Instruction* instr) {
 
 void DisassemblingDecoder::VisitGetField1(Instruction* instr) {
   const char* form = "'Xd, 'Yns";
-  const char *mnemonic = "gcvalue";
   switch(instr->Mask(GetField1Mask)) {
     case GCVALUE:
-      Format(instr, mnemonic, form);
+      Format(instr, "gcvalue", form);
+      break;
+    case GCSEAL:
+      Format(instr, "gcseal", form);
+      break;
+    case GCTAG:
+      Format(instr, "gctag", form);
       break;
     default:
       UNREACHABLE();
