@@ -4590,7 +4590,6 @@ void MacroAssembler::Printf(const char* format, CPURegister arg0,
 void MacroAssembler::ComputeCodeStartAddress(const Register& rd) {
   // We can use adr to load a pc relative location.
   adr(rd, -pc_offset());
-  PrepareC64Jump(rd);
 }
 
 void MacroAssembler::RestoreFPAndLR() {
