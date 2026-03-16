@@ -3897,7 +3897,7 @@ void DisassemblingDecoder::VisitGetField1(Instruction* instr) {
 
 void DisassemblingDecoder::VisitLoadStoreCapUnscaledOffsetNormal(
     Instruction* instr) {
-  const char* form = "'Yt, ['Yns'ILUC]";
+  const char* form = "'Yt, ['Yns'ILSC]";
   switch(instr->Mask(LoadStoreCapUnscaledOffsetNormalMask)) {
     case LDUR_c_normal:
       Format(instr, "ldur", form);
@@ -4325,6 +4325,14 @@ int DisassemblingDecoder::SubstituteImmediateField(Instruction* instr,
           return 9;
         }
         case 'S': {  // ILS - Immediate Load/Store.
+#if defined(__CHERI_PURE_CAPABILITY__)
+          if (format[3] == 'C') {  // ILSC - Immediate Load/Store.
+            if (instr->ImmLSUnsigned() != 0) {
+              AppendToOutput(", #%" PRId32, instr->ImmLS());
+            }
+            return 4;
+          }
+#endif  // __CHERI_PURE_CAPABILITY
           if (instr->ImmLS() != 0) {
             AppendToOutput(", #%" PRId32, instr->ImmLS());
           }
