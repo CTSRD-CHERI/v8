@@ -88,13 +88,6 @@ class CommonNodeCache final {
     return relocatable_int64_constants_.Find(std::make_pair(value, rmode));
   }
 
-#if V8_TARGET_CHERI
-  Node** FindRelocatableCapability64Constant(intptr_t value,
-                                             RelocInfoMode rmode) {
-    return relocatable_cap64_constants_.Find(std::make_pair(value, rmode));
-  }
-#endif
-
   // Return all nodes from the cache.
   void GetCachedNodes(ZoneVector<Node*>* nodes);
 

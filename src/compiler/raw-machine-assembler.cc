@@ -72,11 +72,6 @@ Node* RawMachineAssembler::UndefinedConstant() {
 
 Node* RawMachineAssembler::RelocatableIntPtrConstant(intptr_t value,
                                                      RelocInfo::Mode rmode) {
-#ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK_EQ(kSystemPointerSize, 16);
-  if (V8_CHERI_TAG_GET(value))
-    return RelocatableCapability64Constant(value, rmode);
-#endif  // __CHERI_PURE_CAPABILITY__
   return kSystemPointerAddrSize == 8
              ? RelocatableInt64Constant(static_cast<int64_t>(value), rmode)
              : RelocatableInt32Constant(static_cast<int>(value), rmode);

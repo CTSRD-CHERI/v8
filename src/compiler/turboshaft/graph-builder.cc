@@ -451,9 +451,6 @@ OpIndex GraphBuilder::Process(
     case IrOpcode::kExternalConstant:
       return __ ExternalConstant(OpParameter<ExternalReference>(op));
     case IrOpcode::kRelocatableInt64Constant:
-#ifdef __CHERI_PURE_CAPABILITY__
-    case IrOpcode::kRelocatableCapability64Constant:
-#endif  // __CHERI_PURE_CAPABILITY__
       return __ RelocatableConstant(
           OpParameter<RelocatablePtrConstantInfo>(op).value(),
           OpParameter<RelocatablePtrConstantInfo>(op).rmode());

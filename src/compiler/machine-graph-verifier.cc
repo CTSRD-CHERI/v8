@@ -187,7 +187,6 @@ class MachineRepresentationInferrer {
           case IrOpcode::kCapAdd:
           case IrOpcode::kCapSub:
           case IrOpcode::kCapability64Constant:
-          case IrOpcode::kRelocatableCapability64Constant:
 #endif
           case IrOpcode::kExternalConstant:
             representation_vector_[node->id()] =

@@ -898,12 +898,6 @@ Type Typer::Visitor::TypeRelocatableInt32Constant(Node* node) { UNREACHABLE(); }
 
 Type Typer::Visitor::TypeRelocatableInt64Constant(Node* node) { UNREACHABLE(); }
 
-#if V8_TARGET_CHERI
-Type Typer::Visitor::TypeRelocatableCapability64Constant(Node* node) {
-  UNREACHABLE();
-}
-#endif
-
 Type Typer::Visitor::TypeFloat32Constant(Node* node) { UNREACHABLE(); }
 
 Type Typer::Visitor::TypeFloat64Constant(Node* node) { UNREACHABLE(); }

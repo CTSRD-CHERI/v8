@@ -1042,9 +1042,6 @@ void InstructionSelector::InitializeCallBuffer(Node* call, CallBuffer* buffer,
     case CallDescriptor::kCallWasmFunction:
     case CallDescriptor::kCallWasmImportWrapper: {
       auto is_relocatable = [&](IrOpcode::Value op) {
-#if V8_TARGET_CHERI
-        if (op == IrOpcode::kRelocatableCapability64Constant) return true;
-#endif
         return op == IrOpcode::kRelocatableInt32Constant ||
                op == IrOpcode::kRelocatableInt64Constant;
       };
@@ -2682,7 +2679,6 @@ void InstructionSelector::VisitNode(Node* node) {
     case IrOpcode::kCapSub:
       return MarkAsCapability(node), VisitCapSub(node);
     case IrOpcode::kCapability64Constant:
-    case IrOpcode::kRelocatableCapability64Constant:
       return VisitConstant(node);
     case IrOpcode::kAlignU:
       return MarkAsCapability(node), VisitAlignU(node);

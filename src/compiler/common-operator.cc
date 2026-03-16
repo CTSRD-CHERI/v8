@@ -1356,17 +1356,6 @@ const Operator* CommonOperatorBuilder::RelocatableInt64Constant(
       RelocatablePtrConstantInfo(value, rmode));              // parameter
 }
 
-#if V8_TARGET_CHERI
-const Operator* CommonOperatorBuilder::RelocatableCapability64Constant(
-    intptr_t value, RelocInfo::Mode rmode) {
-  return zone()->New<Operator1<RelocatablePtrConstantInfo>>(        // --
-      IrOpcode::kRelocatableCapability64Constant, Operator::kPure,  // opcode
-      "RelocatableCapability64Constant",                            // name
-      0, 0, 0, 1, 0, 0,                                             // counts
-      RelocatablePtrConstantInfo(value, rmode));                    // parameter
-}
-#endif
-
 const Operator* CommonOperatorBuilder::ObjectId(uint32_t object_id) {
   return zone()->New<Operator1<uint32_t>>(   // --
       IrOpcode::kObjectId, Operator::kPure,  // opcode

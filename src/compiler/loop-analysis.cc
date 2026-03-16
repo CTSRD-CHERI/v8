@@ -615,14 +615,8 @@ ZoneUnorderedSet<Node*>* LoopFinder::FindSmallInnermostLoopFromHeader(
           break;
         }
         Node* callee = node->InputAt(0);
-#if V8_TARGET_CHERI
-        if (callee->opcode() != IrOpcode::kRelocatableCapability64Constant &&
-            callee->opcode() != IrOpcode::kRelocatableInt32Constant &&
-            callee->opcode() != IrOpcode::kRelocatableInt64Constant) {
-#else
         if (callee->opcode() != IrOpcode::kRelocatableInt32Constant &&
             callee->opcode() != IrOpcode::kRelocatableInt64Constant) {
-#endif
           return nullptr;
         }
         intptr_t info =

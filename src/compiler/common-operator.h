@@ -590,10 +590,6 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
                                            RelocInfo::Mode rmode);
   const Operator* RelocatableInt64Constant(int64_t value,
                                            RelocInfo::Mode rmode);
-#if V8_TARGET_CHERI
-  const Operator* RelocatableCapability64Constant(intptr_t value,
-                                                  RelocInfo::Mode rmode);
-#endif
 
   const Operator* Select(MachineRepresentation, BranchHint = BranchHint::kNone);
   const Operator* Phi(MachineRepresentation representation,
