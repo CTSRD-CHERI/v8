@@ -115,9 +115,15 @@ const intptr_t kSmiTagMask = (1 << kSmiTagSize) - 1;
 template <size_t tagged_ptr_size>
 struct SmiTagging;
 
+#ifdef __CHERI_PURE_CAPABILITY__
+constexpr int64_t kIntptrAllBitsSet = int64_t{-1};
+constexpr uint64_t kUintptrAllBitsSet =
+    static_cast<uint64_t>(kIntptrAllBitsSet);
+#else
 constexpr intptr_t kIntptrAllBitsSet = intptr_t{-1};
 constexpr uintptr_t kUintptrAllBitsSet =
     static_cast<uintptr_t>(kIntptrAllBitsSet);
+#endif
 
 constexpr ScaledInt kScaledIntAllBitsSet = ScaledInt{-1};
 constexpr ScaledUint kScaledUintAllBitsSet =

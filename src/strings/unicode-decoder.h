@@ -15,13 +15,16 @@ namespace internal {
 // non-one-byte character, rather than directly to the non-one-byte character.
 // If the return value is >= the passed length, the entire string was
 // one-byte.
+// FIXME(cheri): This uses ptraddr_t for now given that the original code used
+// uintptr_t.
 inline int NonAsciiStart(const uint8_t* chars, int length) {
   const uint8_t* start = chars;
   const uint8_t* limit = chars + length;
 
-  if (static_cast<size_t>(length) >= kIntptrSize) {
+  if (static_cast<size_t>(length) >= kSystemPointerAddrSize) {
     // Check unaligned bytes.
-    while (!IsAligned(reinterpret_cast<intptr_t>(chars), kIntptrSize)) {
+    while (
+        !IsAligned(reinterpret_cast<intptr_t>(chars), kSystemPointerAddrSize)) {
       if (*chars > unibrow::Utf8::kMaxOneByteChar) {
         return static_cast<int>(chars - start);
       }
@@ -29,13 +32,13 @@ inline int NonAsciiStart(const uint8_t* chars, int length) {
     }
     // Check aligned words.
     DCHECK_EQ(unibrow::Utf8::kMaxOneByteChar, 0x7F);
-    const uintptr_t non_one_byte_mask = kUintptrAllBitsSet / 0xFF * 0x80;
-    while (chars + sizeof(uintptr_t) <= limit) {
-      if (*reinterpret_cast<const uintptr_t*>(chars) &
+    const ptraddr_t non_one_byte_mask = kUintptrAllBitsSet / 0xFF * 0x80;
+    while (chars + sizeof(ptraddr_t) <= limit) {
+      if (*reinterpret_cast<const ptraddr_t*>(chars) &
           static_cast<size_t>(non_one_byte_mask)) {
         return static_cast<int>(chars - start);
       }
-      chars += sizeof(uintptr_t);
+      chars += sizeof(ptraddr_t);
     }
   }
   // Check remaining unaligned bytes.
