@@ -83,7 +83,22 @@ void Code::CopyFromNoFlush(ByteArray reloc_info, Heap* heap,
 
   // Copy code and inline metadata.
   static_assert(InstructionStream::kOnHeapBodyIsContiguous);
-  CopyBytes(reinterpret_cast<uint8_t*>(instruction_start()), desc.buffer,
+  uint8_t* buffer = desc.buffer;
+#ifdef __CHERI_PURE_CAPABILITY__
+  // FIXME(cheri): Assumes the capability can be derived from the PCC.
+  CHECK(V8_CHERI_TAG_GET(buffer));
+#ifdef __aarch64__
+  buffer = reinterpret_cast<uint8_t*>(
+      V8_CHERI_ADDR_SET(buffer, reinterpret_cast<ptraddr_t>(buffer) & ~1));
+#endif
+  if (V8_CHERI_SEALED(buffer)) {
+    buffer = reinterpret_cast<uint8_t*>(
+        V8_CHERI_ADDR_SET(V8_CHERI_PCC, reinterpret_cast<ptraddr_t>(buffer)));
+  }
+  DCHECK(IsAligned(reinterpret_cast<uintptr_t>(buffer), 4));
+  DCHECK(V8_CHERI_TAG_GET(buffer));
+#endif
+  CopyBytes(reinterpret_cast<uint8_t*>(instruction_start()), buffer,
             static_cast<size_t>(desc.instr_size));
   CopyBytes(reinterpret_cast<uint8_t*>(instruction_start() + desc.instr_size),
             desc.unwinding_info, static_cast<size_t>(desc.unwinding_info_size));
@@ -92,7 +107,7 @@ void Code::CopyFromNoFlush(ByteArray reloc_info, Heap* heap,
 
   // Copy the relocation info.
   DCHECK_EQ(reloc_info.length(), desc.reloc_size);
-  CopyBytes(reloc_info.GetDataStartAddress(), desc.buffer + desc.reloc_offset,
+  CopyBytes(reloc_info.GetDataStartAddress(), buffer + desc.reloc_offset,
             static_cast<size_t>(desc.reloc_size));
 
   RelocateFromDesc(heap, desc);
