@@ -1,0 +1,9 @@
+{
+  "compartments": {
+    "gc": {
+      "symbols": [
+        "_ZN4heap4base12_GLOBAL__N_122IteratePointersInStackEPNS0_12StackVisitorEPKvS5_S5_b"
+      ]
+    }
+  }
+}

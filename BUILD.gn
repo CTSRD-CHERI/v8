@@ -2247,9 +2247,9 @@ template("run_mksnapshot") {
   action("run_mksnapshot_" + name) {
     if (is_cheri && (v8_snapshot_toolchain != v8_cheri_snapshot_toolchain)) {
       deps = [ ":mksnapshot($v8_cheri_snapshot_toolchain)" ]
-      
+
       if (snapshot_remote_host != "") {
-        # if a remote host is available 
+        # if a remote host is available
         script = "tools/snapshot/remote_mksnapshot.py"
       } else {
         script = "tools/run.py"
@@ -6561,11 +6561,6 @@ if (v8_monolithic) {
 
     configs = [ ":internal_config" ]
   }
-  # XXX(ds815): Not yet.
-  if (false && is_cheri) {
-    compartments_file = rebase_path("src/Compartments.json", root_build_dir)
-    ldflags += [ "-Wl,--compartment-policy=$compartments_file" ]
-  }
 }
 
 if (v8_enable_webassembly) {
@@ -6910,6 +6905,10 @@ if (is_component_build) {
     configs = [ ":internal_config" ]
 
     public_configs = [ ":external_config" ]
+    if (is_cheri && current_cpu == target_cpu) {
+      compartments_file = rebase_path("src/Compartments.json", root_build_dir)
+      ldflags = [ "-Wl,--compartment-policy=$compartments_file" ]
+    }
   }
 
   v8_component("v8_for_testing") {
@@ -6933,6 +6932,10 @@ if (is_component_build) {
     configs = [ ":internal_config" ]
 
     public_configs = [ ":external_config" ]
+    if (is_cheri && current_cpu == target_cpu) {
+      compartments_file = rebase_path("src/Compartments.json", root_build_dir)
+      ldflags = [ "-Wl,--compartment-policy=$compartments_file" ]
+    }
   }
 
   v8_component("cppgc") {
@@ -6944,8 +6947,7 @@ if (is_component_build) {
 
     configs = []
     public_configs = [ ":external_config" ]
-    # XXX(ds815): Not yet.
-    if (false && is_cheri) {
+    if (is_cheri && current_cpu == target_cpu) {
       compartments_file = rebase_path("src/Compartments.json", root_build_dir)
       ldflags = [ "-Wl,--compartment-policy=$compartments_file" ]
     }
@@ -6971,6 +6973,10 @@ if (is_component_build) {
     public_configs = [ ":external_config" ]
   }
 } else {
+  if (is_cheri && current_cpu == target_cpu) {
+    compartments_file = rebase_path("src/Compartments.json", root_build_dir)
+    ldflags = [ "-Wl,--compartment-policy=$compartments_file" ]
+  }
   group("v8") {
     public_deps = [
       ":v8_base",
