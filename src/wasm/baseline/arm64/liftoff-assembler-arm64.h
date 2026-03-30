@@ -3603,9 +3603,7 @@ void LiftoffAssembler::CallC(const ValueKindSig* sig,
                              const LiftoffRegister* rets,
                              ValueKind out_argument_kind, int stack_bytes,
                              ExternalReference ext_ref) {
-#ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK(V8_CHERI_TAG_GET(ext_ref.address()));
-#endif  // __CHERI_PURE_CAPABILITY__
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(ext_ref.address()));
   // The stack pointer is required to be quadword aligned.
   int total_size = RoundUp(stack_bytes, kQuadWordSizeInBytes);
   // Reserve space in the stack.
