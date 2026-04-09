@@ -364,6 +364,30 @@ void MacroAssembler::Sigprot(Register sentinel_register, int imm9) {
   DCHECK(is_uint9(imm9));
   ldr_alternate(sentinel_register, sentinel_register.X(), imm9);
 }
+
+void MacroAssembler::DebugAssertCapabilityIsTagged(const Register& cs) {
+  DCHECK(allow_macro_instructions());
+  if (v8_flags.debug_code) {
+    UseScratchRegisterScope temps(this);
+    Label out;
+    Register temp = temps.AcquireX();
+    Gctag(temp, cs);
+    Tbnz(temp, 0, &out);
+    DebugBreak();
+    Bind(&out);
+  }
+}
+
+void MacroAssembler::DebugAssertValidContext(const Register& cs) {
+  DCHECK(allow_macro_instructions());
+  if (v8_flags.debug_code) {
+    Label out;
+    Cmp(cs.X(), 0);
+    B(eq, &out);
+    DebugAssertCapabilityIsTagged(cs);
+    Bind(&out);
+  }
+}
 #else
 void MacroAssembler::Cpy(const Register& cd, const Register& cn) {}
 void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
@@ -390,6 +414,8 @@ void MacroAssembler::AlignU(const Register& cd, const Register& cn,
 void MacroAssembler::AlignD(const Register& cd, const Register& cn,
                             const Operand& operand) {}
 void MacroAssembler::Sigprot(Register sentinel_register, int imm9) {}
+void MacroAssembler::DebugAssertCapabilityIsTagged(const Register& cs) {}
+void MacroAssembler::DebugAssertValidContext(const Register& cs) {}
 #endif
 
 void MacroAssembler::Sub(const Register& rd, const Register& rn,

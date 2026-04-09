@@ -950,6 +950,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   inline void AlignD(const Register& cd, const Register& cn,
                      const Operand& operand);
   inline void Sigprot(Register sentinel_register, int imm9);
+  inline void DebugAssertCapabilityIsTagged(const Register& cs);
+  inline void DebugAssertValidContext(const Register& cs);
   // End of CHERI methods
 
   // Push or pop up to 4 registers of the same width to or from the stack.

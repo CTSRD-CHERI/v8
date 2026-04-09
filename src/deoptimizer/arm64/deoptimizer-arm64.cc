@@ -24,6 +24,7 @@ Float32 RegisterValues::GetFloatRegister(unsigned n) const {
 void FrameDescription::SetCallerPc(unsigned offset, intptr_t value) {
   Address new_context =
       static_cast<Address>(GetTop()) + offset + kPCOnStackSize;
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(new_context));
   value = PointerAuthentication::SignAndCheckPC(isolate_, value, new_context);
   SetFrameSlot(offset, value);
 }

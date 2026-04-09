@@ -163,6 +163,7 @@ void Generate_JSBuiltinsConstructStubHelper(MacroAssembler* masm) {
 
     // Restore the context from the frame.
     __ Ldr(cp, MemOperand(fp, ConstructFrameConstants::kContextOffset));
+    __ DebugAssertValidContext(cp);
     // Restore smi-tagged arguments count from the frame. Use fp relative
     // addressing to avoid the circular dependency between padding existence and
     // argc parity.
@@ -376,12 +377,14 @@ void Builtins::Generate_JSConstructStubGeneric(MacroAssembler* masm) {
   __ Bind(&do_throw);
   // Restore the context from the frame.
   __ Ldr(cp, MemOperand(fp, ConstructFrameConstants::kContextOffset));
+  __ DebugAssertValidContext(cp);
   __ CallRuntime(Runtime::kThrowConstructorReturnedNonObject);
   __ Unreachable();
 
   __ Bind(&stack_overflow);
   // Restore the context from the frame.
   __ Ldr(cp, MemOperand(fp, ConstructFrameConstants::kContextOffset));
+  __ DebugAssertValidContext(cp);
   __ CallRuntime(Runtime::kThrowStackOverflow);
   __ Unreachable();
 }
@@ -464,6 +467,7 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
   __ LoadTaggedField(c4,
                      FieldMemOperand(c1, JSGeneratorObject::kFunctionOffset));
   __ LoadTaggedField(cp, FieldMemOperand(c4, JSFunction::kContextOffset));
+  __ DebugAssertValidContext(cp);
 
   // Flood function if we are stepping.
   Label prepare_step_in_if_stepping, prepare_step_in_suspended_generator;
@@ -874,6 +878,7 @@ static void Generate_JSEntryTrampolineHelper(MacroAssembler* masm,
     __ Mov(scratch, ExternalReference::Create(IsolateAddressId::kContextAddress,
                                               masm->isolate()));
     __ Ldr(cp, MemOperand(scratch));
+    __ DebugAssertValidContext(cp);
 
     // Claim enough space for the arguments and the function, including an
     // optional slot of padding.
@@ -1366,6 +1371,7 @@ void Builtins::Generate_InterpreterEntryTrampoline(
 #else
   __ mov(fp, sp);
 #endif
+  __ DebugAssertValidContext(cp);
   __ Push(cp, closure);
 
   ResetBytecodeAge(masm, kInterpreterBytecodeArrayRegister);
@@ -2080,6 +2086,7 @@ void Builtins::Generate_BaselineOnStackReplacement(MacroAssembler* masm) {
 
   __ ldr(kContextRegister,
          MemOperand(fp, BaselineFrameConstants::kContextOffset));
+  __ DebugAssertValidContext(kContextRegister);
   OnStackReplacement(masm, OsrSourceTier::kBaseline,
                      D::MaybeTargetCodeRegister());
 }
@@ -2577,6 +2584,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
   // context, and we also need to take the global proxy from the function
   // context in case of conversion.
   __ LoadTaggedField(cp, FieldMemOperand(c1, JSFunction::kContextOffset));
+  __ DebugAssertValidContext(cp);
   // We need to convert the receiver for non-native sloppy mode functions.
   Label done_convert;
   __ Ldr(w3, FieldMemOperand(c2, SharedFunctionInfo::kFlagsOffset));
@@ -2625,6 +2633,7 @@ void Builtins::Generate_CallFunction(MacroAssembler* masm,
                 RelocInfo::CODE_TARGET);
         __ Mov(c3, c0);
         __ Pop(cp, c1, c0, padregc);
+        __ DebugAssertValidContext(cp);
         __ SmiUntag(x0);
       }
       __ LoadTaggedField(
@@ -3221,6 +3230,7 @@ void PrepareForBuiltinCall(MacroAssembler* masm, MemOperand GCScanSlotPlace,
       kContextRegister,  // cp(x27)
       MemOperand(wasm_instance, wasm::ObjectAccess::ToTagged(
                                     WasmInstanceObject::kNativeContextOffset)));
+  __ DebugAssertValidContext(kContextRegister);
 }
 
 void RestoreAfterBuiltinCall(MacroAssembler* masm, Register function_data,
@@ -4555,6 +4565,7 @@ void GenericJSToWasmWrapperHelper(MacroAssembler* masm, bool stack_switch) {
   __ LoadTaggedField(kContextRegister,
                      FieldMemOperand(kContextRegister,
                                      WasmInstanceObject::kNativeContextOffset));
+  __ DebugAssertValidContext(kContextRegister);
   __ Call(BUILTIN_CODE(masm->isolate(), WasmFuncRefToJS),
           RelocInfo::CODE_TARGET);
   __ jmp(&return_done);
@@ -5042,6 +5053,7 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
   __ Mov(cp, ER::Create(IsolateAddressId::kPendingHandlerContextAddress,
                         masm->isolate()));
   __ Ldr(cp, MemOperand(cp));
+  __ DebugAssertValidContext(cp);
   {
     UseScratchRegisterScope temps(masm);
     Register scratch = temps.AcquireC();

@@ -164,8 +164,14 @@ class FrameDescription {
   intptr_t GetFp() const { return fp_; }
   void SetFp(intptr_t fp) { fp_ = fp; }
 
-  intptr_t GetContext() const { return context_; }
-  void SetContext(intptr_t context) { context_ = context; }
+  intptr_t GetContext() const {
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(context_));
+    return context_;
+  }
+  void SetContext(intptr_t context) {
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(context));
+    context_ = context;
+  }
 
   intptr_t GetConstantPool() const { return constant_pool_; }
   void SetConstantPool(intptr_t constant_pool) {

@@ -1101,6 +1101,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
         __ LoadTaggedField(temp,
                            FieldMemOperand(func, JSFunction::kContextOffset));
 #if V8_TARGET_CHERI
+        __ DebugAssertValidContext(cp);
         __ Cmp(cp, temp);
 #else
         __ cmp(cp, temp);

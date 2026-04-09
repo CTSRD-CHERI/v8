@@ -173,10 +173,13 @@ void InterpreterAssembler::ClobberAccumulator(TNode<Object> clobber_value) {
 }
 
 TNode<Context> InterpreterAssembler::GetContext() {
-  return CAST(LoadRegister(Register::current_context()));
+  TNode<Context> context = CAST(LoadRegister(Register::current_context()));
+  CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<WordT>(context)));
+  return context;
 }
 
 void InterpreterAssembler::SetContext(TNode<Context> value) {
+  CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<WordT>(value)));
   StoreRegister(value, Register::current_context());
 }
 

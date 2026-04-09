@@ -1139,6 +1139,7 @@ void Deoptimizer::DoComputeUnoptimizedFrame(TranslatedFrame* translated_frame,
   }
   // Read the context from the translations.
   Object context = context_pos->GetRawValue();
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(context.ptr()));
   output_frame->SetContext(static_cast<intptr_t>(context.ptr()));
   frame_writer.PushTranslatedValue(context_pos, "context");
 
@@ -1820,6 +1821,7 @@ void Deoptimizer::DoComputeBuiltinContinuation(
   const intptr_t value = context.ptr();
   TranslatedFrame::iterator context_register_value = value_iterator++;
   register_values[kContextRegister.code()] = context_register_value;
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(value));
   output_frame->SetContext(value);
   output_frame->SetRegister(kContextRegister.code(), value);
 

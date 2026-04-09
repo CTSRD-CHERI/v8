@@ -501,6 +501,7 @@ void BaselineAssembler::LdaContextSlot(Register context, uint32_t index,
   for (; depth > 0; --depth) {
     LoadTaggedField(context, context, Context::kPreviousOffset);
   }
+  __ DebugAssertValidContext(context);
   LoadTaggedField(kInterpreterAccumulatorRegister, context,
                   Context::OffsetOfElementAt(index));
 }
@@ -510,6 +511,7 @@ void BaselineAssembler::StaContextSlot(Register context, Register value,
   for (; depth > 0; --depth) {
     LoadTaggedField(context, context, Context::kPreviousOffset);
   }
+  __ DebugAssertValidContext(context);
   StoreTaggedFieldWithWriteBarrier(context, Context::OffsetOfElementAt(index),
                                    value);
 }
@@ -519,6 +521,7 @@ void BaselineAssembler::LdaModuleVariable(Register context, int cell_index,
   for (; depth > 0; --depth) {
     LoadTaggedField(context, context, Context::kPreviousOffset);
   }
+  __ DebugAssertValidContext(context);
   LoadTaggedField(context, context, Context::kExtensionOffset);
   if (cell_index > 0) {
     LoadTaggedField(context, context, SourceTextModule::kRegularExportsOffset);
@@ -544,6 +547,7 @@ void BaselineAssembler::StaModuleVariable(Register context, Register value,
   // The actual array index is (cell_index - 1).
   cell_index -= 1;
   LoadFixedArrayElement(context, context, cell_index);
+  __ DebugAssertValidContext(context);
   StoreTaggedFieldWithWriteBarrier(context, Cell::kValueOffset, value);
 }
 
@@ -619,6 +623,7 @@ void BaselineAssembler::EmitReturn(MacroAssembler* masm) {
     __ masm()->Push(params_size.C(), kInterpreterAccumulatorRegister);
 
     __ LoadContext(kContextRegister);
+    __ masm()->DebugAssertValidContext(kContextRegister);
     __ LoadFunction(kJSFunctionRegister);
     __ masm()->PushArgument(kJSFunctionRegister);
     __ CallRuntime(Runtime::kBytecodeBudgetInterrupt_Sparkplug, 1);
