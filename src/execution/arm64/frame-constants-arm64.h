@@ -105,8 +105,8 @@ class WasmDebugBreakFrameConstants : public TypedFrameConstants {
   // x16: ip0, x17: ip1, x18: platform register, x26: root, x28: base, x29: fp,
   // x30: lr, x31: xzr.
   static constexpr RegList kPushedGpRegs = {
-      x0,  x1,  x2,  x3,  x4,  x5,  x6,  x7,  x8,  x9,  x10, x11,
-      x12, x13, x14, x15, x19, x20, x21, x22, x23, x24, x25, x27};
+      c0,  c1,  c2,  c3,  c4,  c5,  c6,  c7,  c8,  c9,  c10, c11,
+      c12, c13, c14, c15, c19, c20, c21, c22, c23, c24, x25, c27};
 
   // We push FpRegs as 128-bit SIMD registers, so 16-byte frame alignment
   // is guaranteed regardless of register count.
