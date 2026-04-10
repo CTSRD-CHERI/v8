@@ -524,9 +524,8 @@ void MacroAssembler::Mov(const Register& rd, const Operand& operand,
     // If sp is an operand, add #0 is emitted, otherwise, orr #0.
     if (rd != operand.reg() ||
         (rd.Is32Bits() && (discard_mode == kDontDiscardForSameWReg))) {
-      if (rd.IsC()) {
-        DCHECK(operand.reg().IsC());
-        Assembler::cpy(rd, operand.reg());
+      if (rd.IsC() || operand.reg().IsC()) {
+        Assembler::cpy(rd.C(), operand.reg().C());
       } else {
         DCHECK(!operand.reg().IsC());
         Assembler::mov(rd, operand.reg());
