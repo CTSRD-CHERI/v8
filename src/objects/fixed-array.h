@@ -276,7 +276,11 @@ class FixedDoubleArray
   static constexpr int kFloatsOffset = kHeaderSize;
 
   // Maximally allowed length of a FixedDoubleArray.
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+  static const int kMaxLength = (kMaxSize - kHeaderSize) / kTaggedSize;
+#else
   static const int kMaxLength = (kMaxSize - kHeaderSize) / kDoubleSize;
+#endif
   static_assert(Internals::IsValidSmi(kMaxLength),
                 "FixedDoubleArray maxLength not a Smi");
 
