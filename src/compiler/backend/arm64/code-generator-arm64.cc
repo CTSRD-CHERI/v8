@@ -3698,8 +3698,7 @@ void CodeGenerator::FinishFrame(Frame* frame) {
     DCHECK(saves_fp.bits() == CPURegList::GetCalleeSavedV().bits());
 #if V8_TARGET_CHERI
     static_assert((kDoubleSize * 2) == kSystemPointerSize);
-    frame->AllocateSavedCalleeRegisterSlots(
-        saved_count / (kSystemPointerSize / kDoubleSize));
+    frame->AllocateSavedCalleeRegisterSlots(saved_count);
 #else
     frame->AllocateSavedCalleeRegisterSlots(saved_count *
                                             (kDoubleSize / kSystemPointerSize));
