@@ -836,7 +836,12 @@ Node* RepresentationChanger::GetFloat64RepresentationFor(
     }
   } else if (output_rep == MachineRepresentation::kFloat32) {
     op = machine()->ChangeFloat32ToFloat64();
+#if V8_TARGET_CHERI
+  } else if (output_rep == MachineRepresentation::kWord64 ||
+             output_rep == MachineRepresentation::kCapability64) {
+#else
   } else if (output_rep == MachineRepresentation::kWord64) {
+#endif
     if (output_type.Is(cache_->kSafeInteger)) {
       op = machine()->ChangeInt64ToFloat64();
     }
