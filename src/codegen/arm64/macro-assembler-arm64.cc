@@ -3458,6 +3458,7 @@ void MacroAssembler::EnterExitFrame(const Register& scratch, int extra_space,
   ASM_CODE_COMMENT(this);
   DCHECK(frame_type == StackFrame::EXIT ||
          frame_type == StackFrame::BUILTIN_EXIT);
+  DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, scratch.IsC());
 
   // Set up the new stack frame.
   Push<MacroAssembler::kSignLR>(lr, fp);
