@@ -585,7 +585,7 @@ class TestEnvironment : public HandleAndZoneScope {
     for (int i = 0; i < kSmiConstantCount; i++) {
       intptr_t smi_value = static_cast<intptr_t>(
           Smi::FromInt(rng_->NextInt(Smi::kMaxValue)).ptr());
-      Constant constant = kSystemPointerSize == 8
+      Constant constant = kSystemPointerAddrSize == 8
                               ? Constant(static_cast<int64_t>(smi_value))
                               : Constant(static_cast<int32_t>(smi_value));
       AddConstant(MachineRepresentation::kTagged, AllocateConstant(constant));
