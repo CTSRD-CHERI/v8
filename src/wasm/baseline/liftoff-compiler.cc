@@ -3279,7 +3279,7 @@ class LiftoffCompiler {
     LiftoffRegister data = effective_offset;
 
     // Now store all information into the MemoryTracingInfo struct.
-    if (kSystemPointerSize == 8 && !is_memory64) {
+    if (kSystemPointerAddrSize == 8 && !is_memory64) {
       // Zero-extend the effective offset to u64.
       CHECK(__ emit_type_conversion(kExprI64UConvertI32, data, effective_offset,
                                     nullptr));
