@@ -479,7 +479,9 @@ int32_t memory_init_wrapper(Address data) {
   ThreadNotInWasmScope thread_not_in_wasm_scope;
   DisallowGarbageCollection no_gc;
   size_t offset = 0;
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(data));
   Object raw_instance = ReadAndIncrementOffset<Object>(data, &offset);
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(raw_instance.ptr()));
   WasmInstanceObject instance = WasmInstanceObject::cast(raw_instance);
   uintptr_t dst = ReadAndIncrementOffset<uintptr_t>(data, &offset);
   uint32_t src = ReadAndIncrementOffset<uint32_t>(data, &offset);
