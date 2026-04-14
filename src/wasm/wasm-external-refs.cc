@@ -348,26 +348,42 @@ uint32_t word64_popcnt_wrapper(Address data) {
 
 uint32_t word32_rol_wrapper(Address data) {
   uint32_t input = ReadUnalignedValue<uint32_t>(data);
+#ifdef __CHERI_PURE_CAPABILITY__
+  uint32_t shift = ReadUnalignedValue<uint32_t>(data + kSystemPointerSize) & 31;
+#else
   uint32_t shift = ReadUnalignedValue<uint32_t>(data + sizeof(input)) & 31;
+#endif
   return (input << shift) | (input >> ((32 - shift) & 31));
 }
 
 uint32_t word32_ror_wrapper(Address data) {
   uint32_t input = ReadUnalignedValue<uint32_t>(data);
+#ifdef __CHERI_PURE_CAPABILITY__
+  uint32_t shift = ReadUnalignedValue<uint32_t>(data + kSystemPointerSize) & 31;
+#else
   uint32_t shift = ReadUnalignedValue<uint32_t>(data + sizeof(input)) & 31;
+#endif
   return (input >> shift) | (input << ((32 - shift) & 31));
 }
 
 void word64_rol_wrapper(Address data) {
   uint64_t input = ReadUnalignedValue<uint64_t>(data);
+#ifdef __CHERI_PURE_CAPABILITY__
+  uint64_t shift = ReadUnalignedValue<uint64_t>(data + kSystemPointerSize) & 63;
+#else
   uint64_t shift = ReadUnalignedValue<uint64_t>(data + sizeof(input)) & 63;
+#endif
   uint64_t result = (input << shift) | (input >> ((64 - shift) & 63));
   WriteUnalignedValue<uint64_t>(data, result);
 }
 
 void word64_ror_wrapper(Address data) {
   uint64_t input = ReadUnalignedValue<uint64_t>(data);
+#ifdef __CHERI_PURE_CAPABILITY__
+  uint64_t shift = ReadUnalignedValue<uint64_t>(data + kSystemPointerSize) & 63;
+#else
   uint64_t shift = ReadUnalignedValue<uint64_t>(data + sizeof(input)) & 63;
+#endif
   uint64_t result = (input >> shift) | (input << ((64 - shift) & 63));
   WriteUnalignedValue<uint64_t>(data, result);
 }
@@ -381,13 +397,14 @@ void float64_pow_wrapper(Address data) {
 template <typename T, T (*float_round_op)(T)>
 void simd_float_round_wrapper(Address data) {
   constexpr int n = kSimd128Size / sizeof(T);
+  constexpr size_t to_increment = sizeof(T);
   for (int i = 0; i < n; i++) {
-    T input = ReadUnalignedValue<T>(data + (i * sizeof(T)));
+    T input = ReadUnalignedValue<T>(data + (i * to_increment));
     T value = float_round_op(input);
 #if V8_OS_AIX
     value = FpOpWorkaround<T>(input, value);
 #endif
-    WriteUnalignedValue<T>(data + (i * sizeof(T)), value);
+    WriteUnalignedValue<T>(data + (i * to_increment), value);
   }
 }
 
@@ -467,7 +484,11 @@ inline uint8_t* EffectiveAddress(WasmInstanceObject instance, uintptr_t index) {
 template <typename V>
 V ReadAndIncrementOffset(Address data, size_t* offset) {
   V result = ReadUnalignedValue<V>(data + *offset);
+#ifdef __CHERI_PURE_CAPABILITY__
+  *offset += kSystemPointerSize;
+#else
   *offset += sizeof(V);
+#endif
   return result;
 }
 

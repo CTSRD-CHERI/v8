@@ -1712,12 +1712,11 @@ class LiftoffCompiler {
     int param_bytes = 0;
     for (ValueKind param_kind : sig->parameters()) {
       int current_size = value_kind_size(param_kind);
-#ifdef __CHERI_PURE_CAPABILITY__
-      if (current_size == kSystemPointerSize) {
-        param_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(param_bytes);
-      }
-#endif  // __CHERI_PURE_CAPABILITY__
+#if V8_TARGET_CHERI
+      param_bytes += kSystemPointerSize;
+#else
       param_bytes += current_size;
+#endif
     }
     int out_arg_bytes =
         out_argument_kind == kVoid ? 0 : value_kind_size(out_argument_kind);
@@ -5508,7 +5507,7 @@ class LiftoffCompiler {
 
     Register instance = __ cache_state()->cached_instance;
     if (instance == no_reg) {
-      instance = __ GetUnusedRegister(kGpReg, pinned).gp();
+      instance = __ GetUnusedRegister(kGpReg, pinned).gp().C();
       __ LoadInstanceFromFrame(instance);
     }
     pinned.set(instance);
@@ -5529,8 +5528,13 @@ class LiftoffCompiler {
         pinned.set(__ GetUnusedRegister(kGpReg, pinned));
     __ LoadConstant(segment_index, WasmValue(imm.data_segment.index));
 
+#if V8_TARGET_CHERI
+    auto sig = MakeSig::Returns(kI32).Params(
+        kCapability64Kind, kCapability64Kind, kI32, kI32, kI32);
+#else
     auto sig = MakeSig::Returns(kI32).Params(kIntPtrKind, kIntPtrKind, kI32,
                                              kI32, kI32);
+#endif
     LiftoffRegister args[] = {LiftoffRegister(instance), dst, src,
                               segment_index, size};
     // We don't need the instance anymore after the call. We can use the
@@ -5692,7 +5696,7 @@ class LiftoffCompiler {
   void ElemDrop(FullDecoder* decoder, const IndexImmediate& imm) {
     LiftoffRegList pinned;
     Register element_segments =
-        pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp();
+        pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C();
     LOAD_TAGGED_PTR_INSTANCE_FIELD(element_segments, ElementSegments, pinned);
 
     LiftoffRegister seg_index =
@@ -8143,7 +8147,7 @@ class LiftoffCompiler {
                              kWasmInternalFunctionCallTargetTag, temp.gp());
 #else
 #if V8_TARGET_CHERI
-      __ LoadCapability(target, func_ref.gp(), no_reg,
+      __ LoadCapability(target, func_ref.gp().C(), no_reg,
                         wasm::ObjectAccess::ToTagged(
                             WasmInternalFunction::kCallTargetOffset));
 #else

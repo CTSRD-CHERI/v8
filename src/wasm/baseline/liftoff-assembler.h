@@ -354,7 +354,7 @@ class LiftoffAssembler : public MacroAssembler {
       // initially is, and where it needs to be for calls.
       Register new_cache_reg = available_regs.has(kWasmInstanceRegister)
                                    ? kWasmInstanceRegister
-                                   : available_regs.GetFirstRegSet().gp();
+                                   : available_regs.GetFirstRegSet().gp().C();
       SetInstanceCacheRegister(new_cache_reg);
       DCHECK_EQ(new_cache_reg, cached_instance);
       return new_cache_reg;

@@ -5152,7 +5152,11 @@ Node* WasmGraphBuilder::StoreArgsInStackSlot(
     std::initializer_list<std::pair<MachineRepresentation, Node*>> args) {
   int slot_size = 0;
   for (auto arg : args) {
+#if V8_TARGET_CHERI
+    slot_size += kSystemPointerSize;
+#else
     slot_size += ElementSizeInBytes(arg.first);
+#endif
   }
   DCHECK_LT(0, slot_size);
   Node* stack_slot =
@@ -5163,7 +5167,11 @@ Node* WasmGraphBuilder::StoreArgsInStackSlot(
     MachineRepresentation type = arg.first;
     Node* value = arg.second;
     gasm_->StoreUnaligned(type, stack_slot, Int32Constant(offset), value);
+#if V8_TARGET_CHERI
+    offset += kSystemPointerSize;
+#else
     offset += ElementSizeInBytes(type);
+#endif
   }
   return stack_slot;
 }
@@ -7939,7 +7947,7 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
                                  Int32Constant(offset), Param(i + 1), effect(),
                                  control()));
 #if V8_TARGET_CHERI
-      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+      offset += kSystemPointerSize;
 #else
       offset += type.value_kind_size();
 #endif
@@ -8008,7 +8016,7 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
                              Int32Constant(offset), effect(), control()));
         returns[i] = val;
 #if V8_TARGET_CHERI
-        offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+        offset += kSystemPointerSize;
 #else
         offset += type.value_kind_size();
 #endif
@@ -8299,7 +8307,7 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
                            Int32Constant(offset), effect(), control()));
       args[pos++] = arg_load;
 #if V8_TARGET_CHERI
-      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+      offset += kSystemPointerSize;
 #else
       offset += type.value_kind_size();
 #endif
@@ -8336,7 +8344,7 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
                                  Int32Constant(offset), value, effect(),
                                  control()));
 #if V8_TARGET_CHERI
-      offset += RoundUp(type.value_kind_size(), kSystemPointerSize);
+      offset += kSystemPointerSize;
 #else
       offset += type.value_kind_size();
 #endif

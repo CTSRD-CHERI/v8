@@ -3611,13 +3611,13 @@ void LiftoffAssembler::CallC(const ValueKindSig* sig,
 
   int arg_bytes = 0;
   for (ValueKind param_kind : sig->parameters()) {
-    int current_size = value_kind_size(param_kind);
 #if V8_TARGET_CHERI
-    if (current_size == kSystemPointerSize) {
-      arg_bytes = RoundUp<kSystemPointerSize>(arg_bytes);
-    }
-#endif
+    int current_size = kSystemPointerSize;
     Poke(liftoff::GetRegFromType(*args++, param_kind), arg_bytes);
+#else
+    int current_size = value_kind_size(param_kind);
+    Poke(liftoff::GetRegFromType(*args++, param_kind), arg_bytes);
+#endif
     arg_bytes += current_size;
   }
   DCHECK_LE(arg_bytes, stack_bytes);
@@ -3637,8 +3637,8 @@ void LiftoffAssembler::CallC(const ValueKindSig* sig,
   const LiftoffRegister* next_result_reg = rets;
   if (sig->return_count() > 0) {
     DCHECK_EQ(1, sig->return_count());
-    constexpr Register kReturnReg = x0;
-    if (kReturnReg != next_result_reg->gp()) {
+    constexpr Register kReturnReg = c0;
+    if (kReturnReg != next_result_reg->gp().C()) {
       Move(*next_result_reg, LiftoffRegister(kReturnReg), sig->GetReturn(0));
     }
     ++next_result_reg;
