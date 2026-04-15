@@ -1105,7 +1105,8 @@ void LiftoffAssembler::LoadCallerFrameSlot(LiftoffRegister dst,
                                            ValueKind kind) {
   int32_t offset = (caller_slot_idx + 1) * LiftoffAssembler::kStackSlotSize;
   CPURegister cpu_reg = liftoff::GetRegFromType(dst, kind);
-  if (cpu_reg.IsRegister()) {
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && cpu_reg.IsRegister()) {
     Ldr(cpu_reg.C(), MemOperand(fp, offset));
   } else {
     Ldr(cpu_reg, MemOperand(fp, offset));
@@ -1117,7 +1118,8 @@ void LiftoffAssembler::StoreCallerFrameSlot(LiftoffRegister src,
                                             ValueKind kind) {
   int32_t offset = (caller_slot_idx + 1) * LiftoffAssembler::kStackSlotSize;
   CPURegister cpu_reg = liftoff::GetRegFromType(src, kind);
-  if (cpu_reg.IsRegister()) {
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && cpu_reg.IsRegister()) {
     Str(cpu_reg.C(), MemOperand(fp, offset));
   } else {
     Str(cpu_reg, MemOperand(fp, offset));
@@ -1127,7 +1129,8 @@ void LiftoffAssembler::StoreCallerFrameSlot(LiftoffRegister src,
 void LiftoffAssembler::LoadReturnStackSlot(LiftoffRegister dst, int offset,
                                            ValueKind kind) {
   CPURegister cpu_reg = liftoff::GetRegFromType(dst, kind);
-  if (cpu_reg.IsRegister()) {
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && cpu_reg.IsRegister()) {
     Ldr(cpu_reg.C(), MemOperand(csp, offset));
   } else {
     Ldr(cpu_reg, MemOperand(csp, offset));
@@ -1139,7 +1142,12 @@ void LiftoffAssembler::MoveStackValue(uint32_t dst_offset, uint32_t src_offset,
   UseScratchRegisterScope temps(this);
   CPURegister scratch = liftoff::AcquireByType(&temps, kind);
   Ldr(scratch, liftoff::GetStackSlot(src_offset));
-  Str(scratch, liftoff::GetStackSlot(dst_offset));
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && scratch.IsRegister()) {
+    Str(scratch.C(), liftoff::GetStackSlot(dst_offset));
+  } else {
+    Str(scratch, liftoff::GetStackSlot(dst_offset));
+  }
 }
 
 void LiftoffAssembler::Move(Register dst, Register src, ValueKind kind) {
@@ -1166,7 +1174,13 @@ void LiftoffAssembler::Move(DoubleRegister dst, DoubleRegister src,
 void LiftoffAssembler::Spill(int offset, LiftoffRegister reg, ValueKind kind) {
   RecordUsedSpillOffset(offset);
   MemOperand dst = liftoff::GetStackSlot(offset);
-  Str(liftoff::GetRegFromType(reg, kind), dst);
+  CPURegister cpu_reg = liftoff::GetRegFromType(reg, kind);
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && cpu_reg.IsRegister()) {
+    Str(cpu_reg.C(), dst);
+  } else {
+    Str(cpu_reg, dst);
+  }
 }
 
 void LiftoffAssembler::Spill(int offset, WasmValue value) {
@@ -1195,16 +1209,20 @@ void LiftoffAssembler::Spill(int offset, WasmValue value) {
       // We do not track f32 and f64 constants, hence they are unreachable.
       UNREACHABLE();
   }
-  Str(src, dst);
+  if (V8_CHERI_PURECAP_BOOL) {
+    Str(src.C(), dst);
+  } else {
+    Str(src, dst);
+  }
 }
 
 void LiftoffAssembler::Fill(LiftoffRegister reg, int offset, ValueKind kind) {
   MemOperand src = liftoff::GetStackSlot(offset);
   CPURegister cpu_reg = liftoff::GetRegFromType(reg, kind);
-  if (cpu_reg.IsRegister()) {
+  // If it's not a floating point register, store it in a capability-width slot.
+  if (V8_CHERI_PURECAP_BOOL && cpu_reg.IsRegister()) {
     Ldr(cpu_reg.C(), src);
   } else {
-    // Not a general purpose register, don't cast it to a capability register.
     Ldr(cpu_reg, src);
   }
 }

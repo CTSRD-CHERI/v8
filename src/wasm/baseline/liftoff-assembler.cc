@@ -1245,7 +1245,7 @@ void LiftoffAssembler::Move(LiftoffRegister dst, LiftoffRegister src,
     // convert this FP to its SIMD register, and use a SIMD move.
     Move(dst.low_fp(), src.low_fp(), kind);
   } else if (dst.is_gp()) {
-    Move(dst.gp(), src.gp(), kind);
+    Move(dst.gp().C(), src.gp().C(), kind);
   } else {
     Move(dst.fp(), src.fp(), kind);
   }
