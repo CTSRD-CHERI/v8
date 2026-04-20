@@ -9,6 +9,15 @@
 #include "src/base/sanitizer/asan.h"
 #include "src/base/sanitizer/msan.h"
 #include "src/base/sanitizer/tsan.h"
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <dlfcn.h>
+#endif
+
+typedef void (*cheritree_print_func_t)(void);
+
+extern "C" void cheritree_print();
+cheritree_print_func_t _cheritree_print_fptr;
+void ***cheritree_regs_ptr = nullptr;
 
 namespace heap::base {
 
@@ -117,6 +126,7 @@ void IterateUnsafeStackIfNecessary(StackVisitor* visitor) {
 #endif  // defined(__has_feature)
 }
 
+void* cheritree = nullptr;
 // This method should never be inlined to ensure that a possible redzone cannot
 // contain any data that needs to be scanned.
 V8_NOINLINE
@@ -130,6 +140,16 @@ void IteratePointersInStack(StackVisitor* visitor, const void* top,
                             const void* start, const void* asan_fake_stack,
                             bool whole_stack = false) {
   using namespace v8::base;
+#ifdef __CHERI_PURE_CAPABILITY__
+  if (cheritree == nullptr) {
+    cheritree = dlopen("/usr/local/lib/libcheritree.so", RTLD_LOCAL | RTLD_NOW);
+    _cheritree_print_fptr = (cheritree_print_func_t)dlsym(cheritree, "_cheritree_print");
+    cheritree_regs_ptr = (void***)dlsym(cheritree, "cheritree_regs");
+    CHECK_NE(_cheritree_print_fptr, nullptr);
+    CHECK_NE(cheritree_regs_ptr, nullptr);
+  }
+  cheritree_print();
+#endif
   // Obtain the first trusted frame.
   void* trusted_frame = nullptr;
   OS::C18n::TrustedFrameState trusted_frame_state;
