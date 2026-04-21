@@ -809,12 +809,14 @@ class LiftoffCompiler {
       instance = tmp1;
       __ LoadInstanceFromFrame(instance);
     }
+    DCHECK(instance.IsC());
     constexpr int kArraySize = kSystemPointerSize;
     constexpr int kArrayOffset =
         WASM_INSTANCE_OBJECT_FIELD_OFFSET(TieringBudgetArray);
     static_assert(WASM_INSTANCE_OBJECT_FIELD_SIZE(TieringBudgetArray) ==
                   kArraySize);
     Register array_reg = tmp1;  // Overwriting {instance}.
+    DCHECK(array_reg.IsC());
     __ LoadFromInstance(array_reg, instance, kArrayOffset, kArraySize);
     uint32_t offset =
         kInt32Size * declared_function_index(env_->module, func_index_);
@@ -3826,7 +3828,7 @@ class LiftoffCompiler {
     LiftoffRegister ref =
         pinned.set(pass_null_along_branch ? __ PeekToRegister(0, pinned)
                                           : __ PopToRegister(pinned));
-    Register null = pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp();
+    Register null = pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C();
     Register tmp =
         NeedsTierupCheck(decoder, depth)
             ? pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C()
@@ -3857,7 +3859,7 @@ class LiftoffCompiler {
     LiftoffRegList pinned;
     LiftoffRegister ref = pinned.set(__ PeekToRegister(0, pinned));
 
-    Register null = pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp();
+    Register null = pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C();
     Register tmp =
         NeedsTierupCheck(decoder, depth)
             ? pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C()

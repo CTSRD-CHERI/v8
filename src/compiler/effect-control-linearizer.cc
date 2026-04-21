@@ -3066,8 +3066,13 @@ Node* EffectControlLinearizer::EndStringBuilderConcat(Node* node) {
         // If the filler has size 0, do nothing.
       },
       [&]() {
+#if V8_TARGET_CHERI
+        Node* filler_map_location =
+            __ CapAdd(backing_store, new_backing_store_real_size);
+#else
         Node* filler_map_location =
             __ IntPtrAdd(backing_store, new_backing_store_real_size);
+#endif
         IfThenElse(
             __ Word32Equal(freed_size, __ Int32Constant(kTaggedSize)),
             [&]() {
@@ -3105,6 +3110,16 @@ Node* EffectControlLinearizer::EndStringBuilderConcat(Node* node) {
 
   // Setting the padding bytes to 0
   {
+#if V8_TARGET_CHERI
+    Node* end =
+        __ CapSub(__ CapAdd(backing_store, new_backing_store_real_size),
+                     __ IntPtrConstant(kHeapObjectTag));
+    Node* start = __ CapSub(
+        end, __ IntPtrSub(new_backing_store_real_size,
+                          __ IntPtrAdd(__ IntPtrConstant(String::kHeaderSize),
+                                       ChangeInt32ToIntPtr(__ Word32Shl(
+                                           new_length, is_two_byte)))));
+#else
     Node* end =
         __ IntPtrSub(__ IntPtrAdd(backing_store, new_backing_store_real_size),
                      __ IntPtrConstant(kHeapObjectTag));
@@ -3113,6 +3128,7 @@ Node* EffectControlLinearizer::EndStringBuilderConcat(Node* node) {
                           __ IntPtrAdd(__ IntPtrConstant(String::kHeaderSize),
                                        ChangeInt32ToIntPtr(__ Word32Shl(
                                            new_length, is_two_byte)))));
+#endif
     auto loop = __ MakeLoopLabel(MachineType::PointerRepresentation());
     auto done = __ MakeLabel();
     __ Goto(&loop, start);
@@ -3123,7 +3139,11 @@ Node* EffectControlLinearizer::EndStringBuilderConcat(Node* node) {
     __ Store(
         StoreRepresentation(MachineRepresentation::kWord8, kNoWriteBarrier),
         addr, 0, __ Int32Constant(0));
+#if V8_TARGET_CHERI
+    __ Goto(&loop, __ CapAdd(addr, __ IntPtrConstant(1)));
+#else
     __ Goto(&loop, __ IntPtrAdd(addr, __ IntPtrConstant(1)));
+#endif
 
     __ Bind(&done);
   }
