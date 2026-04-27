@@ -45,6 +45,7 @@ void FrameDescription::SetPc(intptr_t pc) {
     CHECK(Deoptimizer::IsValidReturnAddress(PointerAuthentication::StripPAC(pc),
                                             isolate_));
   }
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc));
   pc_ = pc;
 }
 

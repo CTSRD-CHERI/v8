@@ -61,7 +61,12 @@
 #define V8_CHERI_ADDR_GET(cap) (cap)
 // XXX(cheri): Currently assume that everything is untagged on non-CHERI.
 #define V8_CHERI_TAG_GET(cap) false
-#define V8_CHERI_SET_BOUNDS(cap, len) (cap)
+#define V8_CHERI_SEALED(cap) false
+#define V8_CHERI_SET_BOUNDS(cap, len) reinterpret_cast<void*>(cap)
+#define V8_CHERI_SET_BOUNDS_EXACT(cap, len) reinterpret_cast<void*>(cap)
+#define V8_CHERI_PCC nullptr
+#define V8_CHERI_TO_SENTRY(cap) reinterpret_cast<void*>(cap)
+#define V8_CHERI_ADDR_SET(cap, addr) reinterpret_cast<void*>(addr)
 #endif  // __CHERI_PURE_CAPABILITY__
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.

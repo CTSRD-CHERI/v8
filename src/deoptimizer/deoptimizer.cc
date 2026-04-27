@@ -1482,6 +1482,12 @@ void Deoptimizer::DoComputeConstructStubFrame(TranslatedFrame* translated_frame,
           ? isolate_->heap()->construct_stub_create_deopt_pc_offset().value()
           : isolate_->heap()->construct_stub_invoke_deopt_pc_offset().value();
   intptr_t pc_value = static_cast<intptr_t>(start + pc_offset);
+  if (V8_CHERI_SEALED(pc_value)) {
+    CHECK(V8_CHERI_TAG_GET(start));
+    pc_value = reinterpret_cast<intptr_t>(V8_CHERI_TO_SENTRY(
+        V8_CHERI_ADDR_SET(V8_CHERI_PCC, static_cast<ptraddr_t>(pc_value))));
+  }
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc_value));
   if (is_topmost) {
     // Only the pc of the topmost frame needs to be signed since it is
     // authenticated at the end of the DeoptimizationEntry builtin.
