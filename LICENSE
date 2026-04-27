@@ -61,7 +61,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 The CHERI extensions of this project were created by Capabilities
-Limited, Domagoj Stolfa, Zhuo Ying Jiang Li, and Mingle Chen, are
-available under the same license and were created under Innovate UK
-project 10027332, "MOJO" and project 10027440, "Developing and
-Evaluating an Open-Source Desktop for Arm Morello".
+Limited, MSB Associates, Domagoj Stolfa, Zhuo Ying Jiang Li, and
+Mingle Chen, are available under the same license and were created
+under Innovate UK project 10027332, "MOJO" and project 10027440,
+"Developing and Evaluating an Open-Source Desktop for Arm Morello"
+and Defense Advanced Research Projects Agency (DARPA) Contract No.
+W912CG-26-C-A006 ("Compartmentalised Chrome Demonstrator (CCD)")
+with the U.S. Army Contracting Command and the Defense Advanced
+Research Projects Agency.
