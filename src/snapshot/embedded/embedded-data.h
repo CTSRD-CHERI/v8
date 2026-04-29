@@ -61,6 +61,7 @@ class EmbeddedData final {
   // .rodata).
   static EmbeddedData FromBlob() {
     return EmbeddedData(Isolate::CurrentEmbeddedBlobCode(),
+                        Isolate::CurrentEmbeddedBlobCodeNonSentry(),
                         Isolate::CurrentEmbeddedBlobCodeSize(),
                         Isolate::CurrentEmbeddedBlobData(),
                         Isolate::CurrentEmbeddedBlobDataSize());
@@ -70,14 +71,19 @@ class EmbeddedData final {
   // MaybeRemapEmbeddedBuiltinsIntoCodeRange).
   static EmbeddedData FromBlob(Isolate* isolate) {
     return EmbeddedData(
-        isolate->embedded_blob_code(), isolate->embedded_blob_code_size(),
-        isolate->embedded_blob_data(), isolate->embedded_blob_data_size());
+        isolate->embedded_blob_code(), isolate->embedded_blob_code_nonsentry(),
+        isolate->embedded_blob_code_size(), isolate->embedded_blob_data(),
+        isolate->embedded_blob_data_size());
   }
 
   // Returns a potentially remapped embedded blob (see also
   // MaybeRemapEmbeddedBuiltinsIntoCodeRange).
   static EmbeddedData FromBlob(CodeRange* code_range) {
+    DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
+                   V8_CHERI_TAG_GET(code_range->embedded_blob_code_copy()) &&
+                       !V8_CHERI_SEALED(code_range->embedded_blob_code_copy()));
     return EmbeddedData(code_range->embedded_blob_code_copy(),
+                        code_range->embedded_blob_code_copy(),
                         Isolate::CurrentEmbeddedBlobCodeSize(),
                         Isolate::CurrentEmbeddedBlobData(),
                         Isolate::CurrentEmbeddedBlobDataSize());
@@ -121,6 +127,7 @@ class EmbeddedData final {
   }
 
   const uint8_t* code() const { return code_; }
+  const uint8_t* code_nonsentry() const { return code_nonsentry_; }
   uint32_t code_size() const { return code_size_; }
   const uint8_t* data() const { return data_; }
   uint32_t data_size() const { return data_size_; }
@@ -257,16 +264,22 @@ class EmbeddedData final {
   static constexpr uint32_t RawCodeOffset() { return 0; }
 
  private:
-  EmbeddedData(const uint8_t* code, uint32_t code_size, const uint8_t* data,
-               uint32_t data_size)
-      : code_(code), code_size_(code_size), data_(data), data_size_(data_size) {
+  EmbeddedData(const uint8_t* code, const uint8_t* code_nonsentry,
+               uint32_t code_size, const uint8_t* data, uint32_t data_size)
+      : code_(code),
+        code_nonsentry_(code_nonsentry),
+        code_size_(code_size),
+        data_(data),
+        data_size_(data_size) {
     DCHECK_NOT_NULL(code);
     DCHECK_LT(0, code_size);
     DCHECK_NOT_NULL(data);
     DCHECK_LT(0, data_size);
+    CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(code_nonsentry_) &&
+                                             !V8_CHERI_SEALED(code_nonsentry_));
   }
 
-  const uint8_t* RawCode() const { return code_ + RawCodeOffset(); }
+  const uint8_t* RawCode() const { return code_nonsentry_ + RawCodeOffset(); }
 
   const LayoutDescription& LayoutDescription(Builtin builtin) const {
     const struct LayoutDescription* descs =
@@ -301,6 +314,7 @@ class EmbeddedData final {
   // The code section contains instruction streams. It is guaranteed to have
   // execute permissions, and may have read permissions.
   const uint8_t* code_;
+  const uint8_t* code_nonsentry_;
   uint32_t code_size_;
 
   // The data section contains both descriptions of the code section (hashes,

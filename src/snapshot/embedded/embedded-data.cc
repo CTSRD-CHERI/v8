@@ -362,7 +362,8 @@ EmbeddedData EmbeddedData::NewFromIsolate(Isolate* isolate) {
                 code.instruction_size());
   }
 
-  EmbeddedData d(blob_code, blob_code_size, blob_data, blob_data_size);
+  EmbeddedData d(blob_code, blob_code, blob_code_size, blob_data,
+                 blob_data_size);
 
   // Fix up call targets that point to other embedded builtins.
   FinalizeEmbeddedCodeTargets(isolate, &d);

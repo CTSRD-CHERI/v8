@@ -65,7 +65,7 @@
 #define V8_CHERI_SET_BOUNDS(cap, len) reinterpret_cast<void*>(cap)
 #define V8_CHERI_SET_BOUNDS_EXACT(cap, len) reinterpret_cast<void*>(cap)
 #define V8_CHERI_PCC nullptr
-#define V8_CHERI_TO_SENTRY(cap) reinterpret_cast<void*>(cap)
+#define V8_CHERI_TO_SENTRY(cap) (cap)
 #define V8_CHERI_ADDR_SET(cap, addr) reinterpret_cast<void*>(addr)
 #endif  // __CHERI_PURE_CAPABILITY__
 

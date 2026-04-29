@@ -159,6 +159,7 @@ class GeneratedCode {
     }
     DCHECK(V8_CHERI_TAG_GET(fn_ptr_));
     DCHECK(V8_CHERI_IS_EXECUTABLE(fn_ptr_));
+    DCHECK_EQ(reinterpret_cast<Address>(fn_ptr_) & 1, 1);
 #endif
     return fn_ptr_(args...);
 #endif  // ABI_USES_FUNCTION_DESCRIPTORS

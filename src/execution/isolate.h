@@ -1749,6 +1749,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   size_t HashIsolateForEmbeddedBlob();
 
   static const uint8_t* CurrentEmbeddedBlobCode();
+  static const uint8_t* CurrentEmbeddedBlobCodeNonSentry();
   static uint32_t CurrentEmbeddedBlobCodeSize();
   static const uint8_t* CurrentEmbeddedBlobData();
   static uint32_t CurrentEmbeddedBlobDataSize();
@@ -1757,6 +1758,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   // These always return the same result as static methods above, but don't
   // access the global atomic variable (and thus *might be* slightly faster).
   const uint8_t* embedded_blob_code() const;
+  const uint8_t* embedded_blob_code_nonsentry() const;
   uint32_t embedded_blob_code_size() const;
   const uint8_t* embedded_blob_data() const;
   uint32_t embedded_blob_data_size() const;
@@ -2417,6 +2419,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   void ClearEmbeddedBlob();
 
   const uint8_t* embedded_blob_code_ = nullptr;
+  const uint8_t* embedded_blob_code_nonsentry_ = nullptr;
   uint32_t embedded_blob_code_size_ = 0;
   const uint8_t* embedded_blob_data_ = nullptr;
   uint32_t embedded_blob_data_size_ = 0;

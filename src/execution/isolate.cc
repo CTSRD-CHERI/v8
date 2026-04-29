@@ -199,6 +199,7 @@ namespace {
 // set the same values of the blob pointer and size.
 
 std::atomic<const uint8_t*> current_embedded_blob_code_(nullptr);
+std::atomic<const uint8_t*> current_embedded_blob_code_nonsentry_(nullptr);
 std::atomic<uint32_t> current_embedded_blob_code_size_(0);
 std::atomic<const uint8_t*> current_embedded_blob_data_(nullptr);
 std::atomic<uint32_t> current_embedded_blob_data_size_(0);
@@ -234,6 +235,7 @@ std::atomic<uint32_t> current_embedded_blob_data_size_(0);
 base::LazyMutex current_embedded_blob_refcount_mutex_ = LAZY_MUTEX_INITIALIZER;
 
 const uint8_t* sticky_embedded_blob_code_ = nullptr;
+const uint8_t* sticky_embedded_blob_code_nonsentry_ = nullptr;
 uint32_t sticky_embedded_blob_code_size_ = 0;
 const uint8_t* sticky_embedded_blob_data_ = nullptr;
 uint32_t sticky_embedded_blob_data_size_ = 0;
@@ -242,6 +244,9 @@ bool enable_embedded_blob_refcounting_ = true;
 int current_embedded_blob_refs_ = 0;
 
 const uint8_t* StickyEmbeddedBlobCode() { return sticky_embedded_blob_code_; }
+const uint8_t* StickyEmbeddedBlobCodeNonSentry() {
+  return sticky_embedded_blob_code_nonsentry_;
+}
 uint32_t StickyEmbeddedBlobCodeSize() {
   return sticky_embedded_blob_code_size_;
 }
@@ -253,6 +258,8 @@ uint32_t StickyEmbeddedBlobDataSize() {
 void SetStickyEmbeddedBlob(const uint8_t* code, uint32_t code_size,
                            const uint8_t* data, uint32_t data_size) {
   sticky_embedded_blob_code_ = code;
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, !V8_CHERI_SEALED(code));
+  sticky_embedded_blob_code_nonsentry_ = code;
   sticky_embedded_blob_code_size_ = code_size;
   sticky_embedded_blob_data_ = data;
   sticky_embedded_blob_data_size_ = data_size;
@@ -307,12 +314,28 @@ void Isolate::SetEmbeddedBlob(const uint8_t* code, uint32_t code_size,
                               const uint8_t* data, uint32_t data_size) {
   CHECK_NOT_NULL(code);
   CHECK_NOT_NULL(data);
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(code));
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(data));
 
   embedded_blob_code_ = code;
+  if (V8_CHERI_SEALED(code)) {
+    embedded_blob_code_nonsentry_ =
+        reinterpret_cast<const uint8_t*>(V8_CHERI_ADDR_SET(
+            V8_CHERI_PCC,
+            static_cast<ptraddr_t>(reinterpret_cast<uintptr_t>(code))));
+  } else {
+    embedded_blob_code_nonsentry_ = embedded_blob_code_;
+  }
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
+                V8_CHERI_TAG_GET(embedded_blob_code_nonsentry_));
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
+                !V8_CHERI_SEALED(embedded_blob_code_nonsentry_));
   embedded_blob_code_size_ = code_size;
   embedded_blob_data_ = data;
   embedded_blob_data_size_ = data_size;
   current_embedded_blob_code_.store(code, std::memory_order_relaxed);
+  current_embedded_blob_code_nonsentry_.store(embedded_blob_code_nonsentry_,
+                                              std::memory_order_relaxed);
   current_embedded_blob_code_size_.store(code_size, std::memory_order_relaxed);
   current_embedded_blob_data_.store(data, std::memory_order_relaxed);
   current_embedded_blob_data_size_.store(data_size, std::memory_order_relaxed);
@@ -345,18 +368,24 @@ void Isolate::ClearEmbeddedBlob() {
   CHECK(enable_embedded_blob_refcounting_);
   CHECK_EQ(embedded_blob_code_, CurrentEmbeddedBlobCode());
   CHECK_EQ(embedded_blob_code_, StickyEmbeddedBlobCode());
+  CHECK_EQ(embedded_blob_code_nonsentry_, CurrentEmbeddedBlobCodeNonSentry());
+  CHECK_EQ(embedded_blob_code_nonsentry_, StickyEmbeddedBlobCodeNonSentry());
   CHECK_EQ(embedded_blob_data_, CurrentEmbeddedBlobData());
   CHECK_EQ(embedded_blob_data_, StickyEmbeddedBlobData());
 
   embedded_blob_code_ = nullptr;
+  embedded_blob_code_nonsentry_ = nullptr;
   embedded_blob_code_size_ = 0;
   embedded_blob_data_ = nullptr;
   embedded_blob_data_size_ = 0;
   current_embedded_blob_code_.store(nullptr, std::memory_order_relaxed);
+  current_embedded_blob_code_nonsentry_.store(nullptr,
+                                              std::memory_order_relaxed);
   current_embedded_blob_code_size_.store(0, std::memory_order_relaxed);
   current_embedded_blob_data_.store(nullptr, std::memory_order_relaxed);
   current_embedded_blob_data_size_.store(0, std::memory_order_relaxed);
   sticky_embedded_blob_code_ = nullptr;
+  sticky_embedded_blob_code_nonsentry_ = nullptr;
   sticky_embedded_blob_code_size_ = 0;
   sticky_embedded_blob_data_ = nullptr;
   sticky_embedded_blob_data_size_ = 0;
@@ -364,6 +393,9 @@ void Isolate::ClearEmbeddedBlob() {
 
 const uint8_t* Isolate::embedded_blob_code() const {
   return embedded_blob_code_;
+}
+const uint8_t* Isolate::embedded_blob_code_nonsentry() const {
+  return embedded_blob_code_nonsentry_;
 }
 uint32_t Isolate::embedded_blob_code_size() const {
   return embedded_blob_code_size_;
@@ -378,6 +410,11 @@ uint32_t Isolate::embedded_blob_data_size() const {
 // static
 const uint8_t* Isolate::CurrentEmbeddedBlobCode() {
   return current_embedded_blob_code_.load(std::memory_order_relaxed);
+}
+
+// static
+const uint8_t* Isolate::CurrentEmbeddedBlobCodeNonSentry() {
+  return current_embedded_blob_code_nonsentry_.load(std::memory_order_relaxed);
 }
 
 // static
@@ -4107,7 +4144,10 @@ void Isolate::MaybeRemapEmbeddedBuiltinsIntoCodeRange() {
   DCHECK_NOT_NULL(heap_.code_range_);
   embedded_blob_code_ = heap_.code_range_->RemapEmbeddedBuiltins(
       this, embedded_blob_code_, embedded_blob_code_size_);
+  embedded_blob_code_nonsentry_ = embedded_blob_code_;
   CHECK_NOT_NULL(embedded_blob_code_);
+  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
+                !V8_CHERI_SEALED(embedded_blob_code_nonsentry_));
 #if defined(__CHERI_PURE_CAPABILITY__)
   // Update the current_embedded_blob_code_ value to match the
   // embedded_blob_code_. Without this change the check that they are the same
