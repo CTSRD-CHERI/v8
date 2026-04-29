@@ -34,7 +34,7 @@ class BasicMemoryChunk {
   // All possible flags that can be set on a page. While the value of flags
   // doesn't matter in principle, keep flags used in the write barrier together
   // in order to have dense page flag checks in the write barrier.
-  enum Flag : uintptr_t {
+  enum Flag : ScaledUint {
     NO_FLAGS = 0u,
 
     // This page belongs to a shared heap.
