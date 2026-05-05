@@ -102,7 +102,11 @@ TEST_WITH_PLATFORM(AccountingAllocatorOOM, AllocationPlatform) {
 // we have _at least_ the expected amount of memory allocated.
 TEST_WITH_PLATFORM(AccountingAllocatorCurrentAndMax, AllocationPlatform) {
   v8::internal::AccountingAllocator allocator;
+#ifdef __CHERI_PURE_CAPABILITY__
+  static constexpr size_t kAllocationSizes[] = {51, 231, 37};
+#else
   static constexpr size_t kAllocationSizes[] = {51, 231, 27};
+#endif
   std::vector<v8::internal::Segment*> segments;
   const bool support_compression = false;
   CHECK_EQ(0, allocator.GetCurrentMemoryUsage());
