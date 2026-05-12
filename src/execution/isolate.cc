@@ -1982,8 +1982,7 @@ Object Isolate::UnwindAndFindHandler() {
           V8_CHERI_PCC,
           V8_CHERI_ADDR_GET(reinterpret_cast<void*>(instruction_start))));
       instruction_start = reinterpret_cast<Address>(V8_CHERI_ADDR_SET(
-          V8_CHERI_PCC,
-          V8_CHERI_ADDR_GET(reinterpret_cast<void*>(instruction_start))));
+          V8_CHERI_PCC, static_cast<ptraddr_t>(instruction_start)));
       thread_local_top()->pending_handler_entrypoint_ =
           V8_CHERI_TO_SENTRY((instruction_start + handler_offset) | 1);
     } else {
