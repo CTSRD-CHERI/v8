@@ -143,7 +143,10 @@ Address Code::metadata_start() const {
     if (V8_CHERI_SEALED(start)) {
       Address pcc = reinterpret_cast<Address>(V8_CHERI_PCC);
       Address rval = V8_CHERI_ADDR_SET(
-          pcc, (V8_CHERI_ADDR_GET(start) | 1) + instruction_size());
+          pcc, (V8_CHERI_ADDR_GET(start)) + instruction_size());
+#ifdef __aarch64__
+      rval |= 1;
+#endif
       return V8_CHERI_TO_SENTRY(rval);
     }
 #endif  // __CHERI_PURE_CAPABILITY__
