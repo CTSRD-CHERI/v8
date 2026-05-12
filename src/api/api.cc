@@ -5793,13 +5793,9 @@ template <>
 struct OneByteMask<8> {
   static const uint64_t value = 0xFF00'FF00'FF00'FF00;
 };
-#if defined(__CHERI_PURE_CAPABILITY__)
-static const size_t kOneByteMask = OneByteMask<sizeof(size_t)>::value;
-static const size_t kAlignmentMask = sizeof(size_t) - 1;
-#else   // !__CHERI_PURE_CAPABILITY__
-static const uintptr_t kOneByteMask = OneByteMask<sizeof(uintptr_t)>::value;
-static const uintptr_t kAlignmentMask = sizeof(uintptr_t) - 1;
-#endif  // !__CHERI_PURE_CAPABILITY__
+static const i::ScaledUint kOneByteMask =
+    OneByteMask<sizeof(i::ScaledUint)>::value;
+static const i::ScaledUint kAlignmentMask = sizeof(i::ScaledUint) - 1;
 static inline bool Unaligned(const uint16_t* chars) {
   return reinterpret_cast<const uintptr_t>(chars) &
          static_cast<size_t>(kAlignmentMask);
@@ -5826,7 +5822,7 @@ class ContainsOnlyOneByteHelper {
   }
   void VisitTwoByteString(const uint16_t* chars, int length) {
     // Accumulated bits.
-    uintptr_t acc = 0;
+    i::ScaledUint acc = 0;
     // Align to uintptr_t.
     const uint16_t* end = chars + length;
     while (Unaligned(chars) && chars != end) {
@@ -5835,11 +5831,11 @@ class ContainsOnlyOneByteHelper {
     // Read word aligned in blocks,
     // checking the return value at the end of each block.
     const uint16_t* aligned_end = Align(end);
-    const int increment = sizeof(uintptr_t) / sizeof(uint16_t);
+    const int increment = sizeof(i::ScaledUint) / sizeof(uint16_t);
     const int inner_loops = 16;
     while (chars + inner_loops * increment < aligned_end) {
       for (int i = 0; i < inner_loops; i++) {
-        acc |= *reinterpret_cast<const uintptr_t*>(chars);
+        acc |= *reinterpret_cast<const i::ScaledUint*>(chars);
         chars += increment;
       }
       // Check for early return.

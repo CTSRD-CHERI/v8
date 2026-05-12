@@ -101,7 +101,7 @@ class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
   ScaledInt size() const { return size_; }
   ScaledInt start() const { return start_; }
 
-  Microtask get(intptr_t index) const;
+  Microtask get(ScaledInt index) const;
 
   MicrotaskQueue* next() const { return next_; }
   MicrotaskQueue* prev() const { return prev_; }
@@ -120,7 +120,7 @@ class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
   void OnCompleted(Isolate* isolate) const;
 
   MicrotaskQueue();
-  void ResizeBuffer(intptr_t new_capacity);
+  void ResizeBuffer(ScaledInt new_capacity);
 
   // A ring buffer to hold Microtask instances.
   // ring_buffer_[(start_ + i) % capacity_] contains |i|th Microtask for each
@@ -131,7 +131,7 @@ class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
   Address* ring_buffer_ = nullptr;
 
   // The number of finished microtask.
-  intptr_t finished_microtask_count_ = 0;
+  ScaledInt finished_microtask_count_ = 0;
 
   // MicrotaskQueue instances form a doubly linked list loop, so that all
   // instances are reachable through |next_|.

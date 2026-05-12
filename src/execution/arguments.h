@@ -69,7 +69,7 @@ class Arguments {
 
   V8_INLINE Address* address_of_arg_at(int index) const {
     DCHECK_LE(static_cast<uint32_t>(index), static_cast<uint32_t>(length_));
-    uintptr_t offset = index * kSystemPointerSize;
+    ScaledUint offset = index * kSystemPointerSize;
     if (arguments_type == ArgumentsType::kJS) {
       offset = (length_ - index - 1) * kSystemPointerSize;
     }
@@ -81,7 +81,7 @@ class Arguments {
   V8_INLINE int length() const { return static_cast<int>(length_); }
 
  private:
-  intptr_t length_;
+  ScaledInt length_;
   Address* arguments_;
 };
 
