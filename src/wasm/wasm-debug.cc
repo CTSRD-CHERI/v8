@@ -46,7 +46,12 @@ Address FindNewPC(WasmFrame* frame, WasmCode* wasm_code, int byte_offset,
   // Find the size of the call instruction by computing the distance from the
   // source position entry to the return address.
   WasmCode* old_code = frame->wasm_code();
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  int pc_offset =
+      static_cast<int>((frame->pc() & ~1) - old_code->instruction_start());
+#else
   int pc_offset = static_cast<int>(frame->pc() - old_code->instruction_start());
+#endif
   base::Vector<const uint8_t> old_pos_table = old_code->source_positions();
   SourcePositionTableIterator old_it(old_pos_table);
   int call_offset = -1;
@@ -68,8 +73,12 @@ Address FindNewPC(WasmFrame* frame, WasmCode* wasm_code, int byte_offset,
   if (return_location == kAfterBreakpoint) {
     while (!it.is_statement()) it.Advance();
     DCHECK_EQ(byte_offset, it.source_position().ScriptOffset());
-    return wasm_code->instruction_start() + it.code_offset() +
-           call_instruction_size;
+    Address new_pc = wasm_code->instruction_start() + it.code_offset() +
+                     call_instruction_size;
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+    new_pc |= 1; // C64 bit.
+#endif
+    return new_pc;
   }
 
   DCHECK_EQ(kAfterWasmCall, return_location);
@@ -78,7 +87,12 @@ Address FindNewPC(WasmFrame* frame, WasmCode* wasm_code, int byte_offset,
     code_offset = it.code_offset();
     it.Advance();
   } while (!it.done() && it.source_position().ScriptOffset() == byte_offset);
-  return wasm_code->instruction_start() + code_offset + call_instruction_size;
+  Address new_pc =
+      wasm_code->instruction_start() + code_offset + call_instruction_size;
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  new_pc |= 1;  // C64 bit.
+#endif
+  return new_pc;
 }
 
 }  // namespace
@@ -482,13 +496,18 @@ class DebugInfoImpl {
   struct FrameInspectionScope {
     FrameInspectionScope(DebugInfoImpl* debug_info, Address pc)
         : code(wasm::GetWasmCodeManager()->LookupCode(pc)),
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+          pc_offset(static_cast<int>((pc & ~1) - code->instruction_start())),
+#else
           pc_offset(static_cast<int>(pc - code->instruction_start())),
+#endif
           debug_side_table(code->is_inspectable()
                                ? debug_info->GetDebugSideTable(code)
                                : nullptr),
           debug_side_table_entry(debug_side_table
                                      ? debug_side_table->GetEntry(pc_offset)
                                      : nullptr) {
+      DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, IsAligned(pc_offset, kInt32Size));
       DCHECK_IMPLIES(code->is_inspectable(), debug_side_table_entry != nullptr);
     }
 
