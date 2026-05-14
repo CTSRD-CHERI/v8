@@ -2773,6 +2773,7 @@ int WasmFrame::LookupExceptionHandlerInTable() {
     // The resulting capability could be invalid but it won't be
     // used as a pointer anyways.
     int pc_offset = static_cast<int>((pc() & ~1) - code->instruction_start());
+    DCHECK(IsAligned(pc_offset, kInt32Size));
 #else
     int pc_offset = static_cast<int>(pc() - code->instruction_start());
 #endif

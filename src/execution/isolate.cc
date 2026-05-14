@@ -2099,8 +2099,14 @@ Object Isolate::UnwindAndFindHandler() {
 
         // Jump directly to the optimized frames return, to immediately fall
         // into the deoptimizer.
+#ifdef __CHERI_PURE_CAPABILITY__
+        const int offset =
+            static_cast<int>((frame->pc() & ~1) - code.instruction_start());
+        DCHECK(IsAligned(offset, kInt32Size));
+#else
         const int offset =
             static_cast<int>(frame->pc() - code.instruction_start());
+#endif
 
         // Compute the stack pointer from the frame pointer. This ensures that
         // argument slots on the stack are dropped as returning would.
@@ -2307,7 +2313,10 @@ Object Isolate::UnwindAndFindHandler() {
         if (frame->is_baseline()) {
           BaselineFrame* sp_frame = BaselineFrame::cast(js_frame);
           Code code = sp_frame->LookupCode();
-          intptr_t pc_offset = sp_frame->GetPCForBytecodeOffset(offset);
+          ScaledInt pc_offset = sp_frame->GetPCForBytecodeOffset(offset);
+#ifdef __CHERI_PURE_CAPABILITY__
+          DCHECK(IsAligned(pc_offset, kInt32Size));
+#endif
           // Patch the context register directly on the frame, so that we don't
           // need to have a context read + write in the baseline code.
           sp_frame->PatchContext(context);
