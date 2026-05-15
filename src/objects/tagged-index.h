@@ -42,9 +42,9 @@ class TaggedIndex : public Object {
   }
 
   // Returns the integer value.
-  inline intptr_t value() const {
+  inline ScaledInt value() const {
     // Truncate and shift down (requires >> to be sign extending).
-    return static_cast<intptr_t>(ptr()) >> kSmiTagSize;
+    return static_cast<ScaledInt>(ptr()) >> kSmiTagSize;
   }
 
   // Convert a value to a TaggedIndex object.
@@ -65,9 +65,9 @@ class TaggedIndex : public Object {
 
   static_assert(kSmiTagSize == 1);
   static constexpr int kTaggedValueSize = 31;
-  static constexpr intptr_t kMinValue =
-      static_cast<intptr_t>(kUintptrAllBitsSet << (kTaggedValueSize - 1));
-  static constexpr intptr_t kMaxValue = -(kMinValue + 1);
+  static constexpr ScaledInt kMinValue =
+      static_cast<ScaledInt>(kUintptrAllBitsSet << (kTaggedValueSize - 1));
+  static constexpr ScaledInt kMaxValue = -(kMinValue + 1);
 };
 
 CAST_ACCESSOR(TaggedIndex)
