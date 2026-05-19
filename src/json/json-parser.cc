@@ -791,8 +791,11 @@ Handle<Object> JsonParser<Char>::BuildJsonObject(
                   mutable_double_buffer->GetDataStartAddress());
     Address filler_address = mutable_double_address;
     if (!V8_COMPRESS_POINTERS_8GB_BOOL && kTaggedSize != kDoubleSize) {
-      if (IsAligned(mutable_double_address, kDoubleAlignment)) {
+      if (!V8_CHERI_PURECAP_BOOL &&
+          IsAligned(mutable_double_address, kDoubleAlignment)) {
         mutable_double_address += kTaggedSize;
+      } else if (V8_CHERI_PURECAP_BOOL) {
+        CHECK(IsAligned(mutable_double_address, kDoubleAlignment));
       } else {
         filler_address += HeapNumber::kSize;
       }
