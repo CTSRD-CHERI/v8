@@ -21,7 +21,14 @@ namespace internal {
 
 HandlerTable::HandlerTable(Code code)
     : HandlerTable(code.handler_table_address(), code.handler_table_size(),
-                   kReturnAddressBasedEncoding) {}
+#if defined(__CHERI_PURE_CAPABILITY__)
+                   kReturnAddressBasedEncoding,
+                   code.kind() == CodeKind::TURBOFAN) {
+}
+#else
+                   kReturnAddressBasedEncoding) {
+}
+#endif
 
 #if V8_ENABLE_WEBASSEMBLY
 HandlerTable::HandlerTable(const wasm::WasmCode* code)
@@ -36,23 +43,57 @@ HandlerTable::HandlerTable(ByteArray byte_array)
     : HandlerTable(reinterpret_cast<Address>(byte_array.GetDataStartAddress()),
                    byte_array.length(), kRangeBasedEncoding) {}
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+HandlerTable::HandlerTable(Address handler_table, int handler_table_size,
+                           EncodingMode encoding_mode, bool is_turbofan)
+    : is_turbofan_(is_turbofan),
+
+      number_of_entries_(handler_table_size /
+                         EntrySizeFromMode(encoding_mode, is_turbofan) /
+                         sizeof(int32_t)),
+#else
 HandlerTable::HandlerTable(Address handler_table, int handler_table_size,
                            EncodingMode encoding_mode)
+
     : number_of_entries_(handler_table_size / EntrySizeFromMode(encoding_mode) /
                          sizeof(int32_t)),
+#endif
 #ifdef DEBUG
       mode_(encoding_mode),
 #endif
       raw_encoded_data_(handler_table) {
   // Check padding.
   static_assert(4 < kReturnEntrySize * sizeof(int32_t), "allowed padding");
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // For return address encoding, maximum padding is
+  // 4 (MetadataAlignment) + kSystemPointerSize (Capability Alignment);
+  // otherwise, there should be no padding.
+  int max_padding = is_turbofan ? 4 + kSystemPointerSize : 4;
+  DCHECK_GE(
+      kReturnAddressBasedEncoding == encoding_mode ? max_padding : 0,
+      handler_table_size %
+          (EntrySizeFromMode(encoding_mode, is_turbofan) * sizeof(int32_t)));
+#else
   // For return address encoding, maximum padding is 4; otherwise, there should
   // be no padding.
   DCHECK_GE(kReturnAddressBasedEncoding == encoding_mode ? 4 : 0,
             handler_table_size %
                 (EntrySizeFromMode(encoding_mode) * sizeof(int32_t)));
+#endif
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+int HandlerTable::EntrySizeFromMode(EncodingMode mode, bool is_turbofan) {
+  switch (mode) {
+    case kReturnAddressBasedEncoding:
+      return kReturnEntrySize + (is_turbofan ? kReturnSentrySize : 0);
+    case kRangeBasedEncoding:
+      return kRangeEntrySize;
+  }
+  UNREACHABLE();
+}
+#else
 // static
 int HandlerTable::EntrySizeFromMode(EncodingMode mode) {
   switch (mode) {
@@ -63,6 +104,7 @@ int HandlerTable::EntrySizeFromMode(EncodingMode mode) {
   }
   UNREACHABLE();
 }
+#endif
 
 int HandlerTable::GetRangeStart(int index) const {
   DCHECK_EQ(kRangeBasedEncoding, mode_);
@@ -117,6 +159,35 @@ int HandlerTable::GetReturnHandler(int index) const {
       Memory<int32_t>(raw_encoded_data_ + offset * sizeof(int32_t)));
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+Address HandlerTable::GetReturnSentryAddress(int index) const {
+  DCHECK_EQ(kReturnAddressBasedEncoding, mode_);
+  Address sentry_table_start =
+      raw_encoded_data_ +
+      RoundUp(number_of_entries_ * kReturnEntrySize, 4) * sizeof(int32_t);
+  return sentry_table_start + index * kReturnSentrySize * sizeof(int32_t);
+}
+
+uintptr_t HandlerTable::GetReturnSentry(int index) const {
+  DCHECK_EQ(kReturnAddressBasedEncoding, mode_);
+  DCHECK_LT(index, NumberOfReturnEntries());
+  return Memory<uintptr_t>(GetReturnSentryAddress(index));
+}
+
+void HandlerTable::InstallReturnSentries(uintptr_t code_start) {
+  for (int i = 0; i < NumberOfReturnEntries(); ++i) {
+    int handler_offset = GetReturnHandler(i);
+    uintptr_t return_sentry = code_start + handler_offset;
+#ifdef __aarch64__
+    return_sentry |= 1;
+#endif
+    Address return_sentry_addr = GetReturnSentryAddress(i);
+    return_sentry = V8_CHERI_TO_SENTRY(return_sentry);
+    Memory<Address>(return_sentry_addr) = return_sentry;
+  }
+}
+#endif
+
 void HandlerTable::SetRangeStart(int index, int value) {
   int offset = index * kRangeEntrySize + kRangeStartIndex;
   Memory<int32_t>(raw_encoded_data_ + offset * sizeof(int32_t)) = value;
@@ -158,6 +229,12 @@ void HandlerTable::EmitReturnEntry(Assembler* masm, int offset, int handler) {
   masm->dd(offset);
   masm->dd(HandlerOffsetField::encode(handler));
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+void HandlerTable::EmitReturnSentry(Assembler* masm, uintptr_t sentry) {
+  masm->dp(sentry);
+}
+#endif
 
 int HandlerTable::NumberOfRangeEntries() const {
   DCHECK_EQ(kRangeBasedEncoding, mode_);
@@ -235,6 +312,43 @@ int HandlerTable::LookupReturn(int pc_offset) {
   bool exact_match = result != end && *result == pc_offset;
   return exact_match ? GetReturnHandler(result.index) : -1;
 }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+uintptr_t HandlerTable::LookupReturnSentry(int pc_offset) {
+  struct Iterator : base::iterator<std::random_access_iterator_tag, int> {
+    Iterator(HandlerTable* tbl, int idx) : table(tbl), index(idx) {}
+    value_type operator*() const { return table->GetReturnOffset(index); }
+    bool operator!=(const Iterator& other) const { return !(*this == other); }
+    bool operator==(const Iterator& other) const {
+      return index == other.index;
+    }
+    // GLIBCXX_DEBUG checks uses the <= comparator.
+    bool operator<=(const Iterator& other) { return index <= other.index; }
+    Iterator& operator++() {
+      index++;
+      return *this;
+    }
+    Iterator& operator--() {
+      index--;
+      return *this;
+    }
+    Iterator& operator+=(difference_type offset) {
+      index += offset;
+      return *this;
+    }
+    difference_type operator-(const Iterator& other) const {
+      return index - other.index;
+    }
+    HandlerTable* table;
+    int index;
+  };
+  Iterator begin{this, 0}, end{this, NumberOfReturnEntries()};
+  SLOW_DCHECK(std::is_sorted(begin, end));
+  Iterator result = std::lower_bound(begin, end, pc_offset);
+  bool exact_match = result != end && *result == pc_offset;
+  return exact_match ? GetReturnSentry(result.index) : 0;
+}
+#endif
 
 #ifdef ENABLE_DISASSEMBLER
 

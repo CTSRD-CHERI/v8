@@ -314,6 +314,9 @@ class ActivationsFinder : public ThreadVisitor {
             code.marked_for_deoptimization()) {
           // Obtain the trampoline to the deoptimizer call.
           int trampoline_pc;
+#if defined(__CHERI_PURE_CAPABILITY__)
+          uintptr_t trampoline_sentry;
+#endif
           if (code.is_maglevved()) {
             MaglevSafepointEntry safepoint = MaglevSafepointTable::FindEntry(
                 isolate, code, it.frame()->pc());
@@ -322,6 +325,9 @@ class ActivationsFinder : public ThreadVisitor {
             SafepointEntry safepoint =
                 SafepointTable::FindEntry(isolate, code, it.frame()->pc());
             trampoline_pc = safepoint.trampoline_pc();
+#if defined(__CHERI_PURE_CAPABILITY__)
+            trampoline_sentry = safepoint.trampoline_sentry();
+#endif
           }
           DCHECK_IMPLIES(code == topmost_, safe_to_deopt_);
           static_assert(SafepointEntry::kNoTrampolinePC == -1);
@@ -329,11 +335,13 @@ class ActivationsFinder : public ThreadVisitor {
           // Replace the current pc on the stack with the trampoline.
           // TODO(v8:10026): avoid replacing a signed pointer.
           Address* pc_addr = it.frame()->pc_address();
+#if defined(__CHERI_PURE_CAPABILITY__)
+          PointerAuthentication::ReplacePC(pc_addr, trampoline_sentry,
+                                           kSystemPointerSize);
+#else   // !__CHERI_PURE_CAPABILITY__
           Address new_pc = code.instruction_start() + trampoline_pc;
-#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_TARGET_ARCH_ARM64)
-          new_pc |= 1;
-#endif  // __CHERI_PURE_CAPABILITY__ && V8_TARGET_ARCH_ARM64
           PointerAuthentication::ReplacePC(pc_addr, new_pc, kSystemPointerSize);
+#endif  // __CHERI_PURE_CAPABILITY__
         }
       }
     }

@@ -575,6 +575,7 @@ void Builtins::Generate_ResumeGeneratorTrampoline(MacroAssembler* masm) {
     __ Mov(c1, c4);
     static_assert(kJavaScriptCallCodeStartRegister == c2, "ABI mismatch");
     __ LoadTaggedField(c2, FieldMemOperand(c1, JSFunction::kCodeOffset));
+
     __ JumpCodeObject(c2);
   }
 
@@ -1545,6 +1546,8 @@ void Builtins::Generate_InterpreterEntryTrampoline(
     __ Move(c2, kInterpreterBytecodeArrayRegister);
     static_assert(kJavaScriptCallCodeStartRegister == c2, "ABI mismatch");
     __ ReplaceClosureCodeWithOptimizedCode(c2, closure);
+
+    // TODO(cheri): Baseline code entry is not sealed
     __ JumpCodeObject(c2);
 
     __ bind(&install_baseline_code);
@@ -2052,6 +2055,13 @@ void OnStackReplacement(MacroAssembler* masm, OsrSourceTier source,
     __ LeaveFrame(StackFrame::STUB);
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // Load osr sentry from the code object.
+  // <osr_sentry> = <code>[#osr_sentry_offset]
+  __ LoadTaggedField(c1, FieldMemOperand(c0, Code::kOsrSentryOffset));
+
+  Generate_OSREntry(masm, c1);
+#else
   // Load deoptimization data from the code object.
   // <deopt_data> = <code>[#deoptimization_data_offset]
   __ LoadTaggedField(
@@ -2069,6 +2079,7 @@ void OnStackReplacement(MacroAssembler* masm, OsrSourceTier source,
   // Compute the target address = code_entry + osr_offset
   // <entry_addr> = <code_entry> + <osr_offset>
   Generate_OSREntry(masm, c0, x1);
+#endif
 }
 
 }  // namespace
@@ -6043,6 +6054,8 @@ void Generate_BaselineOrInterpreterEntry(MacroAssembler* masm,
     FrameScope scope(masm, StackFrame::INTERNAL);
     __ CallCFunction(get_baseline_pc, 3, 0);
   }
+  // TODO(cheri): Baseline uses code->instruction_start + offset, which would
+  //  not be a valid sentry
   __ LoadCodeInstructionStart(code_obj, code_obj);
   __ Add(code_obj, code_obj, kReturnRegister0);
   __ Pop(kInterpreterAccumulatorRegister, padregc);

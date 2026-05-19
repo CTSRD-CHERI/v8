@@ -896,6 +896,11 @@ class OptimizedFrame : public JavaScriptFrame {
   int LookupExceptionHandlerInTable(
       int* data, HandlerTable::CatchPrediction* prediction) override;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t LookupExceptionHandlerSentryInTable(
+      int* data, HandlerTable::CatchPrediction* prediction);
+#endif
+
   virtual int FindReturnPCForTrampoline(Code code, int trampoline_pc) const = 0;
 
  protected:

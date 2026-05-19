@@ -26,6 +26,16 @@ class SafepointEntry : public SafepointEntryBase {
  public:
   SafepointEntry() = default;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  SafepointEntry(int pc, int deopt_index, uint32_t tagged_register_indexes,
+                 base::Vector<uint8_t> tagged_slots, int trampoline_pc,
+                 uintptr_t trampoline_sentry)
+      : SafepointEntryBase(pc, deopt_index, trampoline_pc, trampoline_sentry),
+        tagged_register_indexes_(tagged_register_indexes),
+        tagged_slots_(tagged_slots) {
+    DCHECK(is_initialized());
+  }
+#else
   SafepointEntry(int pc, int deopt_index, uint32_t tagged_register_indexes,
                  base::Vector<uint8_t> tagged_slots, int trampoline_pc)
       : SafepointEntryBase(pc, deopt_index, trampoline_pc),
@@ -33,6 +43,7 @@ class SafepointEntry : public SafepointEntryBase {
         tagged_slots_(tagged_slots) {
     DCHECK(is_initialized());
   }
+#endif
 
   bool operator==(const SafepointEntry& other) const {
     return this->SafepointEntryBase::operator==(other) &&
@@ -74,10 +85,27 @@ class SafepointTable {
   int length() const { return length_; }
 
   int byte_size() const {
-    return kHeaderSize + length_ * (entry_size() + tagged_slots_bytes());
+    int base = kHeaderSize + length_ * (entry_size() + tagged_slots_bytes());
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_TARGET_ARCH_ARM64)
+    if (has_deopt_data()) {
+      base = RoundUp(base, 16) + length_ * trampoline_sentry_size();
+    }
+#endif
+    return base;
   }
 
   int find_return_pc(int pc_offset);
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Address GetTrampolineSentryAddress(int index) const {
+    DCHECK_GT(length_, index);
+    Address sentry_table_base =
+        RoundUp(safepoint_table_address_ + kHeaderSize +
+                    length_ * (entry_size() + tagged_slots_bytes()),
+                kSystemPointerSize);
+    return sentry_table_base + index * trampoline_sentry_size();
+  }
+#endif
 
   SafepointEntry GetEntry(int index) const {
     DCHECK_GT(length_, index);
@@ -87,6 +115,9 @@ class SafepointTable {
     int pc = read_bytes(&entry_ptr, pc_size());
     int deopt_index = SafepointEntry::kNoDeoptIndex;
     int trampoline_pc = SafepointEntry::kNoTrampolinePC;
+#if defined(__CHERI_PURE_CAPABILITY__)
+    uintptr_t trampoline_sentry = 0;
+#endif
     if (has_deopt_data()) {
       static_assert(SafepointEntry::kNoDeoptIndex == -1);
       static_assert(SafepointEntry::kNoTrampolinePC == -1);
@@ -97,6 +128,11 @@ class SafepointTable {
       DCHECK(deopt_index >= 0 || deopt_index == SafepointEntry::kNoDeoptIndex);
       DCHECK(trampoline_pc >= 0 ||
              trampoline_pc == SafepointEntry::kNoTrampolinePC);
+#if defined(__CHERI_PURE_CAPABILITY__)
+      Address trampoline_sentry_address = GetTrampolineSentryAddress(index);
+      trampoline_sentry =
+          *reinterpret_cast<Address*>(trampoline_sentry_address);
+#endif
     }
     int tagged_register_indexes =
         read_bytes(&entry_ptr, register_indexes_size());
@@ -109,10 +145,18 @@ class SafepointTable {
         tagged_slots_start + index * tagged_slots_bytes(),
         tagged_slots_bytes());
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+    return SafepointEntry(pc, deopt_index, tagged_register_indexes,
+                          tagged_slots, trampoline_pc, trampoline_sentry);
+#else
     return SafepointEntry(pc, deopt_index, tagged_register_indexes,
                           tagged_slots, trampoline_pc);
+#endif
   }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  void InstallTrampolineSentries(uintptr_t code_start);
+#endif
   // Returns the entry for the given pc.
   SafepointEntry FindEntry(Address pc) const;
   static SafepointEntry FindEntry(Isolate* isolate, GcSafeCode code,
@@ -151,6 +195,9 @@ class SafepointTable {
     return HasDeoptDataField::decode(entry_configuration_);
   }
   int pc_size() const { return PcSizeField::decode(entry_configuration_); }
+#if defined(__CHERI_PURE_CAPABILITY__)
+  int trampoline_sentry_size() const { return kSystemPointerSize; }
+#endif
   int deopt_index_size() const {
     return DeoptIndexSizeField::decode(entry_configuration_);
   }

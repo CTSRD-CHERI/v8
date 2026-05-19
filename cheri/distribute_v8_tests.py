@@ -262,6 +262,10 @@ def ssh_execute(
     else:
         dest = machine
     ssh_cmd = ["ssh", dest, command]
+    logging.debug(f"SSH command: {' '.join(ssh_cmd)}")
+    if input_data:
+        lines = input_data.splitlines()
+        logging.debug(f"SSH stdin ({len(lines)} lines): first 5: {lines[:5]}")
     try:
         result = subprocess.run(
             ssh_cmd,
@@ -271,6 +275,9 @@ def ssh_execute(
             timeout=timeout,
             check=False,
         )
+        logging.debug(f"SSH exit code: {result.returncode}")
+        logging.debug(f"SSH stdout:\n{result.stdout}")
+        logging.debug(f"SSH stderr:\n{result.stderr}")
         return result
     except subprocess.TimeoutExpired as e:
         warn(f"SSH timeout on {machine} after {timeout}s: {e}")
@@ -494,12 +501,21 @@ def run_tests_on_machine(
 set -e
 tmp=$(mktemp /tmp/v8_tests_$$_XXXXXX) || exit 1
 cat > "$tmp"
+echo "[debug] tmp file: $tmp, lines: $(wc -l < "$tmp"), first 3:" >&2
+head -3 "$tmp" >&2
 cd "{shlex.quote(remote_v8_root)}"
+echo "[debug] cwd: $(pwd)" >&2
+echo "[debug] outdir contents:" >&2
+ls "{shlex.quote(build_dir)}" >&2
+echo "[debug] xargs would invoke run-tests.py with these args (first batch):" >&2
+head -{batch_size} "$tmp" | tr '\n' ' ' >&2
+echo >&2
 xargs -n {batch_size} tools/run-tests.py -p verbose --exit-after-n-failures=0 --outdir="{shlex.quote(build_dir)}" < "$tmp"
 rc=$?
 rm -f "$tmp"
 exit $rc
 """
+    logging.debug(f"[{machine}] Remote command:\n{remote_cmd}")
 
     # Prepare log file if requested
     log_path: Optional[Path] = None

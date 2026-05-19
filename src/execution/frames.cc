@@ -2402,6 +2402,25 @@ int OptimizedFrame::LookupExceptionHandlerInTable(
   return table.LookupReturn(pc_offset);
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+uintptr_t OptimizedFrame::LookupExceptionHandlerSentryInTable(
+    int* data, HandlerTable::CatchPrediction* prediction) {
+  DCHECK_NULL(prediction);
+  Code code = LookupCode();
+
+  HandlerTable table(code);
+  if (table.NumberOfReturnEntries() == 0) return 0;
+
+  int pc_offset = code.GetOffsetFromInstructionStart(isolate(), pc());
+  DCHECK_NULL(data);
+
+  if (CodeKindCanDeoptimize(code.kind()) && code.marked_for_deoptimization()) {
+    pc_offset = FindReturnPCForTrampoline(code, pc_offset);
+  }
+  return table.LookupReturnSentry(pc_offset);
+}
+#endif
+
 int MaglevFrame::FindReturnPCForTrampoline(Code code, int trampoline_pc) const {
   DCHECK_EQ(code.kind(), CodeKind::MAGLEV);
   DCHECK(code.marked_for_deoptimization());

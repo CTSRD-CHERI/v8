@@ -48,6 +48,37 @@ void Code::FlushICache() const {
   FlushInstructionCache(instruction_start(), instruction_size());
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+void Code::InstallSentries(Isolate* isolate) {
+  // TODO(cheri): Further restrict code_start permissions
+  uintptr_t inst_start = reinterpret_cast<uintptr_t>(instruction_start());
+
+  uintptr_t inst_sentry = inst_start;
+#ifdef __aarch64__
+  inst_sentry |= 1;  // C64 LSB
+#endif
+  inst_sentry = V8_CHERI_TO_SENTRY(inst_sentry);
+  DCHECK(V8_CHERI_TAG_GET(inst_sentry));
+  set_instruction_sentry(isolate, static_cast<Address>(inst_sentry));
+
+  DeoptimizationData const deopt_data =
+      DeoptimizationData::cast(deoptimization_data());
+  uintptr_t osr_sentry = inst_start + deopt_data.OsrPcOffset().value();
+#ifdef __aarch64__
+  osr_sentry |= 1;  // C64 LSB
+#endif
+  osr_sentry = V8_CHERI_TO_SENTRY(osr_sentry);
+  DCHECK(V8_CHERI_TAG_GET(osr_sentry));
+  set_osr_sentry(isolate, static_cast<Address>(osr_sentry));
+
+  SafepointTable safepoint_table(isolate, inst_start, *this);
+  safepoint_table.InstallTrampolineSentries(inst_start);
+
+  HandlerTable handler_table(*this);
+  handler_table.InstallReturnSentries(inst_start);
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 void Code::CopyFromNoFlush(ByteArray reloc_info, Heap* heap,
                            const CodeDesc& desc) {
   // Copy from compilation artifacts stored in CodeDesc to the target on-heap

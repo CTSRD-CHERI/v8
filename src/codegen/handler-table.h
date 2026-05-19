@@ -62,8 +62,13 @@ class V8_EXPORT_PRIVATE HandlerTable {
   explicit HandlerTable(const wasm::WasmCode* code);
 #endif  // V8_ENABLE_WEBASSEMBLY
   explicit HandlerTable(BytecodeArray bytecode_array);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  HandlerTable(Address handler_table, int handler_table_size,
+               EncodingMode encoding_mode, bool is_turbofan = false);
+#else
   HandlerTable(Address handler_table, int handler_table_size,
                EncodingMode encoding_mode);
+#endif
 
   // Getters for handler table based on ranges.
   int GetRangeStart(int index) const;
@@ -84,6 +89,9 @@ class V8_EXPORT_PRIVATE HandlerTable {
   static int EmitReturnTableStart(Assembler* masm);
   static void EmitReturnEntry(Assembler* masm, int offset, int handler);
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static void EmitReturnSentry(Assembler* masm, uintptr_t sentry);
+#endif
   // Lookup handler in a table based on ranges. The {pc_offset} is an offset to
   // the start of the potentially throwing instruction (using return addresses
   // for this value would be invalid).
@@ -91,6 +99,13 @@ class V8_EXPORT_PRIVATE HandlerTable {
 
   // Lookup handler in a table based on return addresses.
   int LookupReturn(int pc_offset);
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  // Getters for handler table based on return addresses.
+  void InstallReturnSentries(uintptr_t code_start);
+  Address GetReturnSentryAddress(int index) const;
+  uintptr_t LookupReturnSentry(int pc_offset);
+#endif
 
   // Returns the number of entries in the table.
   int NumberOfRangeEntries() const;
@@ -106,11 +121,20 @@ class V8_EXPORT_PRIVATE HandlerTable {
   CatchPrediction GetRangePrediction(int index) const;
 
   // Gets entry size based on mode.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static int EntrySizeFromMode(EncodingMode mode, bool is_turbofan);
+  uintptr_t GetReturnSentry(int index) const;
+#else
   static int EntrySizeFromMode(EncodingMode mode);
+#endif
 
   // Getters for handler table based on return addresses.
   int GetReturnOffset(int index) const;
   int GetReturnHandler(int index) const;
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  const bool is_turbofan_;
+#endif
 
   // Number of entries in the loaded handler table.
   const int number_of_entries_;
@@ -138,6 +162,9 @@ class V8_EXPORT_PRIVATE HandlerTable {
   static const int kReturnOffsetIndex = 0;
   static const int kReturnHandlerIndex = 1;
   static const int kReturnEntrySize = 2;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  static const int kReturnSentrySize = kSystemPointerSize / kInt32Size;
+#endif
 
   // Encoding of the {handler} field.
   using HandlerPredictionField = base::BitField<CatchPrediction, 0, 3>;

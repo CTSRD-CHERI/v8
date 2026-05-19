@@ -429,6 +429,14 @@ void CodeGenerator::AssembleCode() {
       HandlerTable::EmitReturnEntry(masm(), handlers_[i].pc_offset,
                                     handlers_[i].handler->pos());
     }
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (code_kind() == CodeKind::TURBOFAN) {
+      masm()->Align(kSystemPointerSize);
+      for (size_t i = 0; i < handlers_.size(); ++i) {
+        HandlerTable::EmitReturnSentry(masm(), 0);
+      }
+    }
+#endif
   }
 
   masm()->MaybeEmitOutOfLineConstantPool();

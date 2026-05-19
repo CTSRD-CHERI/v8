@@ -53,6 +53,24 @@ int SafepointTable::find_return_pc(int pc_offset) {
   UNREACHABLE();
 }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+void SafepointTable::InstallTrampolineSentries(uintptr_t code_start) {
+  for (int i = 0; i < length(); ++i) {
+    int trampoline_pc = GetEntry(i).trampoline_pc();
+    uintptr_t trampoline_sentry = 0;
+    if (trampoline_pc != SafepointEntry::kNoTrampolinePC) {
+      trampoline_sentry = code_start + trampoline_pc;
+#ifdef __aarch64__
+      trampoline_sentry |= 1;  // C64 LSB
+#endif
+    }
+    Address trampoline_pc_address = GetTrampolineSentryAddress(i);
+    trampoline_sentry = V8_CHERI_TO_SENTRY(trampoline_sentry);
+    Memory<Address>(trampoline_pc_address) = trampoline_sentry;
+  }
+}
+#endif
+
 SafepointEntry SafepointTable::FindEntry(Address pc) const {
   int pc_offset = static_cast<int>(pc - instruction_start_);
 
@@ -275,6 +293,17 @@ void SafepointTableBuilder::Emit(Assembler* assembler, int tagged_slots_size) {
     // Emit the bitmap for the current entry.
     for (uint8_t byte : bits) assembler->db(byte);
   }
+
+#if defined(__CHERI_PURE_CAPABILITY__)
+  if (has_deopt_data) {
+    assembler->DataAlign(kSystemPointerSize);
+    for (int i = 0; i < length; ++i) {
+      for (int p = 0; p < kSystemPointerSize; ++p) {
+        assembler->db(0);
+      }
+    }
+  }
+#endif
 }
 
 void SafepointTableBuilder::RemoveDuplicates() {
