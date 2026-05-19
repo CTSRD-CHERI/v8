@@ -842,7 +842,10 @@ Map HeapObject::map() const {
   return HeapObject::map(cage_base);
 }
 Map HeapObject::map(PtrComprCageBase cage_base) const {
-  return map_word(cage_base, kRelaxedLoad).ToMap();
+  Map map_to_return = map_word(cage_base, kRelaxedLoad).ToMap();
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL,
+                 V8_CHERI_TAG_GET(map_to_return.ptr()));
+  return map_to_return;
 }
 
 void HeapObject::set_map(Map value) {
@@ -851,6 +854,8 @@ void HeapObject::set_map(Map value) {
 }
 
 void HeapObject::set_map(Map value, ReleaseStoreTag tag) {
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL,
+                 V8_CHERI_TAG_GET(value.ptr()));
   set_map<EmitWriteBarrier::kYes>(value, kReleaseStore,
                                   VerificationMode::kPotentialLayoutChange);
 }
@@ -900,6 +905,8 @@ void HeapObject::set_map(Map value, MemoryOrder order, VerificationMode mode) {
   // background threads.
   DCHECK_IMPLIES(mode != VerificationMode::kSafeMapTransition,
                  !LocalHeap::Current());
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL,
+                 V8_CHERI_TAG_GET(value.ptr()));
   if (v8_flags.verify_heap && !value.is_null()) {
     Heap* heap = GetHeapFromWritableObject(*this);
     if (mode == VerificationMode::kSafeMapTransition) {
@@ -924,6 +931,9 @@ void HeapObject::set_map(Map value, MemoryOrder order, VerificationMode mode) {
 }
 
 void HeapObject::set_map_after_allocation(Map value, WriteBarrierMode mode) {
+  DCHECK_IMPLIES(
+      V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL && value.ptr() != 0,
+      V8_CHERI_TAG_GET(value.ptr()));
   set_map_word(value, kRelaxedStore);
 #ifndef V8_DISABLE_WRITE_BARRIERS
   if (mode != SKIP_WRITE_BARRIER) {
@@ -957,6 +967,9 @@ MapWord HeapObject::map_word(PtrComprCageBase cage_base,
 }
 
 void HeapObject::set_map_word(Map map, RelaxedStoreTag) {
+  DCHECK_IMPLIES(
+      V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL && map.ptr() != 0,
+      V8_CHERI_TAG_GET(map.ptr()));
   MapField::Relaxed_Store_Map_Word(*this, MapWord::FromMap(map));
 }
 
@@ -980,6 +993,9 @@ MapWord HeapObject::map_word(PtrComprCageBase cage_base,
 }
 
 void HeapObject::set_map_word(Map map, ReleaseStoreTag) {
+  DCHECK_IMPLIES(
+      V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL && map.ptr() != 0,
+      V8_CHERI_TAG_GET(map.ptr()));
   MapField::Release_Store_Map_Word(*this, MapWord::FromMap(map));
 }
 
