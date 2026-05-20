@@ -74,8 +74,12 @@ class FieldStatsCollector : public ObjectVisitorWithCageBases {
       *tagged_fields_count_ -= field_stats.smi_fields_count_;
       *inobject_smi_fields_count_ += field_stats.smi_fields_count_;
     } else if (host.IsHeapNumber(cage_base())) {
+#ifdef __CHERI_PURE_CAPABILITY__
+      raw_fields_count_in_object -= 1;
+#else
       DCHECK_LE(kDoubleSize / kTaggedSize, raw_fields_count_in_object);
       raw_fields_count_in_object -= kDoubleSize / kTaggedSize;
+#endif
       *boxed_double_fields_count_ += 1;
     } else if (host.IsSeqString(cage_base())) {
       int string_data = SeqString::cast(host).length(kAcquireLoad) *
