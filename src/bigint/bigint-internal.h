@@ -80,9 +80,9 @@ class ProcessorImpl : public Processor {
   // interrupt requests every now and then (roughly every 10-100 ms; often
   // enough not to appear stuck, rarely enough not to cause noticeable
   // overhead).
-  static const uintptr_t kWorkEstimateThreshold = 5000000;
+  static const ScaledUint kWorkEstimateThreshold = 5000000;
 
-  void AddWorkEstimate(uintptr_t estimate) {
+  void AddWorkEstimate(ScaledUint estimate) {
     work_estimate_ += estimate;
     if (work_estimate_ >= kWorkEstimateThreshold) {
       work_estimate_ = 0;
@@ -93,7 +93,7 @@ class ProcessorImpl : public Processor {
   }
 
  private:
-  uintptr_t work_estimate_{0};
+  ScaledUint work_estimate_{0};
   Status status_{Status::kOk};
   Platform* platform_;
 };
