@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "src/bigint/bigint.h"
+#include "src/common/globals.h"
 
 namespace v8 {
 namespace bigint {
@@ -80,9 +81,9 @@ class ProcessorImpl : public Processor {
   // interrupt requests every now and then (roughly every 10-100 ms; often
   // enough not to appear stuck, rarely enough not to cause noticeable
   // overhead).
-  static const ScaledUint kWorkEstimateThreshold = 5000000;
+  static const i::ScaledUint kWorkEstimateThreshold = 5000000;
 
-  void AddWorkEstimate(ScaledUint estimate) {
+  void AddWorkEstimate(i::ScaledUint estimate) {
     work_estimate_ += estimate;
     if (work_estimate_ >= kWorkEstimateThreshold) {
       work_estimate_ = 0;
@@ -93,7 +94,7 @@ class ProcessorImpl : public Processor {
   }
 
  private:
-  ScaledUint work_estimate_{0};
+  i::ScaledUint work_estimate_{0};
   Status status_{Status::kOk};
   Platform* platform_;
 };

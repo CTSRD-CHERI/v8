@@ -9,6 +9,7 @@
 
 #include "src/bigint/bigint.h"
 #include "src/bigint/util.h"
+#include "src/common/globals.h"
 
 namespace v8 {
 namespace bigint {
@@ -168,7 +169,7 @@ static inline digit_t digit_div(digit_t high, digit_t low, digit_t divisor,
 #endif
   const int kShiftMask = kDigitBits - 1;
   digit_t s_zero_mask =
-      static_cast<digit_t>(static_cast<intptr_t>(-s) >> (kDigitBits - 1));
+      static_cast<digit_t>(static_cast<i::ScaledInt>(-s) >> (kDigitBits - 1));
   digit_t un32 =
       (high << s) | ((low >> ((kDigitBits - s) & kShiftMask)) & s_zero_mask);
   digit_t un10 = low << s;
