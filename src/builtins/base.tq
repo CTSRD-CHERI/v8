@@ -366,7 +366,7 @@ constexpr 'CodeStubAssembler::ExtractFixedArrayFlag' {
 const kBigIntMaxLengthBits:
     constexpr uintptr generates 'BigInt::kMaxLengthBits';
 const kBigIntMaxLength: constexpr intptr generates 'BigInt::kMaxLength';
-const kBigIntDigitSize: constexpr intptr generates 'kSystemPointerSize';
+const kBigIntDigitSize: constexpr intptr generates 'kSystemPointerAddrSize';
 const kBitsPerByte: constexpr intptr generates 'kBitsPerByte';
 const kBigIntDigitBits: intptr = kBigIntDigitSize * kBitsPerByte;
 
