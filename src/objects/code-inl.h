@@ -275,7 +275,12 @@ int Code::GetBytecodeOffsetForBaselinePC(Address baseline_pc,
   CHECK_EQ(kind(), CodeKind::BASELINE);
   baseline::BytecodeOffsetIterator offset_iterator(
       ByteArray::cast(bytecode_offset_table()), bytecodes);
-  Address pc = baseline_pc - instruction_start();
+  Address start = instruction_start();
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  baseline_pc &= ~1;
+  start &= ~1;
+#endif
+  Address pc = baseline_pc - start;
   offset_iterator.AdvanceToPCOffset(pc);
   return offset_iterator.current_bytecode_offset();
 }
