@@ -390,7 +390,11 @@ void word64_ror_wrapper(Address data) {
 
 void float64_pow_wrapper(Address data) {
   double x = ReadUnalignedValue<double>(data);
+#ifdef __CHERI_PURE_CAPABILITY__
+  double y = ReadUnalignedValue<double>(data + kSystemPointerSize);
+#else
   double y = ReadUnalignedValue<double>(data + sizeof(x));
+#endif
   WriteUnalignedValue<double>(data, base::ieee754::pow(x, y));
 }
 
