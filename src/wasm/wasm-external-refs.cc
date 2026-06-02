@@ -285,7 +285,8 @@ void float64_to_uint64_sat_wrapper(Address data) {
 
 int32_t int64_div_wrapper(Address data) {
   int64_t dividend = ReadUnalignedValue<int64_t>(data);
-  int64_t divisor = ReadUnalignedValue<int64_t>(data + sizeof(dividend));
+  int64_t divisor = ReadUnalignedValue<int64_t>(
+      data + (V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(dividend)));
   if (divisor == 0) {
     return 0;
   }
@@ -298,7 +299,8 @@ int32_t int64_div_wrapper(Address data) {
 
 int32_t int64_mod_wrapper(Address data) {
   int64_t dividend = ReadUnalignedValue<int64_t>(data);
-  int64_t divisor = ReadUnalignedValue<int64_t>(data + sizeof(dividend));
+  int64_t divisor = ReadUnalignedValue<int64_t>(
+      data + (V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(dividend)));
   if (divisor == 0) {
     return 0;
   }
@@ -312,7 +314,8 @@ int32_t int64_mod_wrapper(Address data) {
 
 int32_t uint64_div_wrapper(Address data) {
   uint64_t dividend = ReadUnalignedValue<uint64_t>(data);
-  uint64_t divisor = ReadUnalignedValue<uint64_t>(data + sizeof(dividend));
+  uint64_t divisor = ReadUnalignedValue<uint64_t>(
+      data + (V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(dividend)));
   if (divisor == 0) {
     return 0;
   }
@@ -322,7 +325,8 @@ int32_t uint64_div_wrapper(Address data) {
 
 int32_t uint64_mod_wrapper(Address data) {
   uint64_t dividend = ReadUnalignedValue<uint64_t>(data);
-  uint64_t divisor = ReadUnalignedValue<uint64_t>(data + sizeof(dividend));
+  uint64_t divisor = ReadUnalignedValue<uint64_t>(
+      data + (V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(dividend)));
   if (divisor == 0) {
     return 0;
   }
@@ -401,7 +405,8 @@ void float64_pow_wrapper(Address data) {
 template <typename T, T (*float_round_op)(T)>
 void simd_float_round_wrapper(Address data) {
   constexpr int n = kSimd128Size / sizeof(T);
-  constexpr size_t to_increment = sizeof(T);
+  constexpr size_t to_increment =
+      V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(T);
   for (int i = 0; i < n; i++) {
     T input = ReadUnalignedValue<T>(data + (i * to_increment));
     T value = float_round_op(input);
