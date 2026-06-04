@@ -43,6 +43,8 @@ struct EnumEntry {
 class BuildFlags : public base::ContextualClass<BuildFlags> {
  public:
   BuildFlags(TorqueCompilerOptions options) {
+    build_flags_["COMPRESSED"] = COMPRESS_POINTERS_BOOL;
+    build_flags_["UNCOMPRESSED"] = !COMPRESS_POINTERS_BOOL;
     build_flags_["V8_SFI_HAS_UNIQUE_ID"] = V8_SFI_HAS_UNIQUE_ID;
     build_flags_["V8_SFI_NEEDS_PADDING"] = V8_SFI_NEEDS_PADDING;
     build_flags_["V8_EXTERNAL_CODE_SPACE"] = V8_EXTERNAL_CODE_SPACE_BOOL;
