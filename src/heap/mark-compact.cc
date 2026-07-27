@@ -3814,6 +3814,11 @@ static inline void UpdateStrongCodeSlot(HeapObject host,
         code.instruction_stream(code_cage_base);
     Isolate* isolate_for_sandbox = GetIsolateForSandbox(host);
     code.UpdateInstructionStart(isolate_for_sandbox, instruction_stream);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    if (code.kind() == CodeKind::TURBOFAN) {
+      code.InstallSentries(isolate_for_sandbox);
+    }
+#endif
   }
 }
 

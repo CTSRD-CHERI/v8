@@ -19,10 +19,21 @@ class SafepointEntryBase {
 
   SafepointEntryBase() = default;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  SafepointEntryBase(int pc, int deopt_index, int trampoline_pc,
+                     uintptr_t trampoline_sentry = 0)
+      : pc_(pc),
+        deopt_index_(deopt_index),
+        trampoline_pc_(trampoline_pc),
+        trampoline_sentry_(trampoline_sentry) {
+    DCHECK(is_initialized());
+  }
+#else
   SafepointEntryBase(int pc, int deopt_index, int trampoline_pc)
       : pc_(pc), deopt_index_(deopt_index), trampoline_pc_(trampoline_pc) {
     DCHECK(is_initialized());
   }
+#endif
 
   bool is_initialized() const { return pc_ != 0; }
 
@@ -33,6 +44,9 @@ class SafepointEntryBase {
 
   int trampoline_pc() const { return trampoline_pc_; }
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t trampoline_sentry() const { return trampoline_sentry_; }
+#endif
   bool has_deoptimization_index() const {
     return deopt_index_ != kNoDeoptIndex;
   }
@@ -54,6 +68,9 @@ class SafepointEntryBase {
   int pc_ = 0;
   int deopt_index_ = kNoDeoptIndex;
   int trampoline_pc_ = kNoTrampolinePC;
+#if defined(__CHERI_PURE_CAPABILITY__)
+  uintptr_t trampoline_sentry_ = 0;
+#endif
 };
 
 class SafepointTableBuilderBase {

@@ -498,16 +498,30 @@ size_t Isolate::HashIsolateForEmbeddedBlob() {
     // instruction_start, but other data fields must remain the same.
     static_assert(Code::kEndOfStrongFieldsOffset ==
                   Code::kInstructionStartOffset);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(Code::kInstructionStartOffsetEnd + 1 ==
+                  Code::kInstructionSentryOffset);
+    static_assert(Code::kInstructionSentryOffsetEnd + 1 == Code::kFlagsOffset);
+#else
     static_assert(Code::kInstructionStartOffsetEnd + 1 == Code::kFlagsOffset);
+#endif
     static_assert(Code::kFlagsOffsetEnd + 1 == Code::kInstructionSizeOffset);
     static_assert(Code::kInstructionSizeOffsetEnd + 1 ==
                   Code::kMetadataSizeOffset);
     static_assert(Code::kMetadataSizeOffsetEnd + 1 ==
                   Code::kInlinedBytecodeSizeOffset);
+#if defined(__CHERI_PURE_CAPABILITY__)
+    static_assert(Code::kInlinedBytecodeSizeOffsetEnd + 1 ==
+                  Code::kOsrSentryOffset);
+    static_assert(Code::kOsrSentryOffsetEnd + 1 == Code::kOsrOffsetOffset);
+    static_assert(Code::kOsrOffsetOffsetEnd + 1 ==
+                  Code::kHandlerTableOffsetOffset);
+#else
     static_assert(Code::kInlinedBytecodeSizeOffsetEnd + 1 ==
                   Code::kOsrOffsetOffset);
     static_assert(Code::kOsrOffsetOffsetEnd + 1 ==
                   Code::kHandlerTableOffsetOffset);
+#endif
     static_assert(Code::kHandlerTableOffsetOffsetEnd + 1 ==
                   Code::kUnwindingInfoOffsetOffset);
     static_assert(Code::kUnwindingInfoOffsetOffsetEnd + 1 ==
@@ -1978,13 +1992,20 @@ Object Isolate::UnwindAndFindHandler() {
     if (V8_CHERI_SEALED(instruction_start)) {
       // Ensure the tag wasn't invalidated for some reason.
       CHECK(V8_CHERI_TAG_GET(instruction_start));
-      DCHECK(V8_CHERI_INBOUNDS(
-          V8_CHERI_PCC,
-          V8_CHERI_ADDR_GET(reinterpret_cast<void*>(instruction_start))));
-      instruction_start = reinterpret_cast<Address>(V8_CHERI_ADDR_SET(
-          V8_CHERI_PCC, static_cast<ptraddr_t>(instruction_start)));
-      thread_local_top()->pending_handler_entrypoint_ =
-          V8_CHERI_TO_SENTRY((instruction_start + handler_offset) | 1);
+      // Turbofan code should not be in bounds
+      if (V8_CHERI_INBOUNDS(
+              V8_CHERI_PCC,
+              V8_CHERI_ADDR_GET(reinterpret_cast<void*>(instruction_start)))) {
+        // Builtin Code
+        instruction_start = reinterpret_cast<Address>(V8_CHERI_ADDR_SET(
+            V8_CHERI_PCC,
+            V8_CHERI_ADDR_GET(reinterpret_cast<void*>(instruction_start))));
+        thread_local_top()->pending_handler_entrypoint_ =
+            V8_CHERI_TO_SENTRY((instruction_start + handler_offset) | 1);
+      } else {
+        // Turbofan Code; pass handler sentry through instruction_start
+        thread_local_top()->pending_handler_entrypoint_ = instruction_start;
+      }
     } else {
       thread_local_top()->pending_handler_entrypoint_ =
           (instruction_start + handler_offset) | 1;
@@ -2235,6 +2256,28 @@ Object Isolate::UnwindAndFindHandler() {
                             StandardFrameConstants::kFixedFrameSizeAboveFp -
                             code.stack_slots() * kSystemPointerSize;
 
+#if defined(__CHERI_PURE_CAPABILITY__)
+        Address handler_sentry;
+        if (CodeKindCanDeoptimize(code.kind()) &&
+            code.marked_for_deoptimization()) {
+          // Turbofan & deopt_mark
+          // Meglev   & deopt_mark
+          handler_sentry = frame->pc();
+          offset = 0;
+          set_deoptimizer_lazy_throw(true);
+        } else if (code.kind() == CodeKind::TURBOFAN) {
+          // TURBOFAN & !deopt_mark
+          handler_sentry =
+              opt_frame->LookupExceptionHandlerSentryInTable(nullptr, nullptr);
+          offset = 0;
+        } else {
+          // Meglev   & !deopt_mark
+          handler_sentry = code.InstructionSentry(this, frame->pc());
+        }
+        return FoundHandler(Context(), handler_sentry, offset,
+                            code.constant_pool(), return_sp, frame->fp(),
+                            visited_frames);
+#else
         // TODO(bmeurer): Turbofanned BUILTIN frames appear as TURBOFAN,
         // but do not have a code kind of TURBOFAN.
         if (CodeKindCanDeoptimize(code.kind()) &&
@@ -2249,6 +2292,7 @@ Object Isolate::UnwindAndFindHandler() {
         return FoundHandler(Context(), code.InstructionStart(this, frame->pc()),
                             offset, code.constant_pool(), return_sp,
                             frame->fp(), visited_frames);
+#endif
       }
 
       case StackFrame::STUB: {

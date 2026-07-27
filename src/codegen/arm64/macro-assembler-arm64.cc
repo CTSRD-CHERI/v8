@@ -2911,7 +2911,12 @@ void MacroAssembler::TailCallBuiltin(Builtin builtin, Condition cond) {
 void MacroAssembler::LoadCodeInstructionStart(Register destination,
                                               Register code_object) {
   ASM_CODE_COMMENT(this);
+#if defined(__CHERI_PURE_CAPABILITY__)
+  Ldr(destination,
+      FieldMemOperand(code_object, Code::kInstructionSentryOffset));
+#else
   Ldr(destination, FieldMemOperand(code_object, Code::kInstructionStartOffset));
+#endif
 }
 
 void MacroAssembler::CallCodeObject(Register code_object) {
@@ -2994,14 +2999,9 @@ bool MacroAssembler::IsNearCallOffset(int64_t offset) {
 void MacroAssembler::BailoutIfDeoptimized() {
   UseScratchRegisterScope temps(this);
   Register scratch = temps.AcquireC();
-#if V8_TARGET_CHERI
-  int offset =
-      InstructionStream::kCodeOffset - InstructionStream::kHeaderSize - 1;
-#else
   int offset = InstructionStream::kCodeOffset - InstructionStream::kHeaderSize;
-#endif
-  LoadTaggedField(scratch,
-                  MemOperand(kJavaScriptCallCodeStartRegister, offset));
+  ComputeCodeStartAddress(scratch);
+  LoadTaggedField(scratch, MemOperand(scratch, offset));
   Ldr(scratch.W(), FieldMemOperand(scratch, Code::kFlagsOffset));
   Label not_deoptimized;
   Tbz(scratch.W(), Code::kMarkedForDeoptimizationBit, &not_deoptimized);
@@ -3218,6 +3218,7 @@ void MacroAssembler::InvokeFunctionCode(Register function, Register new_target,
   // call sites.
   Register code = kJavaScriptCallCodeStartRegister;
   LoadTaggedField(code, FieldMemOperand(function, JSFunction::kCodeOffset));
+
   switch (type) {
     case InvokeType::kCall:
       CallCodeObject(code);

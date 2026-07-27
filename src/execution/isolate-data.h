@@ -32,8 +32,8 @@ class Isolate;
   V(kUsesSharedHeapFlag, kUInt8Size, uses_shared_heap_flag)                   \
   V(kExecutionModeOffset, kUInt8Size, execution_mode)                         \
   V(kStackIsIterableOffset, kUInt8Size, stack_is_iterable)                    \
-  V(kTablesAlignmentPaddingOffset,                                            \
-    (kSystemPointerSize - 6), tables_alignment_padding)                       \
+  V(kTablesAlignmentPaddingOffset, (kSystemPointerSize - 6),                  \
+    tables_alignment_padding)                                                 \
   /* Tier 0 tables (small but fast access). */                                \
   V(kBuiltinTier0EntryTableOffset,                                            \
     Builtins::kBuiltinTier0Count* kSystemPointerSize,                         \
@@ -48,8 +48,8 @@ class Isolate;
   V(kFastCCallCallerFPOffset, kSystemPointerSize, fast_c_call_caller_fp)      \
   V(kFastCCallCallerPCOffset, kSystemPointerSize, fast_c_call_caller_pc)      \
   V(kFastApiCallTargetOffset, kSystemPointerSize, fast_api_call_target)       \
-  V(kLongTaskStatsCounterOffset,                                              \
-    RoundUp<kSystemPointerSize>(kSizetSize), long_task_stats_counter)         \
+  V(kLongTaskStatsCounterOffset, RoundUp<kSystemPointerSize>(kSizetSize),     \
+    long_task_stats_counter)                                                  \
   V(kThreadLocalTopOffset, ThreadLocalTop::kSizeInBytes, thread_local_top)    \
   V(kHandleScopeDataOffset, HandleScopeData::kSizeInBytes, handle_scope_data) \
   V(kEmbedderDataOffset, Internals::kNumIsolateDataSlots* kSystemPointerSize, \

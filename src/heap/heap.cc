@@ -6017,6 +6017,7 @@ void Heap::AddRetainedMap(Handle<NativeContext> context, Handle<Map> map) {
   if (*array != context->retained_maps()) {
     context->set_retained_maps(*array);
   }
+  // TODO(cheri): Need rwRW capability
   map->set_is_in_retained_map_list(true);
 }
 
