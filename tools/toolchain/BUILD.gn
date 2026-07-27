@@ -58,8 +58,8 @@ gcc_toolchain("morello-buildroot") {
   ar = "${toolprefix}/llvm-ar"
   ld = cxx
 
-  extra_cxxflags = "-mabi=purecap -march=morello -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs -cheri-codeptr-relocs"
-  extra_cflags = "-mabi=purecap -march=morello -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs -cheri-codeptr-relocs"
+  extra_cxxflags = "-mabi=purecap -march=morello -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs -cheri-codeptr-relocs -cheri-tgot-tls=compat"
+  extra_cflags = "-mabi=purecap -march=morello -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs -cheri-codeptr-relocs -cheri-tgot-tls=compat"
   extra_ldflags = "-mabi=purecap -cheri-codeptr-relocs"
   extra_asmflags = "-mabi=purecap -march=morello"
 
