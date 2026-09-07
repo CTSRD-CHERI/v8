@@ -326,23 +326,30 @@ class JSToWasmWrapperFrameConstants : public TypedFrameConstants {
       TYPED_FRAME_PUSHED_VALUE_OFFSET(0);
 
   // Offsets into the wrapper buffer for values passed from Torque to the
-  // assembly builtin.
+  // assembly builtin. Pointer-sized fields use kSystemPointerSize-based offsets
+  // to ensure proper alignment for capability stores on CHERI.
   static constexpr size_t kWrapperBufferReturnCount = 0;
   static constexpr size_t kWrapperBufferRefReturnCount = 4;
-  static constexpr size_t kWrapperBufferSigRepresentationArray = 8;
-  static constexpr size_t kWrapperBufferStackReturnBufferSize = 16;
-  static constexpr size_t kWrapperBufferCallTarget = 24;
-  static constexpr size_t kWrapperBufferParamStart = 32;
-  static constexpr size_t kWrapperBufferParamEnd = 40;
+  static constexpr size_t kWrapperBufferSigRepresentationArray =
+      1 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferStackReturnBufferSize =
+      2 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferCallTarget = 3 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferParamStart = 4 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferParamEnd = 5 * kSystemPointerSize;
 
   // Offsets into the wrapper buffer for values passed from the assembly builtin
   // to Torque.
-  static constexpr size_t kWrapperBufferStackReturnBufferStart = 16;
-  static constexpr size_t kWrapperBufferFPReturnRegister1 = 24;
-  static constexpr size_t kWrapperBufferFPReturnRegister2 = 32;
-  static constexpr size_t kWrapperBufferGPReturnRegister1 = 40;
+  static constexpr size_t kWrapperBufferStackReturnBufferStart =
+      2 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferFPReturnRegister1 =
+      3 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferFPReturnRegister2 =
+      4 * kSystemPointerSize;
+  static constexpr size_t kWrapperBufferGPReturnRegister1 =
+      5 * kSystemPointerSize;
   static constexpr size_t kWrapperBufferGPReturnRegister2 =
-      kWrapperBufferGPReturnRegister1 + kSystemPointerSize;
+      6 * kSystemPointerSize;
 
   // Size of the wrapper buffer
   static constexpr int kWrapperBufferSize =
