@@ -418,6 +418,7 @@ macro LocationAllocatorForParams(
   result.nextFPReg += paramBuffer.offset;
   result.nextStack = result.nextFPReg +
       result.remainingFPRegs * torque_internal::SizeOf<float64>();
+  dcheck((result.nextStack - kHeapObjectTag) % torque_internal::SizeOf<intptr>() == 0);
   result.stackStart = result.nextStack;
   result.smallSlot = 0;
   result.smallSlotLast = false;
@@ -629,7 +630,7 @@ macro JSToWasmWrapperHelper(
     const kPadding = 2;
     dcheck(UniqueIntPtrConstant(kNumFPRegisterParameters) <= kMaxFPRegParams);
     dcheck(UniqueIntPtrConstant(kNumGPRegisterParameters) <= kMaxFPRegParams);
-    const kSlotSize = torque_internal::SizeOf<float64>();
+    const kSlotSize = torque_internal::SizeOf<intptr>();
     const bufferSize =
         (kMaxOnStackParamCount + kMaxFPRegParams + kPadding) * kSlotSize;
     const stackSlots =
@@ -652,7 +653,7 @@ macro JSToWasmWrapperHelper(
     // the memory needed for all parameters (param_count * sizeof(float64)) +
     // size of an empty fp register parameter segment (fp_reg_count *
     // sizeof(float64)).
-    const kSlotSize: intptr = torque_internal::SizeOf<float64>();
+    const kSlotSize = torque_internal::SizeOf<intptr>();
     // Two padding words between the different segments.
     const kPadding = 2;
     paramBufferSize = (UniqueIntPtrConstant(kNumFPRegisterParameters) +
