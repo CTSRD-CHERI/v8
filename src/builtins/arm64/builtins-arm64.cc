@@ -4082,7 +4082,7 @@ void SwitchToAllocatedStack(MacroAssembler* masm, RegisterAllocator& regs,
       RoundUp(WasmJspiFrameConstants::kNumSpillSlots * kSystemPointerSize +
                   JSToWasmWrapperFrameConstants::kWrapperBufferSize,
               16);
-  __ Sub(sp, sp, Immediate(stack_space));
+  __ Sub(csp, csp, Immediate(stack_space));
   ASSIGN_REG_C(new_wrapper_buffer)
   __ Mov(new_wrapper_buffer, csp);
   // Copy data needed for return handling from old wrapper buffer to new one.
@@ -4195,7 +4195,7 @@ void JSToWasmWrapperHelper(MacroAssembler* masm, wasm::Promise mode) {
   __ EnterFrame(stack_switch ? StackFrame::WASM_JSPI : StackFrame::JS_TO_WASM);
 
   __ Sub(
-      sp, sp,
+      csp, csp,
       Immediate(WasmJspiFrameConstants::kNumSpillSlots * kSystemPointerSize));
 
   // Load the implicit argument (instance data or import data) from the frame.
@@ -4246,11 +4246,11 @@ void JSToWasmWrapperHelper(MacroAssembler* masm, wasm::Promise mode) {
     // have to add `1` to preserve stack pointer alignment.
     __ Add(result_size, result_size, 1);
     __ Bic(result_size, result_size, 1);
-    __ Sub(sp, sp, Operand(result_size, LSL, kSystemPointerSizeLog2));
+    __ Sub(csp, csp, Operand(result_size, LSL, kSystemPointerSizeLog2));
   }
   {
-    DEFINE_SCOPED(scratch);
-    __ Mov(scratch, sp);
+    DEFINE_SCOPED_C(scratch);
+    __ Mov(scratch, csp);
     __ Str(scratch, MemOperand(new_wrapper_buffer,
                                JSToWasmWrapperFrameConstants::
                                    kWrapperBufferStackReturnBufferStart));
