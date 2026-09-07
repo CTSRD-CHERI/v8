@@ -4289,7 +4289,7 @@ void JSToWasmWrapperHelper(MacroAssembler* masm, wasm::Promise mode) {
         // Check if there is an even number of parameters, so no alignment
         // needed.
         __ Sub(scratch, params_end, last_stack_param);
-        __ TestAndBranchIfAllClear(scratch, 0x8, &loop_start);
+        __ TestAndBranchIfAllClear(scratch, kSystemPointerSize, &loop_start);
 
         // Push the first parameter with alignment.
         __ Ldr(scratch, MemOperand(params_end, -kSystemPointerSize, PreIndex));
