@@ -3091,6 +3091,7 @@ void MacroAssembler::CallWasmCodePointer(Register target,
                                          uint64_t signature_hash,
                                          CallJumpMode call_jump_mode) {
   ResolveWasmCodePointer(target, signature_hash);
+  PrepareC64Jump(target);
   if (call_jump_mode == CallJumpMode::kTailCall) {
     Jump(target);
   } else {
@@ -3114,6 +3115,7 @@ void MacroAssembler::CallWasmCodePointerNoSignatureCheck(Register target) {
 
   Ldr(target, MemOperand(scratch, target));
 
+  PrepareC64Jump(target);
   Call(target);
 }
 
