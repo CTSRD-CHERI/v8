@@ -3111,9 +3111,9 @@ void MacroAssembler::CallWasmCodePointerNoSignatureCheck(Register target) {
       base::bits::WhichPowerOfTwo(sizeof(wasm::WasmCodePointerTableEntry));
 
   // Keep `kNumRelevantBits` bits, shifted by `kLeftShift`.
+  DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, target.IsC());
   Ubfiz(target.W(), target.W(), kLeftShift, kNumRelevantBits);
-
-  Ldr(target, MemOperand(scratch, target));
+  Ldr(target, MemOperand(scratch, target.X()));
 
   PrepareC64Jump(target);
   Call(target);
