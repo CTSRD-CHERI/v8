@@ -83,7 +83,8 @@ macro NewReference<T: type>(
 macro NewOffHeapReference<T: type>(ptr: RawPtr<T>):&T {
   return %RawDownCast<&T>(Reference<T>{
     object: kZeroBitPattern,
-    offset: Convert<intptr>(Convert<RawPtr>(ptr)) + kHeapObjectTag,
+    offset:
+        MarkNodeAsCapability(Convert<intptr>(Convert<RawPtr>(ptr))) + kHeapObjectTag,
     unsafeMarker: Unsafe {}
   });
 }
