@@ -252,9 +252,9 @@ HeapAllocator::AllocateRawWith(int size, AllocationType allocation,
 
   object = AllocateRawSlowPath(mode, size, allocation, origin, alignment, hint);
   DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
-                 IsAligned(object.ptr(), kSystemPointerSize));
+                 IsAligned(object.ptr() & ~kHeapObjectTag, kSystemPointerSize));
   DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
-                 IsAligned(object.ptr() + size, kSystemPointerSize));
+                 IsAligned((object.ptr() & ~kHeapObjectTag) + size, kSystemPointerSize));
   return object;
 }
 
