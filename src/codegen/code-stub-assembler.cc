@@ -2128,7 +2128,9 @@ TNode<Code> CodeStubAssembler::LoadCodeObjectFromJSDispatchTable(
   TNode<UintPtrT> offset = ComputeJSDispatchTableEntryOffset(handle);
   offset =
       UintPtrAdd(offset, UintPtrConstant(JSDispatchEntry::kCodeObjectOffset));
-  TNode<UintPtrT> value = Load<UintPtrT>(table, offset);
+  TNode<UintPtrT> value =
+      ReinterpretCast<UintPtrT>(Load<RawPtrT>(table, offset))
+          .MarkAsCapability();
   // The LSB is used as marking bit by the js dispatch table, so here we have
   // to set it using a bitwise OR as it may or may not be set.
 
