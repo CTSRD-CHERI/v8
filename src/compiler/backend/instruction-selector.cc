@@ -3095,7 +3095,11 @@ void InstructionSelector::VisitNode(OpIndex node) {
         MarkAsRepresentation(binop.rep, node);
 #if V8_TARGET_CHERI
         if (binop.rep == WordRepresentation::Capability64()) {
-          return VisitCapabilityWordBinop(node);
+          if (binop.kind == WordBinopOp::Kind::kAdd ||
+              binop.kind == WordBinopOp::Kind::kSub ||
+              binop.kind == WordBinopOp::Kind::kBitwiseAnd) {
+            return VisitCapabilityWordBinop(node);
+          }
         }
 #endif
         switch (binop.kind) {

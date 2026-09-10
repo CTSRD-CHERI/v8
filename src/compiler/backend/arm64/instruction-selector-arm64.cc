@@ -2575,6 +2575,10 @@ void InstructionSelector::VisitCapabilityWordBinop(OpIndex node) {
       Emit(kArm64SubCap, g.DefineAsRegister(node), g.UseRegister(binop.left()),
            g.UseRegister(binop.right()));
       break;
+    case WordBinopOp::Kind::kBitwiseAnd:
+      Emit(kArm64And, g.DefineAsRegister(node), g.UseRegister(binop.left()),
+           g.UseRegister(binop.right()));
+      break;
     default:
       UNREACHABLE();
   }
