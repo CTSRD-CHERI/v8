@@ -354,7 +354,7 @@ struct LocationAllocator {
   }
 
   macro GetStackEnd(): RawPtr {
-    let offset = this.nextStack;
+    let offset = MarkNodeAsCapability(this.nextStack);
     if (this.smallSlotLast) {
       offset -= torque_internal::SizeOf<intptr>();
     }
@@ -415,8 +415,12 @@ macro LocationAllocatorForParams(
     result.nextFPReg += (result.nextFPReg & torque_internal::SizeOf<intptr>());
   }
   dcheck(result.nextFPReg % 8 == 0);
-  result.nextFPReg += paramBuffer.offset;
-  result.nextStack = result.nextFPReg +
+  // The offsets below are derived from paramBuffer.offset, which carries the
+  // CHERI tag of the off-heap buffer. Add them as capabilities so the tag
+  // survives; an integer add would clear it and leave every derived slot
+  // untagged, which then fails CapabilityIsTagged at the reference use site.
+  result.nextFPReg = MarkNodeAsCapability(paramBuffer.offset) + result.nextFPReg;
+  result.nextStack = MarkNodeAsCapability(result.nextFPReg) +
       result.remainingFPRegs * torque_internal::SizeOf<float64>();
   dcheck((result.nextStack - kHeapObjectTag) % torque_internal::SizeOf<intptr>() == 0);
   result.stackStart = result.nextStack;
