@@ -352,21 +352,25 @@ void Instruction::SetImmLLiteral(Instruction* source) {
   DCHECK(IsLdrLiteral());
   DCHECK(IsAligned(DistanceTo(source), kInstrSize));
 #if V8_TARGET_CHERI
-  // It makes no sense to check if we can encode it because we are forcefully
-  // encoding it and relying on the instruction itself aligning the address down
-  // to the multiple of pointer size.
-  Instr imm = Assembler::CImmLLiteral(
-      static_cast<int>(RoundUp(DistanceTo(source), kLoadCapLiteralScale) >>
-                       kLoadCapLiteralScaleLog2));
-  Instr mask = CImmLLiteral_mask;
-#else
+  // The encoding must match the decoding in ImmPCOffset(): a capability
+  // literal load stores the offset in the 17-bit CImmLLiteral field scaled by
+  // kLoadCapLiteralScale, any other literal load uses the 19-bit ImmLLiteral
+  // field scaled by kLoadLiteralScale. Mixing the two up yields a load that
+  // silently reads from the wrong address.
+  if (IsCapLdrLiteral()) {
+    // No range check: the offset is forcefully encoded and the instruction
+    // itself aligns the address down to a multiple of the pointer size.
+    Instr imm = Assembler::CImmLLiteral(
+        static_cast<int>(RoundUp(DistanceTo(source), kLoadCapLiteralScale) >>
+                         kLoadCapLiteralScaleLog2));
+    SetInstructionBits(Mask(~CImmLLiteral_mask) | imm);
+    return;
+  }
+#endif
   DCHECK(Assembler::IsImmLLiteral(DistanceTo(source)));
   Instr imm = Assembler::ImmLLiteral(
       static_cast<int>(DistanceTo(source) >> kLoadLiteralScaleLog2));
-  Instr mask = ImmLLiteral_mask;
-#endif
-
-  SetInstructionBits(Mask(~mask) | imm);
+  SetInstructionBits(Mask(~ImmLLiteral_mask) | imm);
 }
 
 NEONFormatDecoder::NEONFormatDecoder(const Instruction* instr) {
