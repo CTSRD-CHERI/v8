@@ -3081,7 +3081,11 @@ void MacroAssembler::ResolveWasmCodePointer(Register target,
   }
 #else
   static_assert(sizeof(wasm::WasmCodePointerTableEntry) == kSystemPointerSize);
-  Add(target.C(), scratch, Operand(target, LSL, 3));
+  // The entry holds a capability on CHERI, so it is twice as large as on
+  // other targets and the index must be scaled accordingly.
+  static constexpr int kLeftShift =
+      base::bits::WhichPowerOfTwo(sizeof(wasm::WasmCodePointerTableEntry));
+  Add(target.C(), scratch, Operand(target, LSL, kLeftShift));
 #endif
 
   Ldr(target.C(), MemOperand(target.C()));
