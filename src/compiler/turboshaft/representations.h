@@ -462,6 +462,13 @@ constexpr bool RegisterRepresentation::AllowImplicitRepresentationChangeTo(
       if (!is_turbolev && *this == RegisterRepresentation::WordPtr()) {
         return true;
       }
+#if V8_TARGET_CHERI
+      // On CHERI, Smis are raw integers (Word64), not capabilities.
+      // Allow Word64 -> Tagged for Smi values.
+      if (!is_turbolev && *this == RegisterRepresentation::Word64()) {
+        return true;
+      }
+#endif
       break;
     case RegisterRepresentation::Compressed():
       // Compression is a no-op.
