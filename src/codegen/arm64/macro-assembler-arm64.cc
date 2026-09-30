@@ -3095,11 +3095,13 @@ void MacroAssembler::CallWasmCodePointer(Register target,
                                          uint64_t signature_hash,
                                          CallJumpMode call_jump_mode) {
   ResolveWasmCodePointer(target, signature_hash);
-  PrepareC64Jump(target);
+  // ResolveWasmCodePointer loads the entrypoint capability into the C view of
+  // `target`, and PrepareC64Jump operates on capabilities.
+  PrepareC64Jump(target.C());
   if (call_jump_mode == CallJumpMode::kTailCall) {
-    Jump(target);
+    Jump(target.C());
   } else {
-    Call(target);
+    Call(target.C());
   }
 }
 
