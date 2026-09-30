@@ -625,8 +625,10 @@ void Execution::CallWasm(Isolate* isolate, DirectHandle<Code> wrapper_code,
   // must equal the isolate we execute in.
   DCHECK_EQ(isolate, Isolate::TryGetCurrent());
 
+  // The wasm target is a WasmCodePointer, i.e. a 32-bit index into the code
+  // pointer table, so it is passed as such rather than as a pointer.
   using WasmEntryStub = GeneratedCode<Address(
-      Address target, Address object_ref, Address argv, Address c_entry_fp)>;
+      uint32_t target, Address object_ref, Address argv, Address c_entry_fp)>;
   WasmEntryStub stub_entry =
       WasmEntryStub::FromAddress(isolate, wrapper_code->instruction_start());
 

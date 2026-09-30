@@ -1020,7 +1020,7 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
       // These correspond to {sig_types[]} in {CompileCWasmEntry}.
       MachineRepresentation sig_reps[] = {
           MachineType::PointerRepresentation(),  // return value
-          MachineType::PointerRepresentation(),  // target
+          MachineRepresentation::kWord32,        // target (wasm table index)
           MachineRepresentation::kTagged,        // object_ref
           MachineType::PointerRepresentation(),  // argv
           MachineType::PointerRepresentation()   // c_entry_fp
@@ -1213,7 +1213,7 @@ Handle<Code> CompileCWasmEntry(Isolate* isolate,
 
   // Schedule and compile to machine code.
   MachineType sig_types[] = {MachineType::Pointer(),    // return
-                             MachineType::Pointer(),    // target
+                             MachineType::Uint32(),     // target (wasm table index)
                              MachineType::AnyTagged(),  // object_ref
                              MachineType::Pointer(),    // argv
                              MachineType::Pointer()};   // c_entry_fp
