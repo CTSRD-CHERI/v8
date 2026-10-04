@@ -151,6 +151,9 @@ V8_OBJECT class AllocationSite : public HeapObjectLayout {
   TaggedMember<DependentCode> dependent_code_;
   std::atomic<int32_t> pretenure_data_;
   int32_t pretenure_create_count_;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  uint8_t cheri_padding_[8] = {};
+#endif
 } V8_OBJECT_END;
 
 V8_OBJECT class AllocationSiteWithWeakNext : public AllocationSite {

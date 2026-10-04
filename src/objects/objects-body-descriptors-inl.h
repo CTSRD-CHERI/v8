@@ -550,9 +550,19 @@ class AllocationSite::BodyDescriptor final : public BodyDescriptorBase {
                 offsetof(AllocationSite, pretenure_data_));
   static_assert(offsetof(AllocationSite, pretenure_data_) + kInt32Size ==
                 offsetof(AllocationSite, pretenure_create_count_));
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // AllocationSite is padded after pretenure_create_count_ so that weak_next_
+  // (a 16-byte capability) lands on a 16-byte boundary; see allocation-site.h.
+  // Without the padding it sits at offset 72, i.e. 8 mod 16, and every access
+  // to it raises a misaligned-access fault.
+  static_assert(offsetof(AllocationSiteWithWeakNext, weak_next_) %
+                    kTaggedSize ==
+                0);
+#else
   static_assert(offsetof(AllocationSite, pretenure_create_count_) +
                     kInt32Size ==
                 offsetof(AllocationSiteWithWeakNext, weak_next_));
+#endif
 
   template <typename ObjectVisitor>
   static inline void IterateBody(Tagged<Map> map, Tagged<HeapObject> obj,

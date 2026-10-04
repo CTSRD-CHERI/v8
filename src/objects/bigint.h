@@ -256,7 +256,7 @@ V8_OBJECT class BigInt : public BigIntBase {
   void BigIntShortPrint(std::ostream& os);
 
   inline static uint32_t SizeFor(uint32_t length) {
-    return sizeof(BigInt) + length * kDigitSize;
+    return ALIGN_TO_ALLOCATION_ALIGNMENT(sizeof(BigInt) + length * kDigitSize);
   }
 
   static MaybeHandle<String> ToString(Isolate* isolate,
