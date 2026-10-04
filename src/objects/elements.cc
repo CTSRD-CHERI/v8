@@ -27,6 +27,7 @@
 #include "src/objects/objects.h"
 #include "src/objects/slots-atomic-inl.h"
 #include "src/objects/slots.h"
+#include "src/utils/memcopy.h"
 #include "src/utils/utils.h"
 #include "third_party/fp16/src/include/fp16.h"
 
@@ -396,9 +397,8 @@ void CopyDoubleToDoubleElements(Tagged<FixedArrayBase> from_base,
   CopyTagged(to_address, from_address,
              static_cast<size_t>(words_per_double * copy_size));
 #else
-  uint32_t words_per_double = (kDoubleSize / kSystemPointerSize);
-  CopyWords(to_address, from_address,
-            static_cast<size_t>(words_per_double * copy_size));
+  CopyImpl(reinterpret_cast<double*>(to_address),
+           reinterpret_cast<const double*>(from_address), copy_size);
 #endif
 }
 

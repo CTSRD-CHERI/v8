@@ -594,13 +594,23 @@ const char* Deoptimizer::MessageFor(DeoptimizeKind kind) {
   }
 }
 
+namespace {
+Address ClearC64Bit(Address from) {
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
+  return from & ~static_cast<Address>(1);
+#else
+  return from;
+#endif  // __CHERI_PURE_CAPABILITY__ && V8_TARGET_ARCH_ARM64
+}
+}  // namespace
+
 Deoptimizer::Deoptimizer(Isolate* isolate, Tagged<JSFunction> function,
                          DeoptimizeKind kind, Address from, int fp_to_sp_delta)
     : isolate_(isolate),
       function_(function),
       deopt_exit_index_(kFixedExitSizeMarker),
       deopt_kind_(kind),
-      from_(from),
+      from_(ClearC64Bit(from)),
       fp_to_sp_delta_(fp_to_sp_delta),
       deoptimizing_throw_(false),
       catch_handler_data_(-1),
@@ -727,20 +737,12 @@ Deoptimizer::Deoptimizer(Isolate* isolate, Tagged<JSFunction> function,
   if (from_ <= lazy_deopt_start) {
     DCHECK_EQ(kind, DeoptimizeKind::kEager);
     int offset = static_cast<int>(from_ - kEagerDeoptExitSize - deopt_start);
-#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
-    // Account for the C64 bit.
-    offset -= 1;
-#endif  // __CHERI_PURE_CAPABILITY__ && V8_TARGET_ARCH_ARM64
     DCHECK_EQ(0, offset % kEagerDeoptExitSize);
     deopt_exit_index_ = offset / kEagerDeoptExitSize;
   } else {
     DCHECK_EQ(kind, DeoptimizeKind::kLazy);
     int offset =
         static_cast<int>(from_ - kLazyDeoptExitSize - lazy_deopt_start);
-#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
-    // Account for the C64 bit.
-    offset -= 1;
-#endif  // __CHERI_PURE_CAPABILITY__ && V8_TARGET_ARCH_ARM64
     DCHECK_EQ(0, offset % kLazyDeoptExitSize);
     deopt_exit_index_ = eager_deopt_count + (offset / kLazyDeoptExitSize);
   }
