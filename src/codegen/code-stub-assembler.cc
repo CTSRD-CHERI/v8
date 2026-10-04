@@ -14821,8 +14821,15 @@ TNode<IntPtrT> CodeStubAssembler::BasePageFromMemoryChunk(
   CSA_CHECK(this, WordEqual(metadata_chunk, address));
   return metadata;
 #else
+#if V8_TARGET_CHERI
+  return UncheckedCast<IntPtrT>(
+             Load(MachineType::Pointer(), address,
+                  IntPtrConstant(MemoryChunk::MetadataOffset())))
+      .MarkAsCapability();
+#else   // !V8_TARGET_CHERI
   return Load<IntPtrT>(address, IntPtrConstant(MemoryChunk::MetadataOffset()));
-#endif
+#endif  // V8_TARGET_CHERI
+#endif  // V8_ENABLE_SANDBOX
 }
 
 TNode<IntPtrT> CodeStubAssembler::BasePageFromAddress(TNode<IntPtrT> address) {
