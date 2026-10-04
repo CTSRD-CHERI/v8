@@ -1077,7 +1077,7 @@ inline void Assembler::LoadStoreCapScaledImmOffset(Instr memop, int offset,
        ImmLSUnsigned(offset >> size));
 }
 inline void Assembler::LoadStoreCapUnscaledImmOffset(Instr memop, int offset) {
-  DCHECK_GE(offset, 0);
+  DCHECK(IsImmLSUnscaled(offset));
   Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop | ImmLS(offset));
 }
 #endif

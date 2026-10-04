@@ -1139,17 +1139,9 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     } else if (IsImmLSUnscaled(offset)) {
 #if V8_TARGET_CHERI
       if (rt.IsC()) {
-        if (offset >= 0) {
-          LoadStoreCapUnscaledImmOffset(memop, static_cast<int>(offset));
-        } else {
-          UseScratchRegisterScope temps(this);
-          Register offset_reg =
-              temps
-                  .PushAndAcquireFirstAvailable(CPURegList(rt.C(), addr.base()))
-                  .X();
-          Mov(offset_reg, offset);
-          LoadStoreMacroComplex(rt, MemOperand(addr.base(), offset_reg), op);
-        }
+        // LDUR (capability, normal base) takes a signed 9-bit imm9, so it also
+        // covers negative offsets.
+        LoadStoreCapUnscaledImmOffset(memop, static_cast<int>(offset));
         return;
       }
 #endif
