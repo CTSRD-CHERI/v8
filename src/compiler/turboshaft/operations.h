@@ -2319,8 +2319,18 @@ struct ChangeOp : FixedArityOperationT<1, ChangeOp> {
         DCHECK_EQ(to, RegisterRepresentation::Word64());
         return reverse_kind == Kind::kTruncate;
       case Kind::kTruncate:
-        DCHECK_EQ(from, RegisterRepresentation::Word64());
         DCHECK_EQ(to, RegisterRepresentation::Word32());
+#if V8_TARGET_CHERI
+        // On CHERI, we might end up with Capability64 here due to the
+        // overloaded use of intptr. However, unlike Word64, it will never be
+        // reversible because truncation to Word32 is a destructive operation
+        // for capabilities. We should never have real, valid capabilities here,
+        // but in case we do, we want to do the correct thing anyway.
+        if (from == RegisterRepresentation::Capability64()) {
+          return false;
+        }
+#endif
+        DCHECK_EQ(from, RegisterRepresentation::Word64());
         return reverse_kind == Kind::kBitcast;
       case Kind::kBitcast:
         return reverse_kind == Kind::kBitcast;
