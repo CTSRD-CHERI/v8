@@ -389,7 +389,7 @@ size_t HeapVisitor<ConcreteVisitor>::VisitWithBodyDescriptor(
   if (!SupportsRightTrim<visitor_id>() ||
       !ConcreteVisitor::EnableConcurrentVisitation()) {
     DCHECK_EQ(
-        object->SizeFromMap(map),
+        ALIGN_TO_ALLOCATION_ALIGNMENT(object->SizeFromMap(map)),
         ALIGN_TO_ALLOCATION_ALIGNMENT(TBodyDescriptor::SizeOf(map, object)));
   }
 #endif  // DEBUG
