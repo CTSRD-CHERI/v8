@@ -352,7 +352,19 @@ class MemoryOptimizationReducer : public Next {
         __ SetVariable(result,
                        __ BitcastWordPtrToHeapObject(__ WordPtrAdd(
                            top_value, __ IntPtrConstant(kHeapObjectTag))));
+#if V8_TARGET_CHERI
+        // On CHERI the object alignment is 16 bytes, but an object whose last
+        // field is an 8-byte double (e.g. HeapNumber) has a size that is only a
+        // multiple of 8, so without this the allocation top would end up
+        // misaligned and every later 16-byte capability access to the heap
+        // would fault.
+        V<WordPtr> aligned_size = __ WordPtrBitwiseAnd(
+            __ WordPtrAdd(size, __ WordPtrConstant(kObjectAlignment - 1)),
+            __ WordPtrConstant(~static_cast<ScaledUint>(kObjectAlignmentMask)));
+        V<WordPtr> new_top = __ WordPtrAdd(top_value, aligned_size);
+#else
         V<WordPtr> new_top = __ WordPtrAdd(top_value, size);
+#endif
         V<WordPtr> limit =
             __ LoadOffHeap(limit_address, MemoryRepresentation::UintPtr());
         __ GotoIfNot(LIKELY(__ UintPtrLessThan(new_top, limit)), call_runtime);
