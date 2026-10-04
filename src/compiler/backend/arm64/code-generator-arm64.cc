@@ -1382,7 +1382,12 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       }
       break;
     case kArchRootPointer:
-      __ mov(i.OutputCapabilityRegister(), kRootRegister);
+#if V8_TARGET_CHERI
+      DCHECK(instr->OutputAt(0)->IsCapabilityRegister());
+      __ Mov(i.OutputCapabilityRegister(), kRootRegister);
+#else
+      __ mov(i.OutputRegister(), kRootRegister);
+#endif
       break;
 #if V8_ENABLE_WEBASSEMBLY
     case kArchStackPointer:
