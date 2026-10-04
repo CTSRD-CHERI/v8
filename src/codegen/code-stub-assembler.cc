@@ -1657,8 +1657,13 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
       DCHECK(!padding_needed.IsCapability());
       address = IntPtrAdd(UncheckedCast<IntPtrT>(top).MarkAsCapability(),
                           padding_needed);
+#if V8_CHERI_TIGHT_BOUNDS
+      // Narrowing the bounds here breaks the page-header accesses that
+      // MemoryChunkFromAddress performs by masking off the low address bits, so
+      // it is off by default; see V8_CHERI_TIGHT_BOUNDS in src/base/macros.h.
       address = SetBounds(address.value(), adjusted_size.value());
       DCHECK(address.IsCapability());
+#endif
 #else
       // Store a filler and increase the address by 4.
       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,

@@ -56,7 +56,12 @@
    (V8_CHERI_PERMS(ptr) & V8_CHERI_PERMS(parent)) == V8_CHERI_PERMS(ptr))
 
 #define V8_CHERI_SET_BOUNDS(cap, len) __builtin_cheri_bounds_set(cap, len)
+
+// TODO(cheri): We need to fix the masking of objects to the start of the page
+// to make this work.
+#define V8_CHERI_TIGHT_BOUNDS 0
 #else  // !__CHERI_PURE_CAPABILITY__
+#define V8_CHERI_TIGHT_BOUNDS 0
 #define CheriDiagnosticOff(...)
 #define CheriDiagnosticPop
 #define V8_CHERI_ADDR_GET(cap) (cap)
