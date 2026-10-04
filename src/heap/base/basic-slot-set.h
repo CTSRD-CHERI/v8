@@ -473,9 +473,15 @@ class BasicSlotSet {
     *(reinterpret_cast<size_t*>(this) - 1) = num_buckets;
   }
 
+  static constexpr int kNumBucketsOffset = sizeof(size_t);
   static constexpr int kNumBucketsSize = kSystemPointerSize;
+#ifndef __CHERI_PURE_CAPABILITY__
+  static_assert(kNumBucketsSize == kNumBucketsOffset,
+                "Expected kNumBucketsSize and kNumBucketsOffset to be equal on "
+                "flat memory systems");
+#endif
 
-  // For kNumBucketsSize.
+  // For kNumBucketsSize and kNumBucketsOffset.
   friend class v8::internal::WriteBarrierCodeStubAssembler;
 };
 

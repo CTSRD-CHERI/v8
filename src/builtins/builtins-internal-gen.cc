@@ -170,15 +170,9 @@ class WriteBarrierCodeStubAssembler : public CodeStubAssembler {
 
     // Load address of SlotSet
     TNode<IntPtrT> slot_set = LoadSlotSet(page, &slow_path);
-#ifdef __CHERI_PURE_CAPABILITY__
-    TNode<WordT> slot_offset =
-        IntPtrSub(BitcastCapabilityToAddress<WordT>(slot),
-                  BitcastCapabilityToAddress<WordT>(chunk));
-#else   // !__CHERI_PURE_CAPABILITY__
     TNode<IntPtrT> slot_offset = IntPtrSub(slot, chunk);
-#endif  // __CHERI_PURE_CAPABILITY__
     TNode<IntPtrT> num_buckets_address =
-        IntPtrSub(slot_set, IntPtrConstant(SlotSet::kNumBucketsSize));
+        IntPtrSub(slot_set, IntPtrConstant(SlotSet::kNumBucketsOffset));
 #ifdef __CHERI_PURE_CAPABILITY__
     TNode<IntPtrT> num_buckets = UncheckedCast<IntPtrT>(
         Load(MachineType::Int64(), num_buckets_address, IntPtrConstant(0)));
