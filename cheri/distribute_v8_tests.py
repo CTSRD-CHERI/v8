@@ -61,6 +61,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    NoReturn,
     Optional,
     Pattern,
     Set,
@@ -78,9 +79,34 @@ DEFAULT_JS_SUITES: List[str] = [
     "wasm-spec-tests",
     "test262",
     "webkit",
+    "mozilla",
+    "filecheck",
     "benchmarks",
 ]
-DEFAULT_CPP_SUITES: List[str] = ["cctest", "unittests", "wasm-api-tests", "fuzzer"]
+
+# Without this, run-tests.py runs every variant.
+DEFAULT_VARIANTS = "dev"
+
+# For --help; --variants also takes bare variant names.
+KNOWN_VARIANT_ALIASES = {
+    "dev",
+    "more",
+    "exhaustive",
+    "extra",
+}
+
+# Enumerated by running a binary on the target machine; 'bigint' has no .js.
+DEFAULT_CPP_SUITES: List[str] = [
+    "cctest",
+    "unittests",
+    "wasm-api-tests",
+    "bigint",
+]
+
+FUZZING_SUITES: List[str] = ["fuzzer", "fuzzilli", "mkgrokdump", "js-perf-test"]
+FUZZING_SUITE_INFO: Dict[str, Dict[str, Any]] = {
+    "fuzzer": {"binary": None, "list": ["fuzzer"], "prefix": "fuzzer"},
+}
 
 JS_SUITE_INFO: Dict[str, Dict[str, Any]] = {
     "test262": {
@@ -112,7 +138,12 @@ CPP_SUITE_INFO: Dict[str, Dict[str, Any]] = {
         "parser": "gtest",
         "prefix": "wasm-api-tests",
     },
-    "fuzzer": {"binary": None, "list": ["fuzzer"], "prefix": "fuzzer"},
+    "bigint": {
+        "binary": "./bigint_shell",
+        "list_arg": "--list",
+        "parser": "word-list",
+        "prefix": "bigint",
+    },
 }
 
 # Patterns to filter out from log files.
@@ -123,6 +154,7 @@ LOG_FILTER_PATTERNS: List[Pattern[str]] = [
     re.compile(r"^DEBUG_defined,.*"),
     re.compile(r"^>>> Running tests for .*"),
     re.compile(r"^>>> Running with test processors"),
+    re.compile(r"^>>> Statusfile variables:"),
 ]
 
 # Directories to skip when walking JavaScript test suites.
@@ -134,9 +166,13 @@ DEFAULT_SKIP_DIRS: Set[str] = {
     "implementation-contributed",
 }
 
-# Default test IDs to exclude (helper files).
+# What testsuite.JSTestLoader accepts.
+JS_TEST_SUFFIXES: Tuple[str, ...] = (".js", ".mjs")
+
+# Fallback exclusions, used only when a suite's testcfg.py cannot be read.
 DEFAULT_EXCLUDE_IDS: Set[str] = {
     "mjsunit/mjsunit",
+    "mjsunit/mjsunit_numfuzz",
     "mjsunit/utils",
     "message/message",
     "intl/overrides",
@@ -147,13 +183,51 @@ def warn(msg: str) -> None:
     logging.warning(msg)
 
 
-def error(msg: str, exit_code: int = 1) -> None:
+def error(msg: str, exit_code: int = 1) -> NoReturn:
     logging.error(msg)
     sys.exit(exit_code)
 
 
 def sanitize_machine_name(machine: str) -> str:
     return machine.replace(".", "_").replace(":", "_")
+
+
+def _strip_js_suffix(name: str) -> str:
+    for suffix in JS_TEST_SUFFIXES:
+        name = name.removesuffix(suffix)
+    return name
+
+
+def read_excluded_files(v8_root: Path, suite: str) -> Optional[Set[str]]:
+    """Read excluded_files out of a suite's testcfg.py, or None if absent."""
+    testcfg = v8_root / "test" / suite / "testcfg.py"
+    try:
+        source = testcfg.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    match = re.search(
+        r"^[ \t]*def[ \t]+excluded_files\b.*?return[ \t]+"
+        r"(?P<expr>\{.*?\}|set\([^\n]*\)|[^\n]*)",
+        source,
+        re.DOTALL | re.MULTILINE,
+    )
+    if not match:
+        return None
+
+    # Entries may be module-level constants, so resolve those.
+    consts = dict(
+        re.findall(r"^([A-Z_][A-Z0-9_]*)\s*=\s*['\"]([^'\"]+)['\"]", source, re.M)
+    )
+    names: List[str] = []
+    for token in re.findall(r"[A-Za-z_]\w*|'[^']*'|\"[^\"]*\"", match.group("expr")):
+        if token[0] in "'\"":
+            names.append(token[1:-1])
+        elif token in consts:
+            names.append(consts[token])
+        else:
+            return None  # unresolvable, so let the caller fall back
+    return set(names)
 
 
 def list_v8_javascript_test_ids(
@@ -171,7 +245,8 @@ def list_v8_javascript_test_ids(
         local_v8_root: Path to local V8 source root.
         suites: List of JavaScript suite names to include (e.g., ['mjsunit', 'test262']).
                 If None, all default suites are used.
-        exclude_helpers: If True, filter out known helper files.
+        exclude_helpers: If True, drop files the suite's testcfg.py excludes,
+                plus the built-in fallback list.
         extra_exclude_ids: Additional test identifiers to exclude.
         skip_dirs: Directory names to skip entirely.
 
@@ -190,9 +265,19 @@ def list_v8_javascript_test_ids(
     else:
         skip_dirs = set(skip_dirs)
 
-    exclude_ids = set(DEFAULT_EXCLUDE_IDS)
+    exclude_filenames: Set[str] = set(DEFAULT_EXCLUDE_IDS)
+    if exclude_helpers:
+        for suite in suites:
+            declared = read_excluded_files(v8_root, suite)
+            if declared is None:
+                logging.debug(f"no excluded_files for '{suite}'; using fallback")
+                continue
+            # testcfg.py declares these with an extension; ids have none.
+            exclude_filenames.update(
+                f"{suite}/{name}" for name in map(_strip_js_suffix, declared)
+            )
     if extra_exclude_ids:
-        exclude_ids.update(extra_exclude_ids)
+        exclude_filenames.update(extra_exclude_ids)
 
     test_ids: List[str] = []
     tests_root = v8_root / "test"
@@ -224,13 +309,15 @@ def list_v8_javascript_test_ids(
         for root, dirs, files in os.walk(suite_dir):
             dirs[:] = [d for d in dirs if d not in skip_dirs]
             for f in files:
-                if not f.endswith(".js"):
+                if not f.endswith(JS_TEST_SUFFIXES):
                     continue
                 full_path = Path(root) / f
                 rel_path = full_path.relative_to(v8_root)
-                test_id = str(rel_path).replace("test/", "", 1).replace(".js", "")
+                test_id = _strip_js_suffix(
+                    str(rel_path).replace("test/", "", 1)
+                )
 
-                if exclude_helpers and test_id in exclude_ids:
+                if exclude_helpers and test_id in exclude_filenames:
                     continue
 
                 # Apply suite-specific path adjustments if needed.
@@ -261,7 +348,20 @@ def ssh_execute(
         dest = f"{ssh_user}@{machine}"
     else:
         dest = machine
-    ssh_cmd = ["ssh", dest, command]
+    # ConnectTimeout covers setup only, not the session, so long runs are fine.
+    # accept-new trusts a host key on first use, which BatchMode needs for a
+    # host not yet in known_hosts; it still refuses a changed key.
+    ssh_cmd = [
+        "ssh",
+        "-o",
+        "ConnectTimeout=20",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        dest,
+        command,
+    ]
     try:
         result = subprocess.run(
             ssh_cmd,
@@ -286,14 +386,32 @@ def parse_cctest_list(output: str) -> List[str]:
     Lines look like: "**>Test: test-weak-references/ObjectWithWeakReferencePromoted"
     """
     tests: List[str] = []
+    total: Optional[int] = None
     for line in output.splitlines():
         line = line.strip()
         if line.startswith("**>Test:"):
-            # Extract the part after '**>Test:'
             test_name = line[len("**>Test:") :].strip()
             if test_name:
                 tests.append(f"cctest/{test_name}")
+        elif line.startswith("Total number of tests:"):
+            try:
+                total = int(line[len("Total number of tests:") :].strip())
+            except ValueError:
+                warn(f"Could not parse cctest test total from: {line!r}")
+
+    if total is None:
+        warn(f"cctest --list gave no test count; cannot check {len(tests)} tests")
+    elif total != len(tests):
+        error(
+            f"cctest --list reported {total} tests but parsed {len(tests)}",
+            exit_code=2,
+        )
     return tests
+
+
+def parse_word_list(output: str, prefix: str) -> List[str]:
+    """Parse a shell that lists one bare test name per word."""
+    return [f"{prefix}/{name}" for name in output.split() if name]
 
 
 def parse_gtest_list(output: str, prefix: str) -> List[str]:
@@ -323,15 +441,13 @@ def get_cpp_tests_from_machine(
     ssh_user: Optional[str] = None,
     suites: Optional[List[str]] = None,
 ) -> List[str]:
-    """
-    Discover C++ tests on a remote machine for the requested suites.
-    """
+    """List C++ tests on a remote machine."""
     if suites is None:
         suites = DEFAULT_CPP_SUITES
 
     cpp_tests: List[str] = []
     for suite in suites:
-        info = CPP_SUITE_INFO.get(suite)
+        info = CPP_SUITE_INFO.get(suite) or FUZZING_SUITE_INFO.get(suite)
         if not info:
             warn(f"Unknown C++ suite '{suite}', skipping.")
             continue
@@ -360,6 +476,8 @@ def get_cpp_tests_from_machine(
             tests = parse_cctest_list(result.stdout)
         elif info["parser"] == "gtest":
             tests = parse_gtest_list(result.stdout, info["prefix"])
+        elif info["parser"] == "word-list":
+            tests = parse_word_list(result.stdout, info["prefix"])
         else:
             warn(f"Unknown parser '{info['parser']}' for suite {suite}")
             continue
@@ -476,6 +594,8 @@ def run_tests_on_machine(
     ssh_user: Optional[str] = None,
     log_dir: Optional[str] = None,
     batch_size: int = 50,
+    test_timeout: int = 60,
+    variants: str = DEFAULT_VARIANTS,
 ) -> Tuple[str, bool, str]:
     """
     SSH into a single machine and run all its assigned tests using xargs with batches.
@@ -492,13 +612,10 @@ def run_tests_on_machine(
     # Build the remote command that reads the test list from stdin.
     remote_cmd = f"""
 set -e
-tmp=$(mktemp /tmp/v8_tests_$$_XXXXXX) || exit 1
-cat > "$tmp"
 cd "{shlex.quote(remote_v8_root)}"
-xargs -n {batch_size} tools/run-tests.py -p verbose --exit-after-n-failures=0 --outdir="{shlex.quote(build_dir)}" < "$tmp"
-rc=$?
-rm -f "$tmp"
-exit $rc
+xargs -n {batch_size} tools/run-tests.py -p verbose -t {test_timeout} \
+  --variants={variants} --exit-after-n-failures=0 \
+  --outdir="{shlex.quote(build_dir)}"
 """
 
     # Prepare log file if requested
@@ -520,7 +637,13 @@ exit $rc
     elapsed = time.time() - start_time
 
     if result is None:
-        # ssh_execute already printed a warning
+        # Still write the log, so a stale one can't be read as this run's.
+        if log_path:
+            try:
+                with open(log_path, "w") as f:
+                    f.write("=== SSH connection failed\n")
+            except OSError as e:
+                warn(f"Could not write log for {machine}: {e}")
         return machine, False, "SSH connection failed"
 
     output = result.stdout + result.stderr
@@ -556,6 +679,8 @@ def run_tests_on_machines(
     parallel: bool = True,
     max_workers: int = 10,
     batch_size: int = 50,
+    test_timeout: int = 60,
+    variants: str = DEFAULT_VARIANTS,
 ) -> Dict[str, Tuple[bool, str]]:
     """
     Run tests on all machines, either sequentially or in parallel.
@@ -576,6 +701,8 @@ def run_tests_on_machines(
                     ssh_user,
                     log_dir,
                     batch_size,
+                    test_timeout,
+                    variants,
                 ): machine
                 for machine in machines
             }
@@ -592,6 +719,8 @@ def run_tests_on_machines(
                 ssh_user,
                 log_dir,
                 batch_size,
+                test_timeout,
+                variants,
             )
             results[machine] = (success, output)
 
@@ -600,7 +729,11 @@ def run_tests_on_machines(
     success_count = sum(1 for s, _ in results.values() if s)
     for machine, (success, _) in results.items():
         status = "SUCCESS" if success else "FAILURE"
-        logging.info(f"  {machine}: {status}")
+        if success:
+            logging.info(f"  {machine}: {status}")
+        else:
+            # Warn, so failures show without -v.
+            warn(f"  {machine}: {status}")
     logging.info(f"Overall: {success_count}/{len(machines)} machines succeeded.")
     return results
 
@@ -614,8 +747,9 @@ def parse_status_line(line: str) -> Optional[str]:
     If line is a test status line, return the line (or a tuple) for collection.
     Format: "<test> <variant>: <STATUS>"
     """
-    # Simple regex check; we keep the whole line for output.
-    status_re = re.compile(r"^[\w/.-]+\s+\w+:\s+(PASS|FAIL|TIMEOUT|CRASH|SKIP)$")
+    status_re = re.compile(
+        r"^\S.*?(?:\s+\S+)?:\s+(PASS|FAIL|TIMEOUT|CRASH|SKIP)$"
+    )
     return line if status_re.match(line) else None
 
 
@@ -754,7 +888,10 @@ def combine_logs(log_dir: str, output_file: str) -> None:
             out_f.write(block + "\n")
 
         out_f.write("\n")
-        if total_failed == 0:
+        if total_ran == 0:
+            # 0 ran means nothing ran, not that everything passed.
+            out_f.write("=== No tests ran\n")
+        elif total_failed == 0:
             out_f.write("=== All tests succeeded\n")
         else:
             out_f.write(f"=== {total_failed} tests failed\n")
@@ -763,6 +900,73 @@ def combine_logs(log_dir: str, output_file: str) -> None:
     logging.info(
         f"Combined {len(log_files)} log files into '{output_file}' "
         f"(status lines: {len(status_lines)}, error blocks: {len(error_blocks)})."
+    )
+
+
+def detect_build_config(
+    machine: str, remote_v8_root: str, build_dir: str, ssh_user: Optional[str]
+) -> Dict[str, str]:
+    """Ask run-tests.py to describe the build it would use."""
+    cmd = (
+        f"cd {remote_v8_root} && "
+        f"tools/run-tests.py --outdir={build_dir} "
+        f"no_such_suite/NoSuchTest 2>&1 | head -5"
+    )
+    result = ssh_execute(machine, cmd, ssh_user, timeout=300)
+    if result is None:
+        warn("Could not query build configuration; assuming defaults.")
+        return {}
+
+    config: Dict[str, str] = {}
+    for line in (result.stdout + result.stderr).splitlines():
+        if "=" not in line:
+            continue
+        for pair in line.split(","):
+            if "=" not in pair:
+                continue
+            key, _, value = pair.partition("=")
+            key = key.strip()
+            if re.fullmatch(r"[A-Za-z0-9_]+", key):
+                config[key] = value.strip()
+    return config
+
+
+def log_build_config(config: Dict[str, str]) -> None:
+    for key in ["is_cheri", "i18n", "dcheck_always_on", "slow_dchecks", "mode"]:
+        if key in config:
+            logging.info(f"  {key}={config[key]}")
+
+
+# run-tests.py's default.
+DEFAULT_TEST_TIMEOUT = 60
+SLOW_BUILD_TIMEOUT_FACTOR = 4
+
+
+def compute_test_timeout(
+    config: Dict[str, str], base_timeout: int, is_default: bool
+) -> int:
+    """Scale up the default timeout on dcheck builds."""
+    if not is_default:
+        return base_timeout
+    slow = config.get("dcheck_always_on", "").lower() == "true" or config.get(
+        "slow_dchecks", ""
+    ).lower() == "true"
+    if not slow:
+        return base_timeout
+    timeout = base_timeout * SLOW_BUILD_TIMEOUT_FACTOR
+    logging.info(f"dcheck build: timeout {base_timeout}s -> {timeout}s")
+    return timeout
+
+
+def default_suite_dirs(v8_root: Union[str, Path]) -> List[str]:
+    """Return the test/ subdirectories containing a testcfg.py."""
+    tests_root = Path(v8_root) / "test"
+    if not tests_root.is_dir():
+        return []
+    return sorted(
+        d.name
+        for d in tests_root.iterdir()
+        if d.is_dir() and (d / "testcfg.py").is_file()
     )
 
 
@@ -858,6 +1062,28 @@ def main() -> None:
         "Smaller values reduce command-line length but increase overhead. Default: 50.",
     )
     parser.add_argument(
+        "--variants",
+        default=DEFAULT_VARIANTS,
+        help="Passed to tools/run-tests.py --variants: a comma-separated "
+        "list, or one of "
+        f"{', '.join(sorted(KNOWN_VARIANT_ALIASES))}. "
+        f"Default {DEFAULT_VARIANTS!r}.",
+    )
+    parser.add_argument(
+        "--test-timeout",
+        type=int,
+        default=None,
+        help="Per-test timeout in seconds passed to tools/run-tests.py -t. "
+        f"Default: {DEFAULT_TEST_TIMEOUT}, scaled up automatically on "
+        "dcheck/slow-dcheck builds. An explicit value is used as given.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Discover and split tests, print the plan and the exact per-machine "
+        "invocation, then exit without running anything.",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -867,6 +1093,11 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    for name in ("max_workers", "batch_size", "test_timeout"):
+        value = getattr(args, name)
+        if value is not None and value <= 0:
+            parser.error(f"--{name.replace('_', '-')} must be greater than 0")
+
     # Configure logging
     log_level = logging.WARNING
     if args.verbose == 1:
@@ -874,6 +1105,9 @@ def main() -> None:
     elif args.verbose >= 2:
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+    if args.dry_run:
+        # Show the plan even without -v.
+        logging.getLogger().setLevel(logging.INFO)
 
     # Get expanded machine list
     machines = get_machine_list(args.machine_list)
@@ -882,24 +1116,39 @@ def main() -> None:
 
     logging.info(f"Expanded machine list to {len(machines)} entries.")
 
-    # Determine which suites to include
+    # A suite with no testcfg.py selects nothing, so drop it.
+    available = set(default_suite_dirs(args.local_v8_root))
+    if available:
+        logging.info("Suites with a testcfg.py: %s", ", ".join(sorted(available)))
+
+    # Fuzzing suites stay requestable but are not defaults.
+    fuzzing = set(FUZZING_SUITES)
+    if args.suites is None:
+        allowed_js = [s for s in DEFAULT_JS_SUITES if s not in fuzzing]
+        allowed_cpp = [s for s in DEFAULT_CPP_SUITES if s not in fuzzing]
+    else:
+        allowed_js = DEFAULT_JS_SUITES + FUZZING_SUITES
+        allowed_cpp = DEFAULT_CPP_SUITES + FUZZING_SUITES
+
     requested_suites: Optional[List[str]] = None
     if args.suites:
         requested_suites = [s.strip() for s in args.suites.split(",") if s.strip()]
-        # Validate that requested suites are known
-        known_suites = set(DEFAULT_JS_SUITES + DEFAULT_CPP_SUITES)
+        known_suites = set(allowed_js + allowed_cpp)
         for s in requested_suites:
             if s not in known_suites:
                 warn(f"Unknown suite '{s}' requested. It will be ignored.")
+            elif available and s not in available:
+                warn(f"Suite '{s}' has no test/<dir>/testcfg.py in this checkout.")
+        if any(s in fuzzing for s in requested_suites):
+            warn("Fuzzing suites requested; these can run very long.")
     else:
-        # No suites specified, use all known suites.
         requested_suites = None  # Signals "use defaults"
 
     # Collect tests
     all_tests: List[str] = []
 
     # JavaScript suites
-    js_suites = filter_suites(requested_suites, DEFAULT_JS_SUITES)
+    js_suites = filter_suites(requested_suites, allowed_js)
     if js_suites:
         try:
             js_tests = list_v8_javascript_test_ids(args.local_v8_root, suites=js_suites)
@@ -914,7 +1163,7 @@ def main() -> None:
     )
 
     # C++ suites
-    cpp_suites = filter_suites(requested_suites, DEFAULT_CPP_SUITES)
+    cpp_suites = filter_suites(requested_suites, allowed_cpp)
     if cpp_suites:
         if not machines:
             warn("No machines available to run C++ test discovery. Skipping C++ tests.")
@@ -948,8 +1197,62 @@ def main() -> None:
     for machine, test_list in assignments.items():
         logging.info(f"  {machine}: {len(test_list)} tests")
 
-    logging.info(f"Starting remote test execution on {len(machines)} machines...")
     log_dir = args.log_dir if args.log_dir else args.output_directory
+
+    build_config: Dict[str, str] = {}
+    if machines:
+        logging.info("Querying build configuration...")
+        build_config = detect_build_config(
+            machines[0], remote_v8_root, args.build_directory, args.ssh_user
+        )
+        log_build_config(build_config)
+    test_timeout = compute_test_timeout(
+        build_config,
+        DEFAULT_TEST_TIMEOUT if args.test_timeout is None else args.test_timeout,
+        is_default=args.test_timeout is None,
+    )
+
+    if args.dry_run:
+        logging.info("=" * 60)
+        logging.info("Dry run, nothing will be executed.")
+        logging.info(f"  suites:   JS={js_suites} C++={cpp_suites}")
+        logging.info(f"  tests:    {len(all_tests)} total")
+        logging.info(f"  machines: {len(machines)}")
+        logging.info(f"  batch:    {args.batch_size}")
+        logging.info(f"  timeout:  {test_timeout}s per test")
+        logging.info(f"  variants: {args.variants}")
+        logging.info(f"  outdir:   {args.build_directory}")
+        logging.info(f"  v8 root:  {remote_v8_root}")
+        for machine, test_list in assignments.items():
+            logging.info(f"  {machine}: {len(test_list)} tests")
+        logging.info("Representative invocation:")
+        logging.info(
+            f"  ssh {machines[0]} 'cd {remote_v8_root} && "
+            f"xargs -n {args.batch_size} tools/run-tests.py -p verbose "
+            f"-t {test_timeout} --variants={args.variants} "
+            f"--exit-after-n-failures=0 "
+            f"--outdir={args.build_directory}'"
+        )
+        for test_id in sorted(all_tests)[:5]:
+            logging.info(f"  {test_id}")
+        return
+
+    logging.info(f"Starting remote test execution on {len(machines)} machines...")
+
+    # Don't combine a previous run's logs with this one's.
+    stale = [
+        p
+        for p in Path(log_dir).glob("*.log")
+        if p.name != "combined_results.log"
+    ]
+    for p in stale:
+        try:
+            p.unlink()
+        except OSError as e:
+            warn(f"Could not remove stale log {p}: {e}")
+    if stale:
+        logging.info(f"Removed {len(stale)} log file(s) from a previous run.")
+
     run_tests_on_machines(
         assignments,
         remote_v8_root=remote_v8_root,
@@ -959,6 +1262,8 @@ def main() -> None:
         parallel=args.parallel,
         max_workers=args.max_workers,
         batch_size=args.batch_size,
+        test_timeout=test_timeout,
+        variants=args.variants,
     )
 
     combined_file = os.path.join(log_dir, "combined_results.log")
