@@ -282,22 +282,26 @@ macro NewReturnSlotAllocator(): ReturnSlotAllocator {
 struct LocationAllocator {
   macro GetStackSlot(): &intptr {
     if constexpr (Is64()) {
+      const offset = this.stackBase + this.stackDelta;
+      dcheck(CapabilityIsTagged(offset));
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextStack);
-      this.nextStack += torque_internal::SizeOf<intptr>();
+          this.object, Convert<intptr>(offset));
+      this.stackDelta += torque_internal::SizeOf<intptr>();
       return result;
     } else {
-      if (this.smallSlot != 0) {
+      if (this.smallSlotDelta != 0) {
+        const offset = this.stackBase + this.smallSlotDelta;
         const result = torque_internal::unsafe::NewReference<intptr>(
-            this.object, this.smallSlot);
-        this.smallSlot = 0;
+            this.object, Convert<intptr>(offset));
+        this.smallSlotDelta = 0;
         this.smallSlotLast = false;
         return result;
       }
+      const offset = this.stackBase + this.stackDelta;
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextStack);
-      this.smallSlot = this.nextStack + torque_internal::SizeOf<intptr>();
-      this.nextStack = this.smallSlot + torque_internal::SizeOf<intptr>();
+          this.object, Convert<intptr>(offset));
+      this.smallSlotDelta = this.stackDelta + torque_internal::SizeOf<intptr>();
+      this.stackDelta = this.smallSlotDelta + torque_internal::SizeOf<intptr>();
       this.smallSlotLast = true;
       return result;
     }
@@ -305,9 +309,11 @@ struct LocationAllocator {
 
   macro GetGPSlot(): &intptr {
     if (this.remainingGPRegs-- > 0) {
+      const offset = this.gpBase + this.gpDelta;
+      dcheck(CapabilityIsTagged(offset));
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextGPReg);
-      this.nextGPReg += torque_internal::SizeOf<intptr>();
+          this.object, Convert<intptr>(offset));
+      this.gpDelta += torque_internal::SizeOf<intptr>();
       return result;
     }
     return this.GetStackSlot();
@@ -315,9 +321,11 @@ struct LocationAllocator {
 
   macro GetFP32Slot(): &intptr {
     if (this.remainingFPRegs-- > 0) {
+      const offset = this.fpBase + this.fpDelta;
+      dcheck(CapabilityIsTagged(offset));
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextFPReg);
-      this.nextFPReg += torque_internal::SizeOf<float64>();
+          this.object, Convert<intptr>(offset));
+      this.fpDelta += torque_internal::SizeOf<float64>();
       return result;
     }
     return this.GetStackSlot();
@@ -329,17 +337,20 @@ struct LocationAllocator {
 
   macro GetFP64Slot(): &intptr {
     if (this.remainingFPRegs-- > 0) {
+      const offset = this.fpBase + this.fpDelta;
+      dcheck(CapabilityIsTagged(offset));
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextFPReg);
-      this.nextFPReg += torque_internal::SizeOf<float64>();
+          this.object, Convert<intptr>(offset));
+      this.fpDelta += torque_internal::SizeOf<float64>();
       return result;
     }
     if constexpr (Is64()) {
       return this.GetStackSlot();
     } else {
+      const offset = this.stackBase + this.stackDelta;
       const result = torque_internal::unsafe::NewReference<intptr>(
-          this.object, this.nextStack);
-      this.nextStack = this.nextStack + 2 * torque_internal::SizeOf<intptr>();
+          this.object, Convert<intptr>(offset));
+      this.stackDelta = this.stackDelta + 2 * torque_internal::SizeOf<intptr>();
       this.smallSlotLast = false;
       return result;
     }
@@ -349,56 +360,63 @@ struct LocationAllocator {
   // filled.
   macro StartRefs(): void {
     if (!this.smallSlotLast) {
-      this.smallSlot = 0;
+      this.smallSlotDelta = 0;
     }
   }
 
   macro GetStackEnd(): RawPtr {
-    let offset = MarkNodeAsCapability(this.nextStack);
+    let delta = this.stackDelta;
     if (this.smallSlotLast) {
-      offset -= torque_internal::SizeOf<intptr>();
+      delta -= torque_internal::SizeOf<intptr>();
     }
+    const offset = this.stackBase + delta;
+    dcheck(CapabilityIsTagged(offset));
     return torque_internal::unsafe::GCUnsafeReferenceToRawPtr(
-        this.object, offset);
+        this.object, Convert<intptr>(offset));
   }
 
   macro GetAlignedStackEnd(alignment: intptr): RawPtr {
-    let offset = this.nextStack;
+    let delta = this.stackDelta;
     if (this.smallSlotLast) {
-      offset -= torque_internal::SizeOf<intptr>();
+      delta -= torque_internal::SizeOf<intptr>();
     }
-    const stackSize = offset - this.stackStart;
+    const stackSize = delta - this.stackStartDelta;
     if (stackSize % alignment != 0) {
-      offset += alignment - (stackSize % alignment);
+      delta += alignment - (stackSize % alignment);
     }
+    const offset = this.stackBase + delta;
+    dcheck(CapabilityIsTagged(offset));
     return torque_internal::unsafe::GCUnsafeReferenceToRawPtr(
-        this.object, offset);
+        this.object, Convert<intptr>(offset));
   }
 
   macro CheckBufferOverflow(): void {
-    check(this.paramBufferEnd == 0 || this.nextStack <= this.paramBufferEnd);
+    check(this.paramBufferEndDelta == 0 ||
+          this.stackDelta <= this.paramBufferEndDelta);
   }
 
   object: HeapObject|TaggedZeroPattern;
   remainingGPRegs: intptr;
   remainingFPRegs: intptr;
-  nextGPReg: intptr;
-  nextFPReg: intptr;
-  nextStack: intptr;
-  stackStart: intptr;
-  // The end of the paramBuffer. The stack buffer is not allowed to be filled
-  // beyond the buffer end.
-  paramBufferEnd: intptr;
-  // Even on 32-bit platforms we always allocate 64-bit stack space at a time to
-  // preserve alignment. If we allocate a 64-bit slot for a 32-bit type, then we
-  // remember the second half of the 64-bit slot as `smallSlot` so that it can
-  // be used for the next 32-bit type.
-  smallSlot: intptr;
-  // If the {smallSlot} is in the middle of the whole allocated stack space,
-  // then it is part of the overall stack space size. However, if the hole is at
-  // the border of the whole allocated stack space, then we have to subtract it
-  // from the overall stack space size. This flag keeps track of whether the
-  // hole is in the middle (false) or at the border (true).
+  // On CHERI, the tagged base of each region, kept as RawPtr so that a phi over
+  // this struct stays capability-typed; the cursors below are integer deltas
+  // from the corresponding base.
+  gpBase: RawPtr;
+  fpBase: RawPtr;
+  stackBase: RawPtr;
+  gpDelta: intptr;
+  fpDelta: intptr;
+  stackDelta: intptr;
+  stackStartDelta: intptr;
+  // The end of the paramBuffer, as a delta from the stack base. The stack
+  // buffer is not allowed to be filled beyond the buffer end.
+  paramBufferEndDelta: intptr;
+  smallSlotDelta: intptr;
+  // If the smallSlotDelta is in the middle of the whole allocated stack
+  // space, then it is part of the overall stack space size. However, if the
+  // hole is at the border of the whole allocated stack space, then we have to
+  // subtract it from the overall stack space size. This flag keeps track of
+  // whether the hole is in the middle (false) or at the border (true).
   smallSlotLast: bool;
 }
 
@@ -408,28 +426,36 @@ macro LocationAllocatorForParams(
   result.object = paramBuffer.object;
   result.remainingGPRegs = UniqueIntPtrConstant(kNumGPRegisterParameters);
   result.remainingFPRegs = UniqueIntPtrConstant(kNumFPRegisterParameters);
-  result.nextGPReg = paramBuffer.offset;
-  result.nextFPReg = result.remainingGPRegs * torque_internal::SizeOf<intptr>();
+  result.gpBase = torque_internal::unsafe::GCUnsafeReferenceToRawPtr(
+      paramBuffer.object, paramBuffer.offset);
+  result.fpBase = result.gpBase;
+  result.stackBase = result.gpBase;
+  dcheck(CapabilityIsTagged(result.gpBase));
+  // kHeapObjectTag lives in the deltas because a Reference offset is stored as
+  // base+1; GCUnsafeReferenceToRawPtr subtracts it again on the way out.
+  result.gpDelta = kHeapObjectTag;
+  result.fpDelta = kHeapObjectTag +
+                   result.remainingGPRegs * torque_internal::SizeOf<intptr>();
   if constexpr (!Is64()) {
-    // Add padding to provide 8-byte alignment for float64 values.
-    result.nextFPReg += (result.nextFPReg & torque_internal::SizeOf<intptr>());
+    // Add padding to provide 8-byte alignment for float64 values. The
+    // padding is applied to a value that already carries kHeapObjectTag, so
+    // both the test and the increment must be applied to it; the result
+    // stays 4-aligned either way because the tag only flips bit 0.
+    result.fpDelta += (result.fpDelta & torque_internal::SizeOf<intptr>());
   }
-  dcheck(result.nextFPReg % 8 == 0);
-  // The offsets below are derived from paramBuffer.offset, which carries the
-  // CHERI tag of the off-heap buffer. Add them as capabilities so the tag
-  // survives; an integer add would clear it and leave every derived slot
-  // untagged, which then fails CapabilityIsTagged at the reference use site.
-  result.nextFPReg = MarkNodeAsCapability(paramBuffer.offset) + result.nextFPReg;
-  result.nextStack = MarkNodeAsCapability(result.nextFPReg) +
+  dcheck((result.fpDelta - kHeapObjectTag) % 8 == 0);
+  result.stackDelta =
+      result.fpDelta +
       result.remainingFPRegs * torque_internal::SizeOf<float64>();
-  dcheck((result.nextStack - kHeapObjectTag) % torque_internal::SizeOf<intptr>() == 0);
-  result.stackStart = result.nextStack;
-  result.smallSlot = 0;
+  dcheck((result.stackDelta - kHeapObjectTag) %
+             torque_internal::SizeOf<intptr>() == 0);
+  result.stackStartDelta = result.stackDelta;
+  result.smallSlotDelta = 0;
   result.smallSlotLast = false;
   if (paramBufferSize > 0) {
-    result.paramBufferEnd = paramBuffer.offset + paramBufferSize;
+    result.paramBufferEndDelta = kHeapObjectTag + paramBufferSize;
   } else {
-    result.paramBufferEnd = 0;
+    result.paramBufferEndDelta = 0;
   }
   return result;
 }
@@ -440,14 +466,20 @@ macro LocationAllocatorForReturns(
   result.object = kZeroBitPattern;
   result.remainingGPRegs = kNumGPRegisterReturns;
   result.remainingFPRegs = kNumFPRegisterReturns;
-  result.nextGPReg = Convert<intptr>(gpRegs) + kHeapObjectTag;
-  result.nextFPReg = Convert<intptr>(fpRegs) + kHeapObjectTag;
-  result.nextStack = Convert<intptr>(stack) + kHeapObjectTag;
-  result.stackStart = result.nextStack;
-  result.smallSlot = 0;
+  result.gpBase = gpRegs;
+  result.fpBase = fpRegs;
+  result.stackBase = stack;
+  dcheck(CapabilityIsTagged(result.gpBase));
+  dcheck(CapabilityIsTagged(result.fpBase));
+  dcheck(CapabilityIsTagged(result.stackBase));
+  result.gpDelta = kHeapObjectTag;
+  result.fpDelta = kHeapObjectTag;
+  result.stackDelta = kHeapObjectTag;
+  result.stackStartDelta = kHeapObjectTag;
+  result.smallSlotDelta = 0;
   result.smallSlotLast = false;
   // We don't know the size of the paramBuffer.
-  result.paramBufferEnd = 0;
+  result.paramBufferEndDelta = 0;
   return result;
 }
 
