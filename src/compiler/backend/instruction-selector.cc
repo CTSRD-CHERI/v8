@@ -3728,6 +3728,15 @@ void InstructionSelector::VisitNode(OpIndex node) {
           case AtomicRMWOp::BinOp::kCompareExchange:
             return VisitWord64AtomicCompareExchange(node);
         }
+#if V8_TARGET_CHERI
+      } else if (atomic_op.in_out_rep ==
+                 RegisterRepresentation::Capability64()) {
+        if (atomic_op.bin_op == AtomicRMWOp::BinOp::kExchange) {
+          return VisitCapabilityAtomicExchange(node);
+        }
+        CHECK_EQ(atomic_op.bin_op, AtomicRMWOp::BinOp::kCompareExchange);
+        return VisitCapabilityAtomicCompareExchange(node);
+#endif  // V8_TARGET_CHERI
       } else {
         CHECK_EQ(atomic_op.in_out_rep, Rep::Tagged());
         if (atomic_op.bin_op == AtomicRMWOp::BinOp::kExchange) {

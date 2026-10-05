@@ -4698,6 +4698,21 @@ void InstructionSelector::VisitTaggedAtomicExchange(OpIndex node) {
                       atomic_op.memory_access_kind);
 }
 
+#if V8_TARGET_CHERI
+void InstructionSelector::VisitCapabilityAtomicExchange(OpIndex node) {
+  const AtomicRMWOp& atomic_op = Cast<AtomicRMWOp>(node);
+  VisitAtomicExchange(this, node, kArm64CapabilityAtomicExchange,
+                      AtomicWidth::kCapability64, atomic_op.memory_access_kind);
+}
+
+void InstructionSelector::VisitCapabilityAtomicCompareExchange(OpIndex node) {
+  const AtomicRMWOp& atomic_op = Cast<AtomicRMWOp>(node);
+  VisitAtomicCompareExchange(this, node, kArm64CapabilityAtomicCompareExchange,
+                             AtomicWidth::kCapability64,
+                             atomic_op.memory_access_kind);
+}
+#endif  // V8_TARGET_CHERI
+
 void InstructionSelector::VisitWord32AtomicCompareExchange(OpIndex node) {
   const AtomicRMWOp& atomic_op = this->Get(node).template Cast<AtomicRMWOp>();
   ArchOpcode opcode;
