@@ -431,8 +431,14 @@ template <size_t Bits>
 Handle<TurboshaftType> WordType<Bits>::AllocateOnHeap(Factory* factory) const {
   if constexpr (Bits == 32) {
     if (is_range()) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+      constexpr uint32_t kPadding = 0;
+      return factory->NewTurboshaftWord32RangeType(
+          range_from(), range_to(), kPadding, kPadding, AllocationType::kYoung);
+#else
       return factory->NewTurboshaftWord32RangeType(range_from(), range_to(),
                                                    AllocationType::kYoung);
+#endif
     } else {
       DCHECK(is_set());
       auto result = factory->NewTurboshaftWord32SetType(set_size(),
