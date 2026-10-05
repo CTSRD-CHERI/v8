@@ -84,7 +84,8 @@ macro NewOffHeapReference<T: type>(ptr: RawPtr<T>):&T {
   return %RawDownCast<&T>(Reference<T>{
     object: kZeroBitPattern,
     offset:
-        MarkNodeAsCapability(Convert<intptr>(Convert<RawPtr>(ptr))) + kHeapObjectTag,
+        MarkNodeAsCapability(
+            Convert<intptr>(Convert<RawPtr>(ptr))) + kHeapObjectTag,
     unsafeMarker: Unsafe {}
   });
 }
@@ -203,7 +204,9 @@ macro NewOffHeapMutableSlice<T: type>(
     startPointer: RawPtr<T>, length: intptr): MutableSlice<T> {
   return %RawDownCast<MutableSlice<T>>(Slice<T, &T>{
     object: kZeroBitPattern,
-    offset: Convert<intptr>(Convert<RawPtr>(startPointer)) + kHeapObjectTag,
+    offset: MarkNodeAsCapability(
+                Convert<intptr>(Convert<RawPtr>(startPointer))) +
+            kHeapObjectTag,
     length: length,
     unsafeMarker: Unsafe {}
   });
@@ -213,7 +216,9 @@ macro NewOffHeapConstSlice<T: type>(
     startPointer: RawPtr<T>, length: intptr): ConstSlice<T> {
   return %RawDownCast<ConstSlice<T>>(Slice<T, const &T>{
     object: kZeroBitPattern,
-    offset: Convert<intptr>(Convert<RawPtr>(startPointer)) + kHeapObjectTag,
+    offset: MarkNodeAsCapability(
+                Convert<intptr>(Convert<RawPtr>(startPointer))) +
+            kHeapObjectTag,
     length: length,
     unsafeMarker: Unsafe {}
   });
