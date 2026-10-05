@@ -6,13 +6,23 @@
 extern class JSSynchronizationPrimitive extends AlwaysSharedSpaceJSObject {
   waiter_queue_head: ExternalPointer;
   state: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_prim_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_prim_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_prim_2: uint32;
 }
 
 extern class JSAtomicsMutex extends JSSynchronizationPrimitive {
   owner_thread_id: int32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_mutex_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_mutex_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_mutex_2: uint32;
 }
 
 extern class JSAtomicsCondition extends JSSynchronizationPrimitive {
   @if(TAGGED_SIZE_8_BYTES) optional_padding: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_cond_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_cond_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_cond_2: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_atomics_cond_3: uint32;
   @ifnot(TAGGED_SIZE_8_BYTES) optional_padding: void;
 }

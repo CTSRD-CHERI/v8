@@ -8,6 +8,9 @@ extern class JSProxy extends JSReceiver {
   handler: JSReceiver|Null;
   flags: int32;
   @if(TAGGED_SIZE_8_BYTES) padding: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_js_proxy_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_js_proxy_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_js_proxy_2: uint32;
 }
 
 extern shape JSProxyRevocableResult extends JSObject {

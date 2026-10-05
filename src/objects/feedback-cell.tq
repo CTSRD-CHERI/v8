@@ -6,4 +6,6 @@ extern class FeedbackCell extends Struct {
   value: Undefined|FeedbackVector|ClosureFeedbackCellArray;
   dispatch_handle: int32;
   interrupt_budget: int32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_feedback_cell_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_feedback_cell_1: uint32;
 }

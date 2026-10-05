@@ -62,6 +62,9 @@ extern class WasmImportData extends TrustedObject {
   // See BitFields defined in the C++ class for details.
   bit_field: uint32;
   @if(TAGGED_SIZE_8_BYTES) optional_padding: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_import_data_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_import_data_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_import_data_2: uint32;
 }
 
 extern operator '.instance_data' macro LoadInstanceDataFromWasmImportData(
@@ -228,6 +231,9 @@ extern class WasmTableObject extends JSObject {
   padding_for_address_type_0: uint8;
   padding_for_address_type_1: uint16;
   @if(TAGGED_SIZE_8_BYTES) padding_for_address_type_2: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_table_object_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_table_object_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_table_object_2: uint32;
 }
 
 extern class WasmMemoryObject extends JSObject {
@@ -239,6 +245,9 @@ extern class WasmMemoryObject extends JSObject {
   // TODO(clemensb): Support fixed-sized arrays in torque.
   padding_for_flags_1: uint16;
   @if(TAGGED_SIZE_8_BYTES) padding_for_flags_2: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_memory_object_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_memory_object_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_memory_object_2: uint32;
 }
 
 extern class WasmMemoryMapDescriptor extends JSObject {
@@ -252,6 +261,7 @@ extern class WasmMemoryMapDescriptor extends JSObject {
   offset: uint32;
   size: uint32;
   @if(TAGGED_SIZE_8_BYTES) padding: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_wasm_memory_map_descriptor_0: uint32;
 }
 
 extern class WasmGlobalObject extends JSObject {
