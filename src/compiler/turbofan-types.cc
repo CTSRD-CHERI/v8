@@ -1261,11 +1261,17 @@ std::ostream& operator<<(std::ostream& os, Type type) {
 
 Handle<TurbofanType> Type::AllocateOnHeap(Factory* factory) {
   DCHECK(CanBeAsserted());
+  constexpr uint32_t kPadding = 0;
   if (IsBitset()) {
     const bitset bits = AsBitset();
     uint32_t low = bits & 0xffffffff;
     uint32_t high = (bits >> 32) & 0xffffffff;
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    return factory->NewTurbofanBitsetType(low, high, kPadding, kPadding,
+                                          AllocationType::kYoung);
+#else
     return factory->NewTurbofanBitsetType(low, high, AllocationType::kYoung);
+#endif
   } else if (IsUnion()) {
     const UnionType* union_type = AsUnion();
     Handle<TurbofanType> result = union_type->Get(0).AllocateOnHeap(factory);
@@ -1279,8 +1285,14 @@ Handle<TurbofanType> Type::AllocateOnHeap(Factory* factory) {
     return factory->NewTurbofanHeapConstantType(AsHeapConstant()->Value(),
                                                 AllocationType::kYoung);
   } else if (IsOtherNumberConstant()) {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    return factory->NewTurbofanOtherNumberConstantType(
+        AsOtherNumberConstant()->Value(), kPadding, kPadding,
+        AllocationType::kYoung);
+#else
     return factory->NewTurbofanOtherNumberConstantType(
         AsOtherNumberConstant()->Value(), AllocationType::kYoung);
+#endif
   } else if (IsRange()) {
     return factory->NewTurbofanRangeType(AsRange()->Min(), AsRange()->Max(),
                                          AllocationType::kYoung);

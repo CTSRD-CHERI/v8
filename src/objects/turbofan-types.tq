@@ -62,6 +62,8 @@ bitfield struct TurbofanTypeHighBits extends uint32 {
 class TurbofanBitsetType extends TurbofanType {
   bitset_low: TurbofanTypeLowBits;
   bitset_high: TurbofanTypeHighBits;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_tf_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_tf_1: uint32;
 }
 
 @export
@@ -84,6 +86,8 @@ class TurbofanHeapConstantType extends TurbofanType {
 @export
 class TurbofanOtherNumberConstantType extends TurbofanType {
   constant: float64;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_tf_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_tf_1: uint32;
 }
 
 macro IsMinusZero(x: float64): bool {
