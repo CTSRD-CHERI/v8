@@ -479,10 +479,11 @@ void LiftoffAssembler::CheckTierUp(int declared_func_index, int budget_used,
   Register budget_array = temps.AcquireC();
 
   Register instance_data = cache_state_.cached_instance_data;
-  DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, instance_data.IsC());
   if (instance_data == no_reg) {
     instance_data = budget_array;  // Reuse the temp register.
     LoadInstanceDataFromFrame(instance_data);
+  } else {
+    DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, instance_data.IsC());
   }
 
   constexpr int kArrayOffset = wasm::ObjectAccess::ToTagged(
@@ -783,7 +784,7 @@ void LiftoffAssembler::StoreTaggedPointer(Register dst_addr,
 
   // The write barrier.
   Label exit;
-  JumpIfSmi(src, &exit);
+  JumpIfSmi(src.X(), &exit);
   CheckPageFlag(dst_addr, MemoryChunk::kPointersFromHereAreInterestingMask,
                 kZero, &exit);
   CheckPageFlag(src, MemoryChunk::kPointersToHereAreInterestingMask, kZero,
@@ -1268,7 +1269,7 @@ void LiftoffAssembler::AtomicStoreTaggedPointer(
   if (v8_flags.disable_write_barriers) return;
   // The write barrier.
   Label exit;
-  JumpIfSmi(src, &exit);
+  JumpIfSmi(src.X(), &exit);
   CheckPageFlag(dst_addr, MemoryChunk::kPointersFromHereAreInterestingMask,
                 kZero, &exit);
   CheckPageFlag(src, MemoryChunk::kPointersToHereAreInterestingMask, kZero,
