@@ -330,9 +330,13 @@ void JumpTableAssembler::EmitFarJumpSlot(Address target) {
   DCHECK(MacroAssembler::DefaultTmpList().IncludesAliasOf(x16));
 
 #if V8_TARGET_CHERI
+  // A capability literal load needs to be at an address which is a multiple of
+  // 16, so we need 8 bytes of filler.
   const uint32_t inst[kFarJumpTableSlotSize / 4] = {
-      0x82000050,  // ldr c16, #8
+      0x82000030,  // ldr c16, #16
       0xc2c21200,  // br c16
+      0x00000000,  // filler[0]
+      0x00000000,  // filler[1]
       0x00000000,  // target[0]
       0x00000000,  // target[1]
       0x00000000,  // target[2]
@@ -348,6 +352,10 @@ void JumpTableAssembler::EmitFarJumpSlot(Address target) {
 #endif
   emit<uint32_t>(inst[0]);
   emit<uint32_t>(inst[1]);
+#if V8_TARGET_CHERI
+  emit<uint32_t>(inst[2]);
+  emit<uint32_t>(inst[3]);
+#endif
   CHECK_IMPLIES(V8_TARGET_CHERI_BOOL, IsAligned(pc_, kSystemPointerSize));
   emit<Address>(target);
 
@@ -361,9 +369,12 @@ void JumpTableAssembler::EmitFarJumpSlot(Address target) {
 // static
 void JumpTableAssembler::PatchFarJumpSlot(WritableJitAllocation& jit_allocation,
                                           Address slot, Address target) {
-  // See {EmitFarJumpSlot} for the offset of the target (16 bytes with
-  // CFI enabled, 8 bytes otherwise).
+  // See {EmitFarJumpSlot} for the offset of the target.
+#if defined(__CHERI_PURE_CAPABILITY__)
+  int kTargetOffset = 4 * kInstrSize;
+#else
   int kTargetOffset = 2 * kInstrSize;
+#endif
   // The slot needs to be pointer-size aligned so we can atomically update it.
   DCHECK(IsAligned(slot + kTargetOffset, kSystemPointerSize));
   jit_allocation.WriteValue(slot + kTargetOffset, target, kRelaxedStore);

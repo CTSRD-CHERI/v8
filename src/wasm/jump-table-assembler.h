@@ -97,11 +97,10 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
     // These expressions are intentionally written to be easy to create an
     // inverse for. Any further changes should keep this in mind.
     if (alignment == TableStartAlignment::k8ByteAligned) {
-      return kFarJumpTablePaddingSize +
-             slot_index * (kFarJumpTableSlotSize + kFarJumpTablePaddingSize);
+      return kFarJumpTableStartPad + slot_index * kFarJumpTableSlotSize;
     }
     DCHECK_EQ(alignment, TableStartAlignment::kPointerAligned);
-    return slot_index * (kFarJumpTableSlotSize + kFarJumpTablePaddingSize);
+    return slot_index * kFarJumpTableSlotSize;
   }
 
   // Translate a far jump table offset to the index into the table.
@@ -110,13 +109,12 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
   static uint32_t FarJumpSlotOffsetToIndex(uint32_t offset,
                                            TableStartAlignment alignment) {
     if (alignment == TableStartAlignment::k8ByteAligned) {
-      DCHECK_EQ(0, (offset - kFarJumpTablePaddingSize) % kFarJumpTableSlotSize);
-      return (offset - kFarJumpTablePaddingSize) /
-             (kFarJumpTableSlotSize + kFarJumpTablePaddingSize);
+      DCHECK_EQ(0, (offset - kFarJumpTableStartPad) % kFarJumpTableSlotSize);
+      return (offset - kFarJumpTableStartPad) / kFarJumpTableSlotSize;
     }
     DCHECK_EQ(alignment, TableStartAlignment::kPointerAligned);
     DCHECK_EQ(0, offset % kFarJumpTableSlotSize);
-    return offset / (kFarJumpTableSlotSize + kFarJumpTablePaddingSize);
+    return offset / kFarJumpTableSlotSize;
   }
 
   // Determine the size of a far jump table containing the given number of
@@ -126,10 +124,11 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
       TableStartAlignment alignment = TableStartAlignment::k8ByteAligned) {
     int num_entries = num_runtime_slots + num_function_slots;
     if (alignment == TableStartAlignment::k8ByteAligned) {
-      return kFarJumpTablePaddingSize +
-             num_entries * (kFarJumpTableSlotSize + kFarJumpTablePaddingSize);
+      return kFarJumpTableStartPad + num_entries * kFarJumpTableSlotSize;
     }
     DCHECK_EQ(alignment, TableStartAlignment::kPointerAligned);
+    // Keep upstream's formula: it over-allocates relative to what is emitted,
+    // which is harmless, whereas under-allocating would corrupt the region.
     return num_entries * (kFarJumpTableSlotSize + kFarJumpTableSlotSize);
   }
 
@@ -166,8 +165,8 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
       ptraddr_t current_pc =
           static_cast<ptraddr_t>(reinterpret_cast<Address>(jtasm.pc()));
       if (!IsAligned(current_pc, kSystemPointerSize)) {
-        offset = kFarJumpTablePaddingSize;
-        jtasm.NopBytes(kFarJumpTablePaddingSize);
+        offset = kFarJumpTableStartPad;
+        jtasm.NopBytes(kFarJumpTableStartPad);
         alignment = TableStartAlignment::k8ByteAligned;
       } else {
         offset = 0;
@@ -181,8 +180,6 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
       // being used.
       Address target =
           index < num_runtime_slots ? stub_targets[index] : base + offset;
-      jtasm.NopBytes(kFarJumpTablePaddingSize);
-      offset += kFarJumpTablePaddingSize;
       jtasm.EmitFarJumpSlot(target);
       offset += kFarJumpTableSlotSize;
       DCHECK_EQ(offset, jtasm.pc_offset());
@@ -237,12 +234,14 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
   static constexpr int kFarJumpTableSlotSize = 16;
   static constexpr int kLazyCompileTableSlotSize = 10;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_IA32
   static constexpr int kJumpTableLineSize = 64;
   static constexpr int kJumpTableSlotSize = 5;
   static constexpr int kFarJumpTableSlotSize = 5;
   static constexpr int kLazyCompileTableSlotSize = 10;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_ARM
   static constexpr int kJumpTableLineSize = 2 * kInstrSize;
   static constexpr int kJumpTableSlotSize = 2 * kInstrSize;
@@ -260,11 +259,19 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
   static constexpr int kJumpTableSlotSize = 1 * kInstrSize;
 #endif
 #ifdef __CHERI_PURE_CAPABILITY__
-  static constexpr int kFarJumpTableSlotSize = 6 * kInstrSize;
-  static constexpr int kFarJumpTablePaddingSize = 2 * kInstrSize;
+  // Layout: ldr(4) + br(4) + filler(8) + target(16).
+  static constexpr int kFarJumpTableSlotSize = 8 * kInstrSize;
+  // No padding between slots: the slot size is already a multiple of 16, so
+  // making it the stride keeps every slot's target capability 16-byte aligned.
+  static constexpr int kFarJumpTablePaddingSize = 0;
+  // One-off pad emitted by GenerateFarJumpTable when the preceding code left
+  // the table start 8-byte rather than pointer aligned. It only affects the
+  // first slot's offset.
+  static constexpr int kFarJumpTableStartPad = 2 * kInstrSize;
 #else
   static constexpr int kFarJumpTableSlotSize = 4 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #endif
   static constexpr int kLazyCompileTableSlotSize = 4 * kInstrSize;
 #elif V8_TARGET_ARCH_S390X
@@ -273,36 +280,42 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
   static constexpr int kFarJumpTableSlotSize = 24;
   static constexpr int kLazyCompileTableSlotSize = 32;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_PPC64
   static constexpr int kJumpTableLineSize = 64;
   static constexpr int kJumpTableSlotSize = 1 * kInstrSize;
   static constexpr int kFarJumpTableSlotSize = 12 * kInstrSize;
   static constexpr int kLazyCompileTableSlotSize = 12 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_MIPS64
   static constexpr int kJumpTableLineSize = 8 * kInstrSize;
   static constexpr int kJumpTableSlotSize = 8 * kInstrSize;
   static constexpr int kFarJumpTableSlotSize = 8 * kInstrSize;
   static constexpr int kLazyCompileTableSlotSize = 10 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_RISCV64
   static constexpr int kJumpTableSlotSize = 6 * kInstrSize;
   static constexpr int kJumpTableLineSize = kJumpTableSlotSize;
   static constexpr int kFarJumpTableSlotSize = 6 * kInstrSize;
   static constexpr int kLazyCompileTableSlotSize = 3 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_RISCV32
   static constexpr int kJumpTableSlotSize = 4 * kInstrSize;
   static constexpr int kJumpTableLineSize = kJumpTableSlotSize;
   static constexpr int kFarJumpTableSlotSize = kJumpTableSlotSize;
   static constexpr int kLazyCompileTableSlotSize = 3 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #elif V8_TARGET_ARCH_LOONG64
   static constexpr int kJumpTableLineSize = 1 * kInstrSize;
   static constexpr int kJumpTableSlotSize = 1 * kInstrSize;
   static constexpr int kFarJumpTableSlotSize = 6 * kInstrSize;
   static constexpr int kLazyCompileTableSlotSize = 3 * kInstrSize;
   static constexpr int kFarJumpTablePaddingSize = 0;
+  static constexpr int kFarJumpTableStartPad = 0;
 #else
 #error Unknown architecture.
 #endif
