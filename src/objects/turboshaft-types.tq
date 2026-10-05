@@ -69,15 +69,22 @@ extern class TurboshaftWord64SetType extends TurboshaftWord64Type {
 @generateFactoryFunction
 extern class TurboshaftFloat64Type extends TurboshaftType {
   special_values: TurboshaftFloatSpecialValues;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_2: uint32;
 }
 
 @generateBodyDescriptor
 @generateUniqueMap
 @generateFactoryFunction
 extern class TurboshaftFloat64RangeType extends TurboshaftFloat64Type {
-  _padding: uint32;
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) _padding: uint32;
   min: float64;
   max: float64;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_range_filler: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_range_0: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_range_1: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_range_2: uint32;
 }
 
 @generateBodyDescriptor
@@ -85,6 +92,7 @@ extern class TurboshaftFloat64RangeType extends TurboshaftFloat64Type {
 @generateFactoryFunction
 extern class TurboshaftFloat64SetType extends TurboshaftFloat64Type {
   const set_size: uint32;
+  @if(CHERI_PURECAP_UNCOMPRESSED) padding_cheri_f64_set_0: uint32;
   elements[set_size]: float64;
 }
 

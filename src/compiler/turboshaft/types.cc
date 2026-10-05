@@ -660,16 +660,34 @@ Handle<TurboshaftType> FloatType<Bits>::AllocateOnHeap(Factory* factory) const {
   if (is_only_special_values()) {
     min = std::numeric_limits<float_t>::infinity();
     max = -std::numeric_limits<float_t>::infinity();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    return factory->NewTurboshaftFloat64RangeType(
+        special_values(), padding, padding, padding, min, max, padding, padding,
+        padding, padding, AllocationType::kYoung);
+#else
     return factory->NewTurboshaftFloat64RangeType(
         special_values(), padding, min, max, AllocationType::kYoung);
+#endif
   } else if (is_range()) {
     std::tie(min, max) = minmax();
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    return factory->NewTurboshaftFloat64RangeType(
+        special_values(), padding, padding, padding, min, max, padding, padding,
+        padding, padding, AllocationType::kYoung);
+#else
     return factory->NewTurboshaftFloat64RangeType(
         special_values(), padding, min, max, AllocationType::kYoung);
+#endif
   } else {
     DCHECK(is_set());
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    auto result = factory->NewTurboshaftFloat64SetType(
+        special_values(), padding, padding, padding, set_size(), padding,
+        AllocationType::kYoung);
+#else
     auto result = factory->NewTurboshaftFloat64SetType(
         special_values(), set_size(), AllocationType::kYoung);
+#endif
     for (int i = 0; i < set_size(); ++i) {
       result->set_elements(i, set_element(i));
     }
