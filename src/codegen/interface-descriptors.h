@@ -2719,7 +2719,7 @@ class WasmJSToWasmWrapperDescriptor final
   SANDBOXING_MODE(kSandboxed)
   DEFINE_PARAMETERS_NO_CONTEXT(kWrapperBuffer, kInstance, kResultJSArray)
   DEFINE_RESULT_AND_PARAMETER_TYPES(MachineType::AnyTagged(),  // result
-                                    MachineType::IntPtr(),     // ParamBuffer
+                                    MachineType::Pointer(),    // ParamBuffer
                                     MachineType::AnyTagged(),  // Instance
                                     MachineType::AnyTagged())  // Result jsarray
   DECLARE_DESCRIPTOR(WasmJSToWasmWrapperDescriptor)
