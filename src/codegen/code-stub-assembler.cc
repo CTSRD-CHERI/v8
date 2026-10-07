@@ -1629,7 +1629,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
     StoreNoWriteBarrier(MachineType::PointerRepresentation(), top_address,
                         new_top);
 
-    TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top).MarkAsCapability());
+    TVARIABLE(RawPtrT, address, top);
 
 #if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
     // Do this unconditionally on CHERI because we always need to check
@@ -1655,20 +1655,21 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
       TNode<IntPtrT> padding_needed =
           IntPtrSub(rounded_top, UncheckedCast<IntPtrT>(top)).MarkAsInteger();
       DCHECK(!padding_needed.IsCapability());
-      address = IntPtrAdd(UncheckedCast<IntPtrT>(top).MarkAsCapability(),
-                          padding_needed);
+      address = RawPtrAdd(top, padding_needed);
 #if V8_CHERI_TIGHT_BOUNDS
       // Narrowing the bounds here breaks the page-header accesses that
       // MemoryChunkFromAddress performs by masking off the low address bits, so
       // it is off by default; see V8_CHERI_TIGHT_BOUNDS in src/base/macros.h.
-      address = SetBounds(address.value(), adjusted_size.value());
+      address = UncheckedCast<RawPtrT>(
+          SetBounds(address.value(), adjusted_size.value()));
       DCHECK(address.IsCapability());
 #endif
 #else
       // Store a filler and increase the address by 4.
       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
                           OnePointerFillerMapConstant());
-      address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
+      address = UncheckedCast<RawPtrT>(
+          IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4)));
 #endif
       Goto(&next);
 
@@ -1676,7 +1677,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
     }
 
     result = BitcastWordToTagged(
-        IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
+        RawPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
     DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL,
                    result.IsCapability());
     Goto(&out);
