@@ -1745,14 +1745,14 @@ void NewImplicitReceiver(MacroAssembler* masm) {
   //  -- FastConstructMarker
   //  -- FramePointer
   // -----------------------------------
-  Register implicit_receiver = x4;
+  Register implicit_receiver = c4;
 
   // Save live registers.
   __ SmiTag(x0);
   __ Push(c0, c1, c3, padregc);
   __ CallBuiltin(Builtin::kFastNewObject);
   // Save result.
-  __ Mov(implicit_receiver, x0);
+  __ Mov(implicit_receiver, c0);
   // Restore live registers.
   __ Pop(padregc, c3, c1, c0);
   __ SmiUntag(x0);
