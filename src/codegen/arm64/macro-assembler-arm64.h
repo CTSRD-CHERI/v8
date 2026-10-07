@@ -75,7 +75,8 @@ class JumpTableAssembler;
 #if V8_TARGET_CHERI
 #define LDA_STL_CAP_MACRO_LIST(V) \
   V(Ldar_C, ldar_c)               \
-  V(Ldaxr_C, ldaxr_c)
+  V(Ldaxr_C, ldaxr_c)             \
+  V(Stlr_C, stlr_c)
 #endif
 
 #define STLX_MACRO_LIST(V) \

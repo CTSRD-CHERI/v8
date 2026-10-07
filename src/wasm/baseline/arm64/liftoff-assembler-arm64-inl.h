@@ -1213,9 +1213,12 @@ void LiftoffAssembler::AtomicLoadTaggedPointer(Register dst, Register src_addr,
 #if V8_COMPRESS_POINTERS
   Ldar(dst.W(), src_reg);
   DecompressTagged(dst, dst);
-#else
+#elif V8_TARGET_CHERI
+  DCHECK(dst.IsC());
+  Ldar_C(dst, src_reg);
+#else   // !V8_COMPRESS_POINTERS && !V8_TARGET_CHERI
   Ldar(dst.X(), src_reg);
-#endif
+#endif  // !V8_COMPRESS_POINTERS && !V8_TARGET_CHERI
 }
 
 void LiftoffAssembler::AtomicStore(Register dst_addr, Register offset_reg,
@@ -1263,7 +1266,12 @@ void LiftoffAssembler::AtomicStoreTaggedPointer(
   if (COMPRESS_POINTERS_BOOL) {
     Stlr(src.W(), dst_reg);
   } else {
+#if V8_TARGET_CHERI
+    DCHECK(src.IsC());
+    Stlr_C(src, dst_reg);
+#else   // !V8_TARGET_CHERI
     Stlr(src, dst_reg);
+#endif  // !V8_TARGET_CHERI
   }
 
   if (v8_flags.disable_write_barriers) return;

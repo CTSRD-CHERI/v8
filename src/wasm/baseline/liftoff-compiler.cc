@@ -10539,7 +10539,7 @@ class LiftoffCompiler {
                              LiftoffRegList pinned) {
     uint32_t protected_load_pc = 0;
     if (is_reference(kind)) {
-      __ AtomicLoadTaggedPointer(dst.gp(), src, offset_reg, offset,
+      __ AtomicLoadTaggedPointer(dst.gp().C(), src, offset_reg, offset,
                                  memory_order,
                                  trapping ? &protected_load_pc : nullptr);
     } else {
@@ -10580,8 +10580,8 @@ class LiftoffCompiler {
                               AtomicMemoryOrder memory_order) {
     uint32_t protected_load_pc = 0;
     if (is_reference(kind)) {
-      __ AtomicStoreTaggedPointer(obj, offset_reg, offset, value.gp(), pinned,
-                                  memory_order, &protected_load_pc);
+      __ AtomicStoreTaggedPointer(obj, offset_reg, offset, value.gp().C(),
+                                  pinned, memory_order, &protected_load_pc);
     } else {
       // Primitive kind.
       StoreType store_type = StoreType::ForValueKind(kind);
