@@ -500,16 +500,22 @@ void MacroAssembler::Sub(const Register& rd, const Register& rn,
     if ((imm > 0) && IsImmAddSubCapability(imm) && rd.IsC()) {
       DataProcImmediateCap(rd, rn, static_cast<int>(imm), SUB_c);
       return;
+    } else if ((imm < 0) && IsImmAddSubCapability(-imm) && rd.IsC()) {
+      DataProcImmediateCap(rd, rn, static_cast<int>(-imm), ADD_c);
+      return;
     }
-    DCHECK(!rd.IsC());
 #endif
     if ((imm > 0) && IsImmAddSub(imm)) {
+      DCHECK(!rd.IsC());
       DataProcImmediate(rd, rn, static_cast<int>(imm), SubOpFor(rd));
       return;
     } else if ((imm < 0) && IsImmAddSub(-imm)) {
+      DCHECK(!rd.IsC());
       DataProcImmediate(rd, rn, static_cast<int>(-imm), AddOpFor(rd));
       return;
     }
+    // A capability with an immediate outside the AddSubCapability range falls
+    // through to AddSubMacro, which materializes it in an auxiliary register.
   } else if (operand.IsShiftedRegister() && (operand.shift_amount() == 0)) {
 #if V8_TARGET_CHERI
     if (rd.IsC() && !rd.IsSP() && !rn.IsSP() && !operand.reg().IsSP() &&
