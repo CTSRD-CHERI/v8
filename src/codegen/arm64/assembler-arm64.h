@@ -910,6 +910,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void chktgd(const Register& cn);
   // Load a capability tag field
   void gctag(const Register& rd, const Register& cn);
+  // Load a capability permissions field
+  void gcperm(const Register& rd, const Register& cn);
   // Load a capability value field
   void gcvalue(const Register& rd, const Register& cn);
   // Load a capability base field

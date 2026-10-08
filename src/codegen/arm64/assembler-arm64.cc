@@ -1657,6 +1657,12 @@ void Assembler::gctag(const Register& rd, const Register& cn) {
   Emit(GCTAG | CnCSP(cn) | Rd(rd));
 }
 
+void Assembler::gcperm(const Register& rd, const Register& cn) {
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  Emit(GCPERM | CnCSP(cn) | Rd(rd));
+}
+
 void Assembler::gcvalue(const Register& rd, const Register& cn) {
   DCHECK(cn.Is128Bits());
   DCHECK(rd.Is64Bits());
@@ -1777,6 +1783,8 @@ void Assembler::cselc(const Register& cd, const Register& cn,
                       const Register& cm, Condition cond) {}
 
 void Assembler::gctag(const Register& rd, const Register& cn) {}
+
+void Assembler::gcperm(const Register& rd, const Register& cn) {}
 
 void Assembler::gcvalue(const Register& rd, const Register& cn) {}
 

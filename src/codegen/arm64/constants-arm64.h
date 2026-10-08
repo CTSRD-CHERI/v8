@@ -3097,6 +3097,11 @@ constexpr GetField1Op GCSEAL = GetField1Fixed | 0x0000A000;
 // Get the Tag field of a capability gets the Tag field of the source Capability
 // register and writes the result to the destination register.
 constexpr GetField1Op GCTAG = GetField1Fixed | 0x00008000;
+// GCPERM
+// Get the Permissions field of a capability writes the permissions of the
+// source Capability register to the destination register.
+constexpr GetField1Op GCPERM = GetField1Fixed | 0x0000D000;
+static_assert(GCPERM == 0xC2C0D000);
 // 4.4.61 GCVALUE
 // Get the Value field of a capability gets the range of the Value field of
 // a capability and writes the result to the destination register.

@@ -287,6 +287,13 @@ void MacroAssembler::Gctag(const Register& rd, const Register& cn) {
   gctag(rd, cn);
 }
 
+void MacroAssembler::Gcperm(const Register& rd, const Register& cn) {
+  DCHECK(allow_macro_instructions());
+  DCHECK(cn.Is128Bits());
+  DCHECK(rd.Is64Bits());
+  gcperm(rd, cn);
+}
+
 void MacroAssembler::Gcvalue(const Register& rd, const Register& cn) {
   DCHECK(allow_macro_instructions());
   DCHECK(cn.Is128Bits());
@@ -468,6 +475,7 @@ void MacroAssembler::CzeroC(const Register& cd, Condition cond) {
 }
 void MacroAssembler::Chktgd(const Register& cn) {}
 void MacroAssembler::Gctag(const Register& rd, const Register& cn) {}
+void MacroAssembler::Gcperm(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gcvalue(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gclen(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gcbase(const Register& rd, const Register& cn) {}

@@ -3980,15 +3980,25 @@ void DisassemblingDecoder::VisitConditionalSelectCap(Instruction* instr) {
 
 void DisassemblingDecoder::VisitGetField1(Instruction* instr) {
   const char* form = "'Xd, 'Yns";
-  switch(instr->Mask(GetField1Mask)) {
-    case GCVALUE:
+  // The Rd field is inside GetField1Mask, so match on the opc field instead.
+  switch (instr->Bits(15, 13)) {
+    case 0x0:
+      Format(instr, "gcbase", form);
+      break;
+    case 0x1:
+      Format(instr, "gclen", form);
+      break;
+    case 0x2:
       Format(instr, "gcvalue", form);
       break;
-    case GCSEAL:
+    case 0x4:
+      Format(instr, "gctag", form);
+      break;
+    case 0x5:
       Format(instr, "gcseal", form);
       break;
-    case GCTAG:
-      Format(instr, "gctag", form);
+    case 0x6:
+      Format(instr, "gcperm", form);
       break;
     default:
       UNREACHABLE();

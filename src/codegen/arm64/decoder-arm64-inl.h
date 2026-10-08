@@ -1239,6 +1239,12 @@ void Decoder<V>::DecodeMorelloMisc(Instruction* instr) {
               CHECK_EQ(0x0, instr->Bit(16));
               // op0: 000000xxx, op1: 10, op2: 0 Morello get field 1
               switch (instr->Bits(15, 13)) {
+                case 0x00:
+                  // opc: 000 GCBASE
+                  [[fallthrough]];
+                case 0x01:
+                  // opc: 001 GCLEN
+                  [[fallthrough]];
                 case 0x02:
                   // opc: 010 GCVALUE
                   [[fallthrough]];
@@ -1247,6 +1253,9 @@ void Decoder<V>::DecodeMorelloMisc(Instruction* instr) {
                   [[fallthrough]];
                 case 0x05:
                   // opc: 101 GCSEAL
+                  [[fallthrough]];
+                case 0x06:
+                  // opc: 110 GCPERM
                   V::VisitGetField1(instr);
                   break;
                 default:
