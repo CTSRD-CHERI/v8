@@ -4787,7 +4787,7 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
   Instr memop = op | Rt(rt) | RnSP(base);
 
   if (addr.IsImmediateOffset()) {
-    unsigned size_log2 = CalcLSDataSizeLog2(op);
+    unsigned size_log2 = CalcLSDataSizeLog2(op, rt.IsC());
     int offset = static_cast<int>(addr.offset());
     if (IsImmLSScaled(addr.offset(), size_log2)) {
 #if V8_TARGET_CHERI
