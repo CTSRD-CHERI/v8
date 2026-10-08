@@ -4648,6 +4648,7 @@ void MacroAssembler::LoadEntrypointFromJSDispatchTable(Register destination,
   Mov(index.X(), Operand(dispatch_handle.X(), LSR, kJSDispatchHandleShift));
   Add(scratch, scratch, Operand(index, LSL, kJSDispatchTableEntrySizeLog2));
   Ldr(destination, MemOperand(scratch, JSDispatchEntry::kEntrypointOffset));
+  PrepareC64Jump(destination);
 }
 
 void MacroAssembler::LoadEntrypointFromJSDispatchTable(
@@ -4669,6 +4670,7 @@ void MacroAssembler::LoadEntrypointFromJSDispatchTable(
   int offset = JSDispatchTable::OffsetOfEntry(dispatch_handle) +
                JSDispatchEntry::kEntrypointOffset;
   Ldr(destination, MemOperand(scratch, offset));
+  PrepareC64Jump(destination);
 }
 
 void MacroAssembler::LoadParameterCountFromJSDispatchTable(
@@ -4711,6 +4713,7 @@ void MacroAssembler::LoadEntrypointAndParameterCountFromJSDispatchTable(
   Ldrh(parameter_count,
        MemOperand(scratch, JSDispatchEntry::kCodeObjectOffset));
 #endif
+  PrepareC64Jump(entrypoint);
 }
 
 void MacroAssembler::LoadProtectedPointerField(Register destination,

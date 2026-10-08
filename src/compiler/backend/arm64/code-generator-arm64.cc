@@ -1243,6 +1243,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
                                      set_isolate_data_slots, &return_location);
       } else {
         Register func = i.InputRegisterCapability(0);
+        // The only register-input C-function call without a function
+        // descriptor is the irregexp direct entry (RegExpExecAsFunction),
+        // which branches into V8-compiled code and is missing the C64 bit.
+        if (instr->HasCallDescriptorFlag(
+                CallDescriptor::kNoFunctionDescriptor)) {
+          __ PrepareC64Jump(func);
+        }
         pc_offset = __ CallCFunction(func, num_gp_parameters, num_fp_parameters,
                                      set_isolate_data_slots, &return_location);
       }
