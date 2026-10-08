@@ -48,6 +48,24 @@ namespace internal {
 
 namespace {
 
+// FIXME(cheri): When we have sentries from many sources, this won't be
+// reliable.
+intptr_t DeoptPc(Address start, int64_t offset) {
+  intptr_t pc = static_cast<intptr_t>(start + offset);
+  if (V8_CHERI_SEALED(start)) {
+    DCHECK(V8_CHERI_TAG_GET(start));
+#ifdef __CHERI_PURE_CAPABILITY__
+    // This assumes the code point is inside PCC's bounds, which is not
+    // established for JIT code; see the FIXME in Code::instruction_end().
+    DCHECK(V8_CHERI_INBOUNDS(V8_CHERI_PCC, static_cast<ptraddr_t>(pc)));
+#endif
+    pc = reinterpret_cast<intptr_t>(V8_CHERI_TO_SENTRY(V8_CHERI_ADDR_SET(
+        V8_CHERI_PCC, static_cast<ptraddr_t>(pc))));
+  }
+  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc));
+  return pc;
+}
+
 class DeoptimizableCodeIterator {
  public:
   explicit DeoptimizableCodeIterator(Isolate* isolate);
@@ -1065,7 +1083,8 @@ FrameDescription* Deoptimizer::DoComputeWasmLiftoffFrame(
                               : output_[frame_index - 1]->GetTop() -
                                     total_output_frame_size;
   output_frame->SetTop(top);
-  Address pc = wasm_code->instruction_start() + liftoff_description->pc_offset;
+  Address pc = static_cast<Address>(
+      DeoptPc(wasm_code->instruction_start(), liftoff_description->pc_offset));
   // Sign the PC. Note that for the non-topmost frames the stack pointer at
   // which the PC is stored as the "caller pc" / return address depends on the
   // amount of parameter stack slots of the callee. To simplify the code, we
@@ -2161,9 +2180,10 @@ void Deoptimizer::DoComputeUnoptimizedFrame(TranslatedFrame* translated_frame,
   CHECK_EQ(translated_frame->end(), value_iterator);
   CHECK_EQ(0u, frame_writer.top_offset());
 
-  const intptr_t pc =
-      static_cast<intptr_t>(dispatch_builtin->instruction_start()) +
-      isolate()->heap()->deopt_pc_offset_after_adapt_shadow_stack().value();
+  const intptr_t pc = DeoptPc(dispatch_builtin->instruction_start(),
+                              isolate()->heap()
+                                  ->deopt_pc_offset_after_adapt_shadow_stack()
+                                  .value());
   if (is_topmost) {
     // Only the pc of the topmost frame needs to be signed since it is
     // authenticated at the end of the DeoptimizationEntry builtin.
@@ -2381,13 +2401,7 @@ void Deoptimizer::DoComputeConstructCreateStubFrame(
   Address start = construct_stub->instruction_start();
   const int pc_offset =
       isolate_->heap()->construct_stub_create_deopt_pc_offset().value();
-  intptr_t pc_value = static_cast<intptr_t>(start + pc_offset);
-  if (V8_CHERI_SEALED(pc_value)) {
-    CHECK(V8_CHERI_TAG_GET(start));
-    pc_value = reinterpret_cast<intptr_t>(V8_CHERI_TO_SENTRY(
-        V8_CHERI_ADDR_SET(V8_CHERI_PCC, static_cast<ptraddr_t>(pc_value))));
-  }
-  DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc_value));
+  intptr_t pc_value = DeoptPc(start, pc_offset);
   if (is_topmost) {
     // Only the pc of the topmost frame needs to be signed since it is
     // authenticated at the end of the DeoptimizationEntry builtin.
@@ -2518,7 +2532,7 @@ void Deoptimizer::DoComputeConstructInvokeStubFrame(
   Address start = construct_stub->instruction_start();
   const int pc_offset =
       isolate_->heap()->construct_stub_invoke_deopt_pc_offset().value();
-  intptr_t pc_value = static_cast<intptr_t>(start + pc_offset);
+  intptr_t pc_value = DeoptPc(start, pc_offset);
   if (is_topmost) {
     // Only the pc of the topmost frame needs to be signed since it is
     // authenticated at the end of the DeoptimizationEntry builtin.
@@ -3002,9 +3016,9 @@ void Deoptimizer::DoComputeBuiltinContinuation(
       isolate()->builtins()->code(TrampolineForBuiltinContinuation(
           mode, frame_info.frame_has_result_stack_slot() &&
                     !is_js_to_wasm_builtin_continuation));
-  intptr_t pc =
-      static_cast<intptr_t>(continue_to_builtin->instruction_start()) +
-      isolate()->heap()->deopt_pc_offset_after_adapt_shadow_stack().value();
+  intptr_t pc = DeoptPc(
+      continue_to_builtin->instruction_start(),
+      isolate()->heap()->deopt_pc_offset_after_adapt_shadow_stack().value());
   if (is_topmost) {
     // Only the pc of the topmost frame needs to be signed since it is
     // authenticated at the end of the DeoptimizationEntry builtin.
@@ -3173,8 +3187,9 @@ unsigned Deoptimizer::ComputeIncomingArgumentSize(Tagged<Code> code) {
 Deoptimizer::DeoptInfo Deoptimizer::ComputeDeoptInfo(Tagged<Code> code,
                                                      Address pc) {
 #if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
-  DCHECK_NE(pc & 1, 0);
-  pc -= 1;
+  // pc is Deoptimizer::from_, whose C64 bit is already cleared, and
+  // relocation pcs are recorded without it.
+  DCHECK_EQ(pc & 1, 0);
 #endif
   CHECK(code->instruction_start() <= pc && pc <= code->instruction_end());
   SourcePosition position = SourcePosition::Unknown();
