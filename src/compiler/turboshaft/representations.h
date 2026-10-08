@@ -477,6 +477,11 @@ constexpr bool RegisterRepresentation::AllowImplicitRepresentationChangeTo(
                           RegisterRepresentation::Word32())) {
         return true;
       }
+#if V8_TARGET_CHERI
+      if (*this == RegisterRepresentation::Word64()) {
+        return true;
+      }
+#endif
       break;
 #if V8_TARGET_CHERI
     case RegisterRepresentation::Capability64():

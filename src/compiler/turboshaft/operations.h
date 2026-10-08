@@ -6430,10 +6430,18 @@ inline constexpr RegisterRepresentation RegisterRepresentationForArrayType(
 
 inline base::Vector<const RegisterRepresentation> VectorForRep(
     RegisterRepresentation rep) {
-  static constexpr std::array<RegisterRepresentation, 6> table{
-      RegisterRepresentation::Word32(),  RegisterRepresentation::Word64(),
-      RegisterRepresentation::Float32(), RegisterRepresentation::Float64(),
-      RegisterRepresentation::Tagged(),  RegisterRepresentation::Compressed()};
+  static constexpr std::array table{RegisterRepresentation::Word32(),
+                                    RegisterRepresentation::Word64(),
+#if V8_TARGET_CHERI
+                                    RegisterRepresentation::Capability64(),
+#endif
+                                    RegisterRepresentation::Float32(),
+                                    RegisterRepresentation::Float64(),
+                                    RegisterRepresentation::Tagged(),
+                                    RegisterRepresentation::Compressed()};
+  static_assert(table.size() ==
+                static_cast<size_t>(RegisterRepresentation::Enum::kCompressed) +
+                    1);
   return base::VectorOf(&table[static_cast<size_t>(rep.value())], 1);
 }
 
