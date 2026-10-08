@@ -2638,7 +2638,7 @@ class MachineLoweringReducer : public Next {
   V<String> REDUCE(StringFromCodePointAt)(V<String> string,
                                           V<MachineWord> index) {
     return __ template CallBuiltin<builtin::StringFromCodePointAt>(
-        {.receiver = string, .position = V<WordPtr>::Cast(index)});
+        {.receiver = string, .position = index});
   }
 
 #ifdef V8_INTL_SUPPORT
@@ -2735,16 +2735,16 @@ class MachineLoweringReducer : public Next {
     BIND(slow);
     GOTO(done, __ template CallBuiltin<builtin::StringSubstring>(
                    {.string = string,
-                    .from = __ ChangeInt32ToIntPtr(start),
-                    .to = __ ChangeInt32ToIntPtr(end)}));
+                    .from = __ ChangeInt32ToMachineWord(start),
+                    .to = __ ChangeInt32ToMachineWord(end)}));
     BIND(done, result);
     return result;
   }
 
   V<String> REDUCE(StringSubstring)(V<String> string, V<Word32> start,
                                     V<Word32> end) {
-    V<WordPtr> s = __ ChangeInt32ToIntPtr(start);
-    V<WordPtr> e = __ ChangeInt32ToIntPtr(end);
+    V<MachineWord> s = __ ChangeInt32ToMachineWord(start);
+    V<MachineWord> e = __ ChangeInt32ToMachineWord(end);
     // TODO(marja): This can be replaced with CreateSubstring too, but we need
     // bounds checking outside.
     return __ template CallBuiltin<builtin::StringSubstring>(
@@ -2855,7 +2855,7 @@ class MachineLoweringReducer : public Next {
       GOTO(*done, __ template CallBuiltin<builtin::StringEqual>(
                       {.left = left,
                        .right = right,
-                       .length = __ ChangeInt32ToIntPtr(left_length)}));
+                       .length = __ ChangeInt32ToMachineWord(left_length)}));
     } ELSE {
       GOTO(*done, __ HeapConstant(factory_->false_value()));
     }
@@ -2890,7 +2890,7 @@ class MachineLoweringReducer : public Next {
                                          CreateArgumentsType type,
                                          int formal_parameter_count) {
     V<WordPtr> frame = __ FramePointer();
-    V<WordPtr> p_count = __ IntPtrConstant(formal_parameter_count);
+    V<MachineWord> p_count = __ MachineIntPtrConstant(formal_parameter_count);
     switch (type) {
       case CreateArgumentsType::kMappedArguments:
         return __ template CallBuiltin<builtin::NewSloppyArgumentsElements>(

@@ -177,7 +177,7 @@ struct builtin : CallDescriptorBuilder {
     struct Arguments : ArgumentsBase {
       ARG(V<Context>, the_context)
       ARG(V<Object>, new_value)
-      ARG(V<WordPtr>, i)
+      ARG(V<MachineWord>, i)
     };
     using returns_t = std::tuple<V<Object>>;
 
@@ -326,7 +326,7 @@ struct builtin : CallDescriptorBuilder {
       // TODO(nicohartmann@): First argument should be replaced by a proper
       // RawPtr.
       ARG(V<WordPtr>, frame)
-      ARG(V<WordPtr>, formal_parameter_count)
+      ARG(V<MachineWord>, formal_parameter_count)
       ARG(V<Smi>, arguments_count)
     };
     using returns_t = std::tuple<V<FixedArray>>;
@@ -443,7 +443,7 @@ struct builtin : CallDescriptorBuilder {
     struct Arguments : ArgumentsBase {
       ARG(V<String>, left)
       ARG(V<String>, right)
-      ARG(V<WordPtr>, length)
+      ARG(V<MachineWord>, length)
     };
     using returns_t = std::tuple<V<Boolean>>;
 
@@ -460,7 +460,7 @@ struct builtin : CallDescriptorBuilder {
     static constexpr auto kFunction = Builtin::kStringFromCodePointAt;
     struct Arguments : ArgumentsBase {
       ARG(V<String>, receiver)
-      ARG(V<WordPtr>, position)
+      ARG(V<MachineWord>, position)
     };
     using returns_t = std::tuple<V<String>>;
 
@@ -527,8 +527,8 @@ struct builtin : CallDescriptorBuilder {
     static constexpr auto kFunction = Builtin::kStringSubstring;
     struct Arguments : ArgumentsBase {
       ARG(V<String>, string)
-      ARG(V<WordPtr>, from)
-      ARG(V<WordPtr>, to)
+      ARG(V<MachineWord>, from)
+      ARG(V<MachineWord>, to)
     };
     using returns_t = std::tuple<V<String>>;
 
@@ -867,7 +867,7 @@ struct BuiltinCallDescriptor {
 
   struct WasmJSStringEqual : public Descriptor<WasmJSStringEqual> {
     static constexpr auto kFunction = Builtin::kWasmJSStringEqual;
-    using arguments_t = std::tuple<V<String>, V<String>, V<WordPtr>>;
+    using arguments_t = std::tuple<V<String>, V<String>, V<MachineWord>>;
     using results_t = std::tuple<V<Boolean>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1195,7 +1195,7 @@ struct BuiltinCallDescriptor {
 
   struct WasmAllocateFixedArray : public Descriptor<WasmAllocateFixedArray> {
     static constexpr auto kFunction = Builtin::kWasmAllocateFixedArray;
-    using arguments_t = std::tuple<V<WordPtr>>;
+    using arguments_t = std::tuple<V<MachineWord>>;
     using results_t = std::tuple<V<FixedArray>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1219,7 +1219,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmI32AtomicWait : public Descriptor<WasmI32AtomicWait> {
     static constexpr auto kFunction = Builtin::kWasmI32AtomicWait;
-    using arguments_t = std::tuple<V<Word32>, V<WordPtr>, V<Word32>, V<BigInt>>;
+    using arguments_t =
+        std::tuple<V<Word32>, V<MachineWord>, V<Word32>, V<BigInt>>;
     using results_t = std::tuple<V<Word32>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1230,7 +1231,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmI64AtomicWait : public Descriptor<WasmI64AtomicWait> {
     static constexpr auto kFunction = Builtin::kWasmI64AtomicWait;
-    using arguments_t = std::tuple<V<Word32>, V<WordPtr>, V<BigInt>, V<BigInt>>;
+    using arguments_t =
+        std::tuple<V<Word32>, V<MachineWord>, V<BigInt>, V<BigInt>>;
     using results_t = std::tuple<V<Word32>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1241,7 +1243,7 @@ struct BuiltinCallDescriptor {
 
   struct WasmFunctionTableGet : public Descriptor<WasmFunctionTableGet> {
     static constexpr auto kFunction = Builtin::kWasmFunctionTableGet;
-    using arguments_t = std::tuple<V<WordPtr>, V<WordPtr>, V<Word32>>;
+    using arguments_t = std::tuple<V<MachineWord>, V<MachineWord>, V<Word32>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1254,7 +1256,7 @@ struct BuiltinCallDescriptor {
   struct WasmTableSetFuncRef : public Descriptor<WasmTableSetFuncRef> {
     static constexpr auto kFunction = Builtin::kWasmTableSetFuncRef;
     using arguments_t =
-        std::tuple<V<WordPtr>, V<Word32>, V<WordPtr>, V<WasmFuncRef>>;
+        std::tuple<V<MachineWord>, V<Word32>, V<MachineWord>, V<WasmFuncRef>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1267,7 +1269,7 @@ struct BuiltinCallDescriptor {
   struct WasmTableSet : public Descriptor<WasmTableSet> {
     static constexpr auto kFunction = Builtin::kWasmTableSet;
     using arguments_t =
-        std::tuple<V<WordPtr>, V<Word32>, V<WordPtr>, V<Object>>;
+        std::tuple<V<MachineWord>, V<Word32>, V<MachineWord>, V<Object>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1279,8 +1281,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmTableInit : public Descriptor<WasmTableInit> {
     static constexpr auto kFunction = Builtin::kWasmTableInit;
-    using arguments_t =
-        std::tuple<V<WordPtr>, V<Word32>, V<Word32>, V<Smi>, V<Smi>, V<Smi>>;
+    using arguments_t = std::tuple<V<MachineWord>, V<Word32>, V<Word32>, V<Smi>,
+                                   V<Smi>, V<Smi>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1292,8 +1294,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmTableCopy : public Descriptor<WasmTableCopy> {
     static constexpr auto kFunction = Builtin::kWasmTableCopy;
-    using arguments_t =
-        std::tuple<V<WordPtr>, V<WordPtr>, V<WordPtr>, V<Smi>, V<Smi>, V<Smi>>;
+    using arguments_t = std::tuple<V<MachineWord>, V<MachineWord>,
+                                   V<MachineWord>, V<Smi>, V<Smi>, V<Smi>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1305,7 +1307,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmTableGrow : public Descriptor<WasmTableGrow> {
     static constexpr auto kFunction = Builtin::kWasmTableGrow;
-    using arguments_t = std::tuple<V<Smi>, V<WordPtr>, V<Word32>, V<Object>>;
+    using arguments_t =
+        std::tuple<V<Smi>, V<MachineWord>, V<Word32>, V<Object>>;
     using results_t = std::tuple<V<Smi>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1317,8 +1320,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmTableFill : public Descriptor<WasmTableFill> {
     static constexpr auto kFunction = Builtin::kWasmTableFill;
-    using arguments_t =
-        std::tuple<V<WordPtr>, V<WordPtr>, V<Word32>, V<Smi>, V<Object>>;
+    using arguments_t = std::tuple<V<MachineWord>, V<MachineWord>, V<Word32>,
+                                   V<Smi>, V<Object>>;
     using results_t = std::tuple<V<Object>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1356,7 +1359,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmStringNewWtf8 : public Descriptor<WasmStringNewWtf8> {
     static constexpr auto kFunction = Builtin::kWasmStringNewWtf8;
-    using arguments_t = std::tuple<V<WordPtr>, V<Word32>, V<Word32>, V<Smi>>;
+    using arguments_t =
+        std::tuple<V<MachineWord>, V<Word32>, V<Word32>, V<Smi>>;
     using results_t = std::tuple<V<WasmStringRefNullable>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1370,7 +1374,7 @@ struct BuiltinCallDescriptor {
 
   struct WasmStringNewWtf16 : public Descriptor<WasmStringNewWtf16> {
     static constexpr auto kFunction = Builtin::kWasmStringNewWtf16;
-    using arguments_t = std::tuple<V<Word32>, V<WordPtr>, V<Word32>>;
+    using arguments_t = std::tuple<V<Word32>, V<MachineWord>, V<Word32>>;
     using results_t = std::tuple<V<String>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1438,7 +1442,8 @@ struct BuiltinCallDescriptor {
 
   struct WasmStringEncodeWtf8 : public Descriptor<WasmStringEncodeWtf8> {
     static constexpr auto kFunction = Builtin::kWasmStringEncodeWtf8;
-    using arguments_t = std::tuple<V<WordPtr>, V<Word32>, V<Word32>, V<String>>;
+    using arguments_t =
+        std::tuple<V<MachineWord>, V<Word32>, V<Word32>, V<String>>;
     using results_t = std::tuple<V<Word32>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1453,7 +1458,7 @@ struct BuiltinCallDescriptor {
 
   struct WasmStringEncodeWtf16 : public Descriptor<WasmStringEncodeWtf16> {
     static constexpr auto kFunction = Builtin::kWasmStringEncodeWtf16;
-    using arguments_t = std::tuple<V<String>, V<WordPtr>, V<Word32>>;
+    using arguments_t = std::tuple<V<String>, V<MachineWord>, V<Word32>>;
     using results_t = std::tuple<V<Word32>>;
 
     static constexpr bool kNeedsFrameState = false;
@@ -1506,7 +1511,7 @@ struct BuiltinCallDescriptor {
   struct WasmStringViewWtf8Encode
       : public Descriptor<WasmStringViewWtf8Encode> {
     static constexpr auto kFunction = Builtin::kWasmStringViewWtf8Encode;
-    using arguments_t = std::tuple<V<WordPtr>, V<Word32>, V<Word32>,
+    using arguments_t = std::tuple<V<MachineWord>, V<Word32>, V<Word32>,
                                    V<ByteArray>, V<Smi>, V<Smi>>;
     using results_t = std::tuple<V<Word32>, V<Word32>>;
 
@@ -1524,7 +1529,7 @@ struct BuiltinCallDescriptor {
       : public Descriptor<WasmStringViewWtf16Encode> {
     static constexpr auto kFunction = Builtin::kWasmStringViewWtf16Encode;
     using arguments_t =
-        std::tuple<V<WordPtr>, V<Word32>, V<Word32>, V<String>, V<Smi>>;
+        std::tuple<V<MachineWord>, V<Word32>, V<Word32>, V<String>, V<Smi>>;
     using results_t = std::tuple<V<Word32>>;
 
     static constexpr bool kNeedsFrameState = false;

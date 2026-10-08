@@ -3331,7 +3331,7 @@ class GraphBuildingNodeProcessor {
         __ CallBuiltin<builtin::DetachContextCell>(
             frame_state, {.the_context = context,
                           .new_value = new_value,
-                          .i = __ WordPtrConstant(node->index())});
+                          .i = __ MachineUintPtrConstant(node->index())});
       } ELSE {
         __ Store(context, new_value, StoreOp::Kind::TaggedBase(),
                  MemoryRepresentation::AnyTagged(),

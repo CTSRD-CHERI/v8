@@ -57,6 +57,7 @@ using compiler::turboshaft::Graph;
 using compiler::turboshaft::Label;
 using compiler::turboshaft::LoadOp;
 using compiler::turboshaft::LoopLabel;
+using compiler::turboshaft::MachineWord;
 using compiler::turboshaft::MemoryRepresentation;
 using compiler::turboshaft::OpEffects;
 using compiler::turboshaft::Operation;
@@ -3482,7 +3483,7 @@ class TurboshaftGraphBuildingInterface
 
     V<FixedArray> values_array = CallBuiltinThroughJumptable<
         BuiltinCallDescriptor::WasmAllocateFixedArray>(
-        decoder, {__ IntPtrConstant(encoded_size)});
+        decoder, {__ MachineIntPtrConstant(encoded_size)});
     uint32_t index = 0;
     const wasm::WasmTagSig* sig = imm.tag->sig;
 
@@ -4625,7 +4626,8 @@ class TurboshaftGraphBuildingInterface
       GOTO(resolved,
            CallBuiltinThroughJumptable<
                BuiltinCallDescriptor::WasmFunctionTableGet>(
-               decoder, {__ IntPtrConstant(imm.index), index_wordptr,
+               decoder, {__ MachineIntPtrConstant(imm.index),
+                         V<MachineWord>::Cast(index_wordptr),
                          __ Word32Constant(extract_shared_data ? 1 : 0)}));
 
       BIND(resolved, resolved_entry);
@@ -4645,14 +4647,14 @@ class TurboshaftGraphBuildingInterface
 
     if (imm.table->type.ref_type_kind() == RefTypeKind::kFunction) {
       CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableSetFuncRef>(
-          decoder, {__ IntPtrConstant(imm.index),
+          decoder, {__ MachineIntPtrConstant(imm.index),
                     __ Word32Constant(extract_shared_data ? 1 : 0),
-                    index_wordptr, value.op});
+                    V<MachineWord>::Cast(index_wordptr), value.op});
     } else {
       CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableSet>(
-          decoder, {__ IntPtrConstant(imm.index),
+          decoder, {__ MachineIntPtrConstant(imm.index),
                     __ Word32Constant(extract_shared_data ? 1 : 0),
-                    index_wordptr, value.op});
+                    V<MachineWord>::Cast(index_wordptr), value.op});
     }
   }
 
@@ -4668,7 +4670,7 @@ class TurboshaftGraphBuildingInterface
     CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableInit>(
         decoder,
         {
-            dst_wordptr,
+            V<MachineWord>::Cast(dst_wordptr),
             src,
             size,
             __ SmiConstant(Smi::FromInt(imm.table.index)),
@@ -4696,7 +4698,8 @@ class TurboshaftGraphBuildingInterface
     DCHECK_EQ(table_is_shared, imm.table_src.table->shared);
     CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableCopy>(
         decoder,
-        {dst_wordptr, src_wordptr, size_wordptr,
+        {V<MachineWord>::Cast(dst_wordptr), V<MachineWord>::Cast(src_wordptr),
+         V<MachineWord>::Cast(size_wordptr),
          __ SmiConstant(Smi::FromInt(imm.table_dst.index)),
          __ SmiConstant(Smi::FromInt(imm.table_src.index)),
          __ SmiConstant(Smi::FromInt((!shared_ && table_is_shared) ? 1 : 0))});
@@ -4723,7 +4726,8 @@ class TurboshaftGraphBuildingInterface
     DCHECK_GE(kSmiMaxValue, wasm::max_table_size());
     V<Word32> call_result = __ UntagSmi(
         CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableGrow>(
-            decoder, {__ SmiConstant(Smi::FromInt(imm.index)), delta_wordptr,
+            decoder, {__ SmiConstant(Smi::FromInt(imm.index)),
+                      V<MachineWord>::Cast(delta_wordptr),
                       __ Word32Constant(extract_shared_data), value.op}));
     GOTO(end, call_result);
 
@@ -4743,9 +4747,10 @@ class TurboshaftGraphBuildingInterface
         TableAddressToUintPtrOrOOBTrap(imm.table->address_type, count.op);
     bool extract_shared_data = !shared_ && imm.table->shared;
     CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmTableFill>(
-        decoder,
-        {start_wordptr, count_wordptr, __ Word32Constant(extract_shared_data),
-         __ SmiConstant(Smi::FromInt(imm.index)), value.op});
+        decoder, {V<MachineWord>::Cast(start_wordptr),
+                  V<MachineWord>::Cast(count_wordptr),
+                  __ Word32Constant(extract_shared_data),
+                  __ SmiConstant(Smi::FromInt(imm.index)), value.op});
   }
 
   V<WasmTableObject> LoadTable(FullDecoder* decoder,
@@ -5518,7 +5523,8 @@ class TurboshaftGraphBuildingInterface
         MemoryAddressToUintPtrOrOOBTrap(imm.memory->address_type, offset.op);
     V<WasmStringRefNullable> result_value =
         CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmStringNewWtf8>(
-            decoder, {index, size.op, memory, variant_smi});
+            decoder,
+            {V<MachineWord>::Cast(index), size.op, memory, variant_smi});
     result->op = __ AnnotateWasmType(result_value, result->type);
   }
 
@@ -5610,7 +5616,8 @@ class TurboshaftGraphBuildingInterface
         MemoryAddressToUintPtrOrOOBTrap(imm.memory->address_type, offset.op);
     V<String> result_value =
         CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmStringNewWtf16>(
-            decoder, {__ Word32Constant(imm.index), index, size.op});
+            decoder, {__ Word32Constant(imm.index), V<MachineWord>::Cast(index),
+                      size.op});
     result->op = __ AnnotateWasmType(result_value, result->type);
   }
 
@@ -5674,7 +5681,8 @@ class TurboshaftGraphBuildingInterface
     V<Word32> utf8 = __ Word32Constant(static_cast<int32_t>(variant));
     result->op = CallBuiltinThroughJumptable<
         BuiltinCallDescriptor::WasmStringEncodeWtf8>(
-        decoder, {address, mem_index, utf8, V<String>::Cast(NullCheck(str))});
+        decoder, {V<MachineWord>::Cast(address), mem_index, utf8,
+                  V<String>::Cast(NullCheck(str))});
   }
 
   void StringEncodeWtf8Array(FullDecoder* decoder,
@@ -5703,7 +5711,8 @@ class TurboshaftGraphBuildingInterface
     V<Word32> mem_index = __ Word32Constant(static_cast<int32_t>(imm.index));
     result->op = CallBuiltinThroughJumptable<
         BuiltinCallDescriptor::WasmStringEncodeWtf16>(
-        decoder, {V<String>::Cast(NullCheck(str)), address, mem_index});
+        decoder, {V<String>::Cast(NullCheck(str)),
+                  V<MachineWord>::Cast(address), mem_index});
   }
 
   void StringEncodeWtf16Array(FullDecoder* decoder, const Value& str,
@@ -5748,7 +5757,7 @@ class TurboshaftGraphBuildingInterface
     // but isn't likely to be useful unless Wasm gains an ability to trigger
     // string hash computation (or internalization, for that matter).
 
-    V<WordPtr> length = __ ChangeInt32ToIntPtr(a_length);
+    V<MachineWord> length = __ ChangeInt32ToMachineWord(a_length);
     V<Boolean> result =
         CallBuiltinByPointer<BuiltinCallDescriptor::WasmJSStringEqual>(
             decoder, {a, b, length});
@@ -5798,7 +5807,7 @@ class TurboshaftGraphBuildingInterface
     V<Smi> utf8 = __ SmiConstant(Smi::FromInt(static_cast<int32_t>(variant)));
     OpIndex result = CallBuiltinThroughJumptable<
         BuiltinCallDescriptor::WasmStringViewWtf8Encode>(
-        decoder, {address, pos.op, bytes.op,
+        decoder, {V<MachineWord>::Cast(address), pos.op, bytes.op,
                   V<ByteArray>::Cast(NullCheck(view)), mem_index, utf8});
     next_pos->op = __ Projection(result, 0, RepresentationFor(next_pos->type));
     bytes_written->op =
@@ -5963,7 +5972,8 @@ class TurboshaftGraphBuildingInterface
     V<Smi> mem_index = __ SmiConstant(Smi::FromInt(imm.index));
     result->op = CallBuiltinThroughJumptable<
         BuiltinCallDescriptor::WasmStringViewWtf16Encode>(
-        decoder, {address, pos.op, codeunits.op, string, mem_index});
+        decoder, {V<MachineWord>::Cast(address), pos.op, codeunits.op, string,
+                  mem_index});
   }
 
   void StringViewWtf16Slice(FullDecoder* decoder, const Value& view,
