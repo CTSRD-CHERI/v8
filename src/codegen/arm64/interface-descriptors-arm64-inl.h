@@ -237,7 +237,7 @@ constexpr auto CallFunctionTemplateGenericDescriptor::registers() {
   // x1 : function template info
   // x2 : number of arguments (on the stack)
   // x3 : topmost script-having context
-  return RegisterArray(x1, x2, x3);
+  return RegisterArray(c1, x2, c3);
 }
 
 // static
@@ -288,7 +288,7 @@ constexpr auto ConstructWithArrayLikeDescriptor::registers() {
   // x1 : the target to call
   // x3 : the new target
   // x2 : the arguments list
-  return RegisterArray(c1, c3, x2);
+  return RegisterArray(c1, c3, c2);
 }
 
 // static
@@ -325,7 +325,7 @@ constexpr auto CompareAndTryPatchCodeDescriptor::registers() {
   // x0: right operand
   // x2: current feedback value
   // x3: feedback offset
-  return RegisterArray(x1, x0, x2, x3);
+  return RegisterArray(c1, c0, x2, x3);
 }
 #endif  // V8_ENABLE_SPARKPLUG_PLUS
 
@@ -334,7 +334,7 @@ constexpr auto Compare_WithEmbeddedFeedbackOffsetDescriptor::registers() {
   // x1: left operand
   // x0: right operand
   // x2: feedback offset
-  return RegisterArray(x1, x0, x2);
+  return RegisterArray(c1, c0, x2);
 }
 
 // static
@@ -420,8 +420,8 @@ constexpr auto InterpreterPushArgsThenConstructDescriptor::registers() {
 
 // static
 constexpr auto ConstructForwardAllArgsDescriptor::registers() {
-  return RegisterArray(x1,   // constructor to call
-                       x3);  // new target
+  return RegisterArray(c1,   // constructor to call
+                       c3);  // new target
 }
 
 // static
