@@ -139,6 +139,9 @@ int GetFlagsForMemoryPermission(OS::MemoryPermission access, PageType page_type,
   int flags = 0;
   if (!handle.has_value()) {
     flags |= MAP_ANONYMOUS;
+#if V8_OS_FREEBSD
+    flags |= MAP_NOCORE;
+#endif  // V8_OS_FREEBSD
   }
   if (fixed) {
     flags |= MAP_FIXED;
@@ -708,15 +711,17 @@ bool OS::DecommitPages(void* address, size_t size) {
   // mapping is established." As a consequence, the memory will be
   // zero-initialized on next access.
 #if defined(__CHERI_PURE_CAPABILITY__)
+  int flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE | MAP_NOCORE;
   // XXX(cheri): When calling mmap() on decommiting pages, if prot_max is not
   // set, it will become zero, therefore new allocations which try to mprotect
   // to get read/write permissions will fail. We hardcode this here for now. A
   // better solution is needed to preserve the prot_max from allocation.
   void* ret = mmap(address, size, PROT_NONE | PROT_MAX(PROT_READ | PROT_WRITE),
 #else
+  int flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;
   void* ret = mmap(address, size, PROT_NONE,
 #endif
-                   MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+                   flags, -1, 0);
   if (V8_UNLIKELY(ret == MAP_FAILED)) {
     // Decommitting pages can fail if the limit of VMAs is exceeded.
     CHECK_EQ(ENOMEM, errno);
@@ -1235,8 +1240,11 @@ bool AddressSpaceReservation::AllocateShared(void* address, size_t size,
 
 bool AddressSpaceReservation::FreeShared(void* address, size_t size) {
   DCHECK(Contains(address, size));
-  return mmap(address, size, PROT_NONE, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE,
-              -1, 0) == address;
+  int flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;
+#if V8_OS_FREEBSD
+  flags |= MAP_NOCORE;
+#endif  // V8_OS_FREEBSD
+  return mmap(address, size, PROT_NONE, flags, -1, 0) == address;
 }
 #endif  // !V8_OS_ZOS
 
