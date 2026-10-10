@@ -5,7 +5,14 @@
 #include "include/v8-function.h"
 #include "include/v8-regexp.h"
 #include "src/api/api-inl.h"
+#include "src/api/api.h"
 #include "src/execution/frames-inl.h"
+#include "src/heap/base-page.h"
+#include "src/heap/heap-layout-inl.h"
+#include "src/heap/memory-chunk-inl.h"
+#include "src/objects/code-inl.h"
+#include "src/objects/instruction-stream.h"
+#include "src/objects/js-regexp.h"
 #include "test/cctest/cctest.h"
 #include "test/cctest/heap/heap-utils.h"
 
@@ -312,6 +319,74 @@ TEST(InterruptAndIterateStack) {
   InterruptTest test{};
   test.SetOneByteSubjectString();
   test.RunTest(InterruptTest::IterateStack);
+}
+
+namespace {
+
+i::Address g_active_istream_before_gc = 0;
+
+// The running regexp's compiled code, reached through the JS RegExp's cached
+// RegExpData. The code was compiled when exec started and no GC ran since,
+// so the cached pointers are fresh.
+i::Tagged<i::InstructionStream> ActiveRegexpInstructionStream(
+    InterruptTest* instance) {
+  i::Isolate* i_isolate = instance->i_isolate();
+  i::Handle<i::JSRegExp> js_regexp = Utils::OpenHandle(*instance->GetRegExp());
+  i::Tagged<i::RegExpData> re_data = js_regexp->data(i_isolate);
+  CHECK(re_data->type_tag() == i::RegExpData::Type::IRREGEXP);
+  i::Tagged<i::IrRegExpData> ir_data = i::TrustedCast<i::IrRegExpData>(re_data);
+  CHECK(ir_data->has_code(true));
+  return ir_data->code(i_isolate, true)->instruction_stream();
+}
+
+// Stresses the mid-frame compaction path: while a compiled regexp frame is
+// live, force its InstructionStream page to become an evacuation candidate and
+// run a major GC. By design, running regexp code may move here; the return
+// address gets patched in CheckStackGuardState (guarded on CHERI). The test
+// body then requires that the code really moved and execution survived.
+void InterruptAndForceEvacuateActiveCode(Isolate* isolate, void* data) {
+  HandleScope scope(isolate);
+  auto instance = reinterpret_cast<InterruptTest*>(data);
+  i::Heap* heap = instance->i_isolate()->heap();
+
+  i::Tagged<i::InstructionStream> istream =
+      ActiveRegexpInstructionStream(instance);
+  g_active_istream_before_gc = istream.ptr();
+  CHECK(i::TrustedHeapLayout::InCodeSpace(istream));
+  i::BasePage* page = i::MemoryChunk::FromHeapObject(istream)->Metadata();
+  CHECK(!page->is_large());
+  CHECK(!page->never_evacuate());
+  heap->FreeMainThreadLinearAllocationAreas();
+  CHECK(page->CanAllocateOnChunk());
+  page->set_forced_evacuation_candidate_for_testing(true);
+
+  i::heap::InvokeAtomicMajorGC(heap);
+  // The istream may have been moved by that GC; do not touch it below.
+}
+
+}  // namespace
+
+TEST(InterruptAndForceEvacuateActiveRegexpCode) {
+  i::v8_flags.compact = true;
+  i::v8_flags.compact_code_space = true;
+  i::v8_flags.compact_on_every_full_gc = true;
+  // Only the page explicitly forced by the callback becomes a candidate.
+  i::v8_flags.manual_evacuation_candidates_selection = true;
+  // The interrupt must land in classic backtracking code (CodeKind::REGEXP).
+  i::v8_flags.regexp_tier_up = false;
+  SetCommonV8FlagsForInterruptTests();
+  InterruptTest test{};
+  test.SetOneByteSubjectString();
+  test.RunTest(InterruptAndForceEvacuateActiveCode);
+  CHECK_NE(g_active_istream_before_gc, 0);
+
+  {
+    HandleScope scope(reinterpret_cast<Isolate*>(test.i_isolate()));
+    i::Tagged<i::InstructionStream> after =
+        ActiveRegexpInstructionStream(&test);
+    CHECK(i::TrustedHeapLayout::InCodeSpace(after));
+    CHECK_NE(after.ptr(), g_active_istream_before_gc);
+  }
 }
 
 TEST(InterruptAndTransitionSubjectFromTwoByteToOneByte) {

@@ -477,11 +477,30 @@ int NativeRegExpMacroAssembler::CheckStackGuardState(
     // the page header of the stale pointer.
     if (!code_handle->SafeEquals(re_code)) {  // Return address no longer valid
       // Overwrite the return address on the stack.
-      intptr_t delta = code_handle->address() - re_code.address();
+#if V8_TARGET_CHERI
+      // old_pc is sealed here so we cannot compute the address that way.
+      // Instead, we compute from the moved object's capability.
+      const ptrdiff_t ra_offset = static_cast<ptraddr_t>(old_pc) -
+                                  static_cast<ptraddr_t>(re_code.address());
+      Address new_pc = code_handle->address() + ra_offset;
+#else
+      const intptr_t delta = code_handle->address() - re_code.address();
       Address new_pc = old_pc + delta;
+#endif
       // TODO(v8:10026): avoid replacing a signed pointer.
       PointerAuthentication::ReplacePC(return_address, new_pc, 0);
     }
+#if V8_TARGET_CHERI
+    Address ra = *return_address;
+    CHECK(V8_CHERI_TAG_GET(ra));
+    CHECK(V8_CHERI_IS_EXECUTABLE(ra));
+    ptraddr_t ra_ptraddr = static_cast<ptraddr_t>(ra);
+    CHECK_LE(static_cast<ptraddr_t>(code_handle->instruction_start()),
+             ra_ptraddr);
+    CHECK_LT(ra_ptraddr,
+             static_cast<ptraddr_t>(
+                 code_handle->code(kAcquireLoad)->instruction_end()));
+#endif
   }
 
   // If we continue, we need to update the subject string addresses.
