@@ -170,10 +170,12 @@ void DoubleStringCache::Set(Isolate* isolate, InternalIndex entry_index,
       !isolate->MemorySaverModeEnabled()) {
     // Allocate full-size cache, recompute the entry and proceed with adding
     // the entry.
+    // kMaxCapacity is halved on purecap (entries are twice as wide), so the
+    // flag's requested size can exceed it.
     uint32_t full_size =
         base::bits::RoundUpToPowerOfTwo32(v8_flags.double_string_cache_size);
+    if (full_size > kMaxCapacity) full_size = kMaxCapacity;
     CHECK_LT(kInitialSize, full_size);
-    CHECK_LE(full_size, kMaxCapacity);
     cache = DoubleStringCache::New(isolate, full_size);
     isolate->heap()->SetDoubleStringCache(*cache);
 
