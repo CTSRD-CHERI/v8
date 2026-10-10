@@ -667,9 +667,9 @@ void RegExpMacroAssemblerARM64::EmitSkipUntilBitInTableSimdHelper(
   // For a description of the table layout, check the comment on
   // BoyerMooreLookahead::GetSkipTable in regexp-compiler.cc.
   VRegister nibble_table = v0;
-  __ Mov(x8, Operand(nibble_table_handle));
-  __ Add(x8, x8, OFFSET_OF_DATA_START(ByteArray) - kHeapObjectTag);
-  __ Ld1(nibble_table.V16B(), MemOperand(x8));
+  __ Mov(c8, Operand(nibble_table_handle));
+  __ Add(c8, c8, OFFSET_OF_DATA_START(ByteArray) - kHeapObjectTag);
+  __ Ld1(nibble_table.V16B(), MemOperand(c8));
   VRegister nibble_mask = v1;
   const uint64_t nibble_mask_imm = 0x0f0f0f0f'0f0f0f0f;
   __ Movi(nibble_mask.V16B(), nibble_mask_imm, nibble_mask_imm);
@@ -680,9 +680,9 @@ void RegExpMacroAssemblerARM64::EmitSkipUntilBitInTableSimdHelper(
   __ Bind(&simd_loop);
   // Load next characters into vector.
   VRegister input_vec = v3;
-  __ Add(x8, input_end(), Operand(current_input_offset(), SXTW));
-  __ Add(x8, x8, cp_offset * char_size());
-  __ Ld1(input_vec.V16B(), MemOperand(x8));
+  __ Add(c8, input_end(), Operand(current_input_offset(), SXTW));
+  __ Add(c8, c8, cp_offset * char_size());
+  __ Ld1(input_vec.V16B(), MemOperand(c8));
 
   // Extract low nibbles.
   // lo_nibbles = input & 0x0f
@@ -779,8 +779,9 @@ void RegExpMacroAssemblerARM64::SkipUntilBitInTable(
     Bind(&scalar);
   }
 
-  // Scalar version.
-  Register table_reg = x9;
+  // Scalar version. The table is an embedded object, so the pool load needs a
+  // capability destination.
+  Register table_reg = c9;
   __ Mov(table_reg, Operand(table));
 
   Bind(&scalar_repeat);
@@ -2020,8 +2021,8 @@ void RegExpMacroAssemblerARM64::AssertAboveStackLimitMinusSlack() {
   Label no_stack_overflow;
   ASM_CODE_COMMENT_STRING(masm_.get(), "AssertAboveStackLimitMinusSlack");
   auto l = ExternalReference::address_of_regexp_stack_limit_address(isolate());
-  __ Mov(x10, l);
-  __ Ldr(x10, MemOperand(x10));
+  __ Mov(c10, l);
+  __ Ldr(x10, MemOperand(c10));
   __ Sub(x10, x10, RegExpStack::kStackLimitSlackSize);
   __ Cmp(backtrack_stackpointer(), x10);
   __ B(hi, &no_stack_overflow);
