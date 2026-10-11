@@ -1167,8 +1167,15 @@ class Internals {
       kJSDispatchTableOffset + kApiSystemPointerSize;
   static const int kContinuationPreservedEmbedderDataOffset =
       kIsolateRegexpExecVectorArgumentOffset + kApiSystemPointerSize;
+#ifdef V8_CHERI_BOUND_OBJECTS
+  static const int kHeapReservationCapOffset =
+      kContinuationPreservedEmbedderDataOffset + kApiSystemPointerSize;
+  static const int kIsolateRootsOffset =
+      kHeapReservationCapOffset + kApiSystemPointerSize;
+#else   // !V8_CHERI_BOUND_OBJECTS
   static const int kIsolateRootsOffset =
       kContinuationPreservedEmbedderDataOffset + kApiSystemPointerSize;
+#endif  // !V8_CHERI_BOUND_OBJECTS
 
 #if V8_TARGET_ARCH_PPC64
   static constexpr int kFrameCPSlotCount = 1;
