@@ -514,6 +514,10 @@ declare_args() {
   snapshot_remote_port = ""
   snapshot_remote_sshkey = ""
   snapshot_remote_dir = ""
+
+  # CHERI object bounding. Only meaningful for purecap CHERI builds without
+  # pointer compression, as of now.
+  v8_cheri_bound_objects = false
 }
 
 # Derived defaults.
@@ -999,6 +1003,7 @@ external_v8_defines = [
   "V8_ENABLE_MEMORY_ACCOUNTING_CHECKS",
   "V8_COMPRESS_POINTERS",
   "V8_COMPRESS_POINTERS_IN_SHARED_CAGE",
+  "V8_CHERI_BOUND_OBJECTS",
   "V8_31BIT_SMIS_ON_64BIT_ARCH",
   "V8_COMPRESS_ZONES",
   "V8_ENABLE_SANDBOX",
@@ -1041,6 +1046,15 @@ if (v8_enable_pointer_compression) {
   enabled_external_v8_defines += [ "V8_COMPRESS_POINTERS" ]
   if (v8_enable_pointer_compression_shared_cage) {
     enabled_external_v8_defines += [ "V8_COMPRESS_POINTERS_IN_SHARED_CAGE" ]
+  }
+}
+if (v8_cheri_bound_objects) {
+  assert(is_cheri && !v8_enable_pointer_compression,
+         "v8_cheri_bound_objects requires a CHERI build without pointer " +
+             "compression")
+
+  if (current_cpu == target_cpu) {
+    enabled_external_v8_defines += [ "V8_CHERI_BOUND_OBJECTS" ]
   }
 }
 if (v8_enable_pointer_compression || v8_enable_31bit_smis_on_64bit_arch) {

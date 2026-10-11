@@ -411,6 +411,12 @@ size_t Heap::AllocatorLimitOnMaxOldGenerationSize(uint64_t physical_memory) {
   return kPtrComprCageReservationSize -
          YoungGenerationSizeFromSemiSpaceSize(
              DefaultMaxSemiSpaceSize(physical_memory));
+#elif V8_CHERI_HEAP_RESERVATION_BOOL
+  // Every heap page comes out of the CHERI heap reservation.
+  return kCheriHeapReservationSize -
+         YoungGenerationSizeFromSemiSpaceSize(
+             DefaultMaxSemiSpaceSize(physical_memory)) -
+         kMaximalCodeRangeSize;
 #else
   return std::numeric_limits<size_t>::max();
 #endif

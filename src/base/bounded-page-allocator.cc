@@ -4,19 +4,25 @@
 
 #include "src/base/bounded-page-allocator.h"
 
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
+#include <cheri/cherireg.h>  // OS-specific capability permission bits
+#endif
+
 namespace v8 {
 namespace base {
 
 BoundedPageAllocator::BoundedPageAllocator(
     v8::PageAllocator* page_allocator, Address start, size_t size,
     size_t allocate_page_size, PageInitializationMode page_initialization_mode,
-    PageFreeingMode page_freeing_mode)
+    PageFreeingMode page_freeing_mode, bool restrict_pages)
     : allocate_page_size_(allocate_page_size),
       commit_page_size_(page_allocator->CommitPageSize()),
       page_allocator_(page_allocator),
       region_allocator_(start, size, allocate_page_size_),
       page_initialization_mode_(page_initialization_mode),
-      page_freeing_mode_(page_freeing_mode) {
+      page_freeing_mode_(page_freeing_mode),
+      restrict_pages_(restrict_pages) {
+  DCHECK(!restrict_pages_ || V8_CHERI_BOUND_PAGES_BOOL);
   DCHECK_NOT_NULL(page_allocator);
   DCHECK(IsAligned(allocate_page_size, page_allocator->AllocatePageSize()));
   DCHECK(IsAligned(allocate_page_size_, commit_page_size_));
@@ -71,24 +77,33 @@ void* BoundedPageAllocator::AllocatePages(size_t size, size_t alignment,
     return nullptr;
   }
 
+  address = WithReservationProvenance(address, size);
   void* ptr = reinterpret_cast<void*>(address);
+  void* client_ptr = ptr;
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
+  if (V8_CHERI_BOUND_PAGES_BOOL && restrict_pages_) {
+    // The returned page pointer shouldn't have SW_VMEM
+    client_ptr = __builtin_cheri_perms_and(
+        ptr, ~static_cast<size_t>(CHERI_PERM_SW_VMEM));
+  }
+#endif
   // It's assumed that free regions are in kNoAccess/kNoAccessWillJitLater
   // state.
   if (access == PageAllocator::kNoAccess ||
       access == PageAllocator::kNoAccessWillJitLater) {
     allocation_status_ = AllocationStatus::kSuccess;
-    return ptr;
+    return client_ptr;
   }
 
   if (page_initialization_mode_ == PageInitializationMode::kRecommitOnly) {
     if (page_allocator_->RecommitPages(ptr, size, access, max_access)) {
       allocation_status_ = AllocationStatus::kSuccess;
-      return ptr;
+      return client_ptr;
     }
   } else {
     if (page_allocator_->SetPermissions(ptr, size, access, max_access)) {
       allocation_status_ = AllocationStatus::kSuccess;
-      return ptr;
+      return client_ptr;
     }
   }
 
@@ -113,7 +128,8 @@ bool BoundedPageAllocator::AllocatePagesAt(
     return false;
   }
 
-  void* ptr = reinterpret_cast<void*>(address);
+  void* ptr =
+      reinterpret_cast<void*>(WithReservationProvenance(address, size));
   if (!page_allocator_->SetPermissions(ptr, size, access, max_access)) {
     // This most likely means that we ran out of memory.
     CHECK_EQ(region_allocator_.FreeRegion(address), size);
@@ -155,8 +171,9 @@ bool BoundedPageAllocator::ResizeAllocationAt(
   }
 
   if (!page_allocator_->SetPermissions(
-          reinterpret_cast<void*>(address_at + old_size), new_size - old_size,
-          access, max_access)) {
+          reinterpret_cast<void*>(WithReservationProvenance(
+              address_at + old_size, new_size - old_size)),
+          new_size - old_size, access, max_access)) {
     if (allocated_old_size < allocated_new_size) {
       // This most likely means that we ran out of memory.
       CHECK_EQ(region_allocator_.TrimRegion(address_at, allocated_old_size),
@@ -191,7 +208,8 @@ bool BoundedPageAllocator::ReserveForSharedMemoryMapping(void* ptr,
   }
 
   const bool success = page_allocator_->SetPermissions(
-      ptr, size, PageAllocator::Permission::kNoAccess,
+      reinterpret_cast<void*>(WithReservationProvenance(address, size)), size,
+      PageAllocator::Permission::kNoAccess,
       PageAllocator::Permission::kReadWrite);
   if (success) {
     allocation_status_ = AllocationStatus::kSuccess;
@@ -206,6 +224,8 @@ bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
   // metadata.
   bool success;
   Address address = reinterpret_cast<Address>(raw_address);
+  raw_address =
+      reinterpret_cast<void*>(WithReservationProvenance(address, size));
 
   // The operations below can be expensive, don't hold the lock while they
   // happen. There is still potentially contention in the kernel, but at least
@@ -266,8 +286,9 @@ bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size,
   }
 
   // Keep the region in "used" state just uncommit some pages.
-  void* free_address = reinterpret_cast<void*>(address + new_size);
   size_t free_size = size - new_size;
+  void* free_address = reinterpret_cast<void*>(
+      WithReservationProvenance(address + new_size, free_size));
   if (page_initialization_mode_ ==
       PageInitializationMode::kAllocatedPagesMustBeZeroInitialized) {
     DCHECK_NE(page_freeing_mode_, PageFreeingMode::kDiscard);
@@ -291,8 +312,10 @@ bool BoundedPageAllocator::SetPermissions(
   DCHECK(IsAligned(reinterpret_cast<Address>(address), commit_page_size_));
   DCHECK(IsAligned(size, commit_page_size_));
   DCHECK(region_allocator_.contains(reinterpret_cast<Address>(address), size));
-  const bool success =
-      page_allocator_->SetPermissions(address, size, access, max_access);
+  const bool success = page_allocator_->SetPermissions(
+      reinterpret_cast<void*>(WithReservationProvenance(
+          reinterpret_cast<Address>(address), size)),
+      size, access, max_access);
   if (!success) {
     allocation_status_ = AllocationStatus::kFailedToCommit;
   }
@@ -305,8 +328,10 @@ bool BoundedPageAllocator::RecommitPages(void* address, size_t size,
   DCHECK(IsAligned(reinterpret_cast<Address>(address), commit_page_size_));
   DCHECK(IsAligned(size, commit_page_size_));
   DCHECK(region_allocator_.contains(reinterpret_cast<Address>(address), size));
-  const bool success =
-      page_allocator_->RecommitPages(address, size, access, max_access);
+  const bool success = page_allocator_->RecommitPages(
+      reinterpret_cast<void*>(WithReservationProvenance(
+          reinterpret_cast<Address>(address), size)),
+      size, access, max_access);
   if (!success) {
     allocation_status_ = AllocationStatus::kFailedToCommit;
   }
@@ -314,15 +339,24 @@ bool BoundedPageAllocator::RecommitPages(void* address, size_t size,
 }
 
 bool BoundedPageAllocator::DiscardSystemPages(void* address, size_t size) {
-  return page_allocator_->DiscardSystemPages(address, size);
+  return page_allocator_->DiscardSystemPages(
+      reinterpret_cast<void*>(WithReservationProvenance(
+          reinterpret_cast<Address>(address), size)),
+      size);
 }
 
 bool BoundedPageAllocator::DecommitPages(void* address, size_t size) {
-  return page_allocator_->DecommitPages(address, size);
+  return page_allocator_->DecommitPages(
+      reinterpret_cast<void*>(WithReservationProvenance(
+          reinterpret_cast<Address>(address), size)),
+      size);
 }
 
 bool BoundedPageAllocator::SealPages(void* address, size_t size) {
-  return page_allocator_->SealPages(address, size);
+  return page_allocator_->SealPages(
+      reinterpret_cast<void*>(WithReservationProvenance(
+          reinterpret_cast<Address>(address), size)),
+      size);
 }
 
 const char* BoundedPageAllocator::AllocationStatusToString(

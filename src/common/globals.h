@@ -828,6 +828,25 @@ constexpr Address kContiguousReadOnlySpaceMask =
 
 #endif  // COMPRESS_POINTERS_IN_SHARED_CAGE_BOOL
 
+// To support CHERI tight JS object, we need a way to re-derive a capability
+// for a page header from the address of an object.
+// On builds without pointer compression, all isolates are in the same
+// IsolateGroup. We store a single capability covering the whole heap owned by
+// the IsolateGroup and use it as the authority to re-derive a capability to the
+// page header from the address of an object. 
+//
+// Currently we don't support CHERI tight JS object bounding with compressed
+// pointers.
+#ifdef V8_CHERI_BOUND_OBJECTS
+#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
+#error "V8_CHERI_BOUND_OBJECTS needs purecap CHERI without pointer compression"
+#endif
+#define V8_CHERI_HEAP_RESERVATION_BOOL true
+constexpr size_t kCheriHeapReservationSize = size_t{64} * GB;
+#else
+#define V8_CHERI_HEAP_RESERVATION_BOOL false
+#endif
+
 // -----------------------------------------------------------------------------
 // Declarations for use in both the preparser and the rest of V8.
 
