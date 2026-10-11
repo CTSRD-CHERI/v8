@@ -126,6 +126,33 @@ struct PtrComprCageReservationParams
 };
 #endif  // V8_COMPRESS_POINTERS
 
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+struct CheriHeapReservationParams
+    : public VirtualMemoryCage::ReservationParams {
+  CheriHeapReservationParams() {
+    page_allocator = GetPlatformPageAllocator();
+
+    reservation_size = kCheriHeapReservationSize;
+
+    // Simplify BoundedPageAllocator's life by configuring it to use same page
+    // size as the Heap will use (MemoryChunk::kPageSize).
+    page_size =
+        RoundUp(size_t{1} << kPageSizeBits, page_allocator->AllocatePageSize());
+    base_alignment = page_size;
+    requested_start_hint = RoundDown(
+        reinterpret_cast<Address>(page_allocator->GetRandomMmapAddr()),
+        base_alignment);
+
+    permissions = PageAllocator::Permission::kNoAccess;
+    page_initialization_mode =
+        base::PageInitializationMode::kAllocatedPagesCanBeUninitialized;
+    page_freeing_mode = base::PageFreeingMode::kMakeInaccessible;
+    
+    restrict_pages = true;
+  }
+};
+#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
+
 IsolateGroup::~IsolateGroup() {
   DCHECK_EQ(reference_count_.load(), 0);
   DCHECK(isolates_.empty());
@@ -143,13 +170,14 @@ IsolateGroup::~IsolateGroup() {
 #endif  // V8_ENABLE_SANDBOX
 
   // Reset before `reservation_` for pointer compression but disabled external
-  // code space.
+  // code space, and for the CHERI heap reservation which always contains the
+  // code range.
   code_range_.reset();
 
-#ifdef V8_COMPRESS_POINTERS
+#if defined(V8_COMPRESS_POINTERS) || V8_CHERI_HEAP_RESERVATION_BOOL
   DCHECK(reservation_.IsReserved());
   reservation_.Free();
-#endif  // V8_COMPRESS_POINTERS
+#endif
 
 #ifdef V8_ENABLE_SANDBOX
   backend_allocator_.TearDown();
@@ -256,7 +284,18 @@ void IsolateGroup::Initialize(bool process_wide) {
 #else   // !V8_COMPRESS_POINTERS
 void IsolateGroup::Initialize(bool process_wide) {
   process_wide_ = process_wide;
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+  CheriHeapReservationParams params;
+  if (!reservation_.InitReservation(params)) {
+    V8::FatalProcessOutOfMemory(
+        nullptr,
+        "Failed to reserve virtual memory for process-wide V8 "
+        "CHERI heap reservation");
+  }
+  page_allocator_ = reservation_.page_allocator();
+#else
   page_allocator_ = GetPlatformPageAllocator();
+#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   memory_pool_ = std::make_unique<MemoryPool>();
