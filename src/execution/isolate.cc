@@ -4666,6 +4666,11 @@ void Isolate::CheckIsolateLayout() {
                     Isolate, isolate_data_.js_dispatch_table_base_)) ==
                 Internals::kJSDispatchTableOffset);
 
+#ifdef V8_CHERI_BOUND_OBJECTS
+  static_assert(static_cast<int>(OFFSET_OF(
+                    Isolate, isolate_data_.heap_reservation_cap_)) ==
+                Internals::kHeapReservationCapOffset);
+#endif  // V8_CHERI_BOUND_OBJECTS
   static_assert(
       static_cast<int>(OFFSET_OF(Isolate, isolate_data_.roots_table_)) ==
       Internals::kIsolateRootsOffset);

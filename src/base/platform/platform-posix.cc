@@ -597,8 +597,15 @@ bool OS::SetPermissions(void* address, size_t size, OS::MemoryPermission access,
 #if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
   DCHECK_NE(0, V8_CHERI_PERMS(address) & CHERI_PERM_SW_VMEM);
 #endif
-
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD && \
+    defined(V8_CHERI_BOUND_OBJECTS)
+  // In CHERI bounded builds, we have a heap reservation mapping and pages
+  // inside the reservation can be recycled for other purposes. Therefore,
+  // don't pass PROT_MAX().
+  int prot = GetProtectionFromMemoryPermission(access);
+#else
   int prot = GetProtectionFromMemoryPermission(access, max_access);
+#endif
   int ret = mprotect(address, size, prot);
 
   // Setting permissions can fail if the limit of VMAs is exceeded.

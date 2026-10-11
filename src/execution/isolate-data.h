@@ -101,7 +101,12 @@ class IsolateData final {
             group->code_pointer_table()->base_address())
 #endif
         ,
-        js_dispatch_table_base_(group->js_dispatch_table()->base_address()) {
+        js_dispatch_table_base_(group->js_dispatch_table()->base_address())
+#ifdef V8_CHERI_BOUND_OBJECTS
+        ,
+        heap_reservation_cap_(group->heap_reservation_cap())
+#endif
+  {
   }
 
   IsolateData(const IsolateData&) = delete;
@@ -173,6 +178,9 @@ class IsolateData final {
 
   // The value of kPointerCageBaseRegister.
   Address cage_base() const { return cage_base_; }
+#ifdef V8_CHERI_BOUND_OBJECTS
+  Address heap_reservation_cap() const { return heap_reservation_cap_; }
+#endif
   StackGuard* stack_guard() { return &stack_guard_; }
   int32_t* regexp_static_result_offsets_vector() const {
     return regexp_static_result_offsets_vector_;
@@ -420,6 +428,10 @@ class IsolateData final {
 
   // This is data that should be preserved on newly created continuations.
   Tagged<Object> continuation_preserved_embedder_data_ = Smi::zero();
+
+#ifdef V8_CHERI_BOUND_OBJECTS
+  const Address heap_reservation_cap_ = kNullAddress;
+#endif
 
   RootsTable roots_table_;
   ExternalReferenceTable external_reference_table_;

@@ -6,8 +6,15 @@
 #define V8_BASE_BOUNDED_PAGE_ALLOCATOR_H_
 
 #include "include/v8-platform.h"
+#include "src/base/macros.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/region-allocator.h"
+
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_CHERI_BOUND_OBJECTS)
+#define V8_CHERI_BOUND_PAGES_BOOL true
+#else
+#define V8_CHERI_BOUND_PAGES_BOOL false
+#endif
 
 namespace v8 {
 namespace base {
@@ -77,7 +84,8 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   BoundedPageAllocator(v8::PageAllocator* page_allocator, Address start,
                        size_t size, size_t allocate_page_size,
                        PageInitializationMode page_initialization_mode,
-                       PageFreeingMode page_freeing_mode);
+                       PageFreeingMode page_freeing_mode,
+                       bool restrict_pages = false);
   BoundedPageAllocator(const BoundedPageAllocator&) = delete;
   BoundedPageAllocator& operator=(const BoundedPageAllocator&) = delete;
   ~BoundedPageAllocator() override = default;
@@ -148,9 +156,26 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
   v8::PageAllocator* const page_allocator_;
+
+  Address WithReservationProvenance(Address address, size_t size) const {
+    // This is a no-op in builds without CHERI bounding.
+    if (!V8_CHERI_BOUND_PAGES_BOOL || !restrict_pages_) return address;
+#ifdef __CHERI_PURE_CAPABILITY__
+    const ptraddr_t start = static_cast<ptraddr_t>(address);
+    Address result = V8_CHERI_SET_BOUNDS(
+        V8_CHERI_ADDR_SET(region_allocator_.begin(), start), size);
+    return result;
+#else
+    USE(size);
+    return address;
+#endif
+  }
+
   v8::base::RegionAllocator region_allocator_;
   const PageInitializationMode page_initialization_mode_;
   const PageFreeingMode page_freeing_mode_;
+  // Whether pages are CHERI bounded to the page size.
+  const bool restrict_pages_;
   AllocationStatus allocation_status_ = AllocationStatus::kSuccess;
 };
 

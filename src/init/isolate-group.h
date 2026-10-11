@@ -243,6 +243,13 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   CodeRange* EnsureCodeRange(size_t requested_size);
   CodeRange* GetCodeRange() const { return code_range_.get(); }
 
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+  Address heap_reservation_cap() const {
+    DCHECK(reservation_.IsReserved());
+    return reservation_.base();
+  }
+#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
+
 #ifdef V8_COMPRESS_POINTERS_IN_MULTIPLE_CAGES
 #ifdef USING_V8_SHARED_PRIVATE
   static IsolateGroup* current() { return current_non_inlined(); }
@@ -394,8 +401,11 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 #ifdef V8_COMPRESS_POINTERS
   VirtualMemoryCage* trusted_pointer_compression_cage_ = nullptr;
   VirtualMemoryCage* pointer_compression_cage_ = nullptr;
-  VirtualMemoryCage reservation_;
 #endif  // V8_COMPRESS_POINTERS
+#if defined(V8_COMPRESS_POINTERS) || V8_CHERI_HEAP_RESERVATION_BOOL
+  // This is either a pointer compression cage or the CHERI heap reservation
+  VirtualMemoryCage reservation_;
+#endif
 
 #ifdef V8_COMPRESS_POINTERS_IN_MULTIPLE_CAGES
   thread_local static IsolateGroup* current_;
