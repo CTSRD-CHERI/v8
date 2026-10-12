@@ -1878,6 +1878,9 @@ void Assembler::ldr(const CPURegister& rt, const Immediate& imm) {
 
 void Assembler::ldar(const Register& rt, const Register& rn) {
   DCHECK(rn.Is64Bits() || rn.IsC());
+#if V8_TARGET_CHERI
+  if (rt.IsC()) return ldar_c(rt, rn);
+#endif
   LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? LDAR_w : LDAR_x;
   Emit(op | Rs(x31) | Rt2(x31) | CnCSP(rn.C()) | Rt(rt.X()));
 }
@@ -1891,6 +1894,9 @@ void Assembler::ldar_c(const Register& ct, const Register& cn) {
 
 void Assembler::ldaxr(const Register& rt, const Register& rn) {
   DCHECK(rn.Is64Bits() || rn.IsC());
+#if V8_TARGET_CHERI
+  if (rt.IsC()) return ldaxr_c(rt, rn);
+#endif
   LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? LDAXR_w : LDAXR_x;
   Emit(op | Rs(x31) | Rt2(x31) | CnCSP(rn.C()) | Rt(rt.X()));
 }
@@ -1904,6 +1910,9 @@ void Assembler::ldaxr_c(const Register& ct, const Register& cn) {
 
 void Assembler::stlr(const Register& rt, const Register& rn) {
   DCHECK(rn.Is64Bits() || rn.IsC());
+#if V8_TARGET_CHERI
+  if (rt.IsC()) return stlr_c(rt, rn);
+#endif
   LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? STLR_w : STLR_x;
   Emit(op | Rs(x31) | Rt2(x31) | CnCSP(rn.C()) | Rt(rt.X()));
 }
@@ -1919,6 +1928,9 @@ void Assembler::stlxr(const Register& rs, const Register& rt,
                       const Register& rn) {
   DCHECK(rn.Is64Bits() || rn.IsC());
   DCHECK(rs != rt && rs != rn);
+#if V8_TARGET_CHERI
+  if (rt.IsC()) return stlxr_c(rs, rt, rn);
+#endif
   LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? STLXR_w : STLXR_x;
   Emit(op | Rs(rs) | Rt2(x31) | CnCSP(rn.C()) | Rt(rt.X()));
 }
