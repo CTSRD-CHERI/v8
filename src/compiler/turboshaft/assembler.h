@@ -2243,9 +2243,9 @@ class AssemblerOpInterface : public Next {
     return ReduceIfReachableConvertUntaggedToJSPrimitive(
         input, kind, input_rep, input_interpretation, minus_zero_mode);
   }
-#define CONVERT_PRIMITIVE_TO_OBJECT(name, kind, input_rep,               \
+#define CONVERT_PRIMITIVE_TO_OBJECT(name, kind, input_type, input_rep,   \
                                     input_interpretation)                \
-  V<kind> name(V<input_rep> input) {                                     \
+  V<kind> name(V<input_type> input) {                                    \
     return V<kind>::Cast(ConvertUntaggedToJSPrimitive(                   \
         input, ConvertUntaggedToJSPrimitiveOp::JSPrimitiveKind::k##kind, \
         RegisterRepresentation::input_rep(),                             \
@@ -2253,12 +2253,18 @@ class AssemblerOpInterface : public Next {
             k##input_interpretation,                                     \
         CheckForMinusZeroMode::kDontCheckForMinusZero));                 \
   }
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertInt32ToNumber, Number, Word32, Signed)
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertUint32ToNumber, Number, Word32, Unsigned)
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertIntPtrToNumber, Number, WordPtr, Signed)
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertInt64ToNumber, Number, Word64, Signed)
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertWord32ToBoolean, Boolean, Word32, Signed)
-  CONVERT_PRIMITIVE_TO_OBJECT(ConvertCharCodeToString, String, Word32, CharCode)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertInt32ToNumber, Number, Word32, Word32,
+                              Signed)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertUint32ToNumber, Number, Word32, Word32,
+                              Unsigned)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertIntPtrToNumber, Number, WordPtr,
+                              MachineWord, Signed)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertInt64ToNumber, Number, Word64, Word64,
+                              Signed)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertWord32ToBoolean, Boolean, Word32, Word32,
+                              Signed)
+  CONVERT_PRIMITIVE_TO_OBJECT(ConvertCharCodeToString, String, Word32, Word32,
+                              CharCode)
 #undef CONVERT_PRIMITIVE_TO_OBJECT
   V<Number> ConvertFloat64ToNumber(V<Float64> input,
                                    CheckForMinusZeroMode minus_zero_mode) {
@@ -2287,21 +2293,22 @@ class AssemblerOpInterface : public Next {
         input, frame_state, input_rep, input_interpretation, feedback);
   }
 
-#define DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(From, repr, sign)                  \
+#define DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(From, repr, smi_repr, sign)        \
   V<Smi> Convert##From##ToSmiOrDeopt(V<repr> input,                         \
                                      V<turboshaft::FrameState> frame_state, \
                                      const FeedbackSource& feedback) {      \
     return ConvertWordToSmiOrDeopt(                                         \
-        input, frame_state, RegisterRepresentation::repr(),                 \
+        input, frame_state, RegisterRepresentation::smi_repr(),             \
         ConvertWordToSmiOrDeoptOp::InputInterpretation::k##sign, feedback); \
   }
 
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Int32, Word32, Signed)
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Uint32, Word32, Unsigned)
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Int64, Word64, Signed)
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Uint64, Word64, Unsigned)
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(IntPtr, WordPtr, Signed)
-  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(UintPtr, WordPtr, Unsigned)
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Int32, Word32, Word32, Signed)
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Uint32, Word32, Word32, Unsigned)
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Int64, Word64, Word64, Signed)
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(Uint64, Word64, Word64, Unsigned)
+  // As in ConvertIntPtrToNumber: smi-tagging wants the integer rep.
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(IntPtr, WordPtr, MachineWord, Signed)
+  DEF_CONVERT_WORD_TO_SMI_OR_DEOPT(UintPtr, WordPtr, MachineWord, Unsigned)
 
 #undef DEF_CONVERT_WORD_TO_SMI_OR_DEOPT
 
@@ -4871,8 +4878,8 @@ class AssemblerOpInterface : public Next {
     return ReduceIfReachableStringLength(string);
   }
 
-  V<WordPtr> TypedArrayLength(V<JSTypedArray> typed_array,
-                              ElementsKind elements_kind) {
+  V<MachineWord> TypedArrayLength(V<JSTypedArray> typed_array,
+                                  ElementsKind elements_kind) {
     return ReduceIfReachableTypedArrayLength(typed_array, elements_kind);
   }
 

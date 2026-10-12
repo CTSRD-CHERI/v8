@@ -2617,16 +2617,16 @@ class MachineLoweringReducer : public Next {
                                          AccessBuilder::ForStringLength());
   }
 
-  V<WordPtr> REDUCE(TypedArrayLength)(V<JSTypedArray> typed_array,
-                                      ElementsKind elements_kind) {
+  V<MachineWord> REDUCE(TypedArrayLength)(V<JSTypedArray> typed_array,
+                                          ElementsKind elements_kind) {
     // TODO(dmercadier): Somewhere (maybe not here but instead in a new
     // SimplifiedOptimizationReducer?), constant fold
     // TypedArrayLength(Constant).
-    V<WordPtr> byte_length = __ template LoadField<WordPtr>(
+    V<MachineWord> byte_length = __ template LoadField<MachineWord>(
         typed_array, AccessBuilder::ForJSTypedArrayByteLength());
     CHECK(!IsRabGsabTypedArrayElementsKind(elements_kind));
-    return __ WordPtrShiftRightLogical(byte_length,
-                                       ElementsKindToShiftSize(elements_kind));
+    return __ MachineWordShiftRightLogical(
+        byte_length, ElementsKindToShiftSize(elements_kind));
   }
 
   V<Smi> REDUCE(StringIndexOf)(V<String> string, V<String> search,

@@ -654,7 +654,7 @@ class ArrayBufferViewAccessBuilder {
     auto GsabFixedOrNormal = [&]() {
       TNode<UintPtrT> byte_length = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteLength(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
       if (auto size_opt = TryComputeStaticElementSize()) {
         return a.UintPtrDiv(byte_length, a.UintPtrConstant(*size_opt));
       } else {
@@ -703,12 +703,13 @@ class ArrayBufferViewAccessBuilder {
     auto RabFixed = [&]() {
       TNode<UintPtrT> unchecked_byte_length = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteLength(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
       TNode<UintPtrT> underlying_byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       TNode<UintPtrT> byte_length =
           a
@@ -724,10 +725,11 @@ class ArrayBufferViewAccessBuilder {
     // 3) Length-tracking backed by RAB (JSArrayBuffer stores the length)
     auto RabTracking = [&]() {
       TNode<UintPtrT> byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       return a
           .MachineSelectIf<UintPtrT>(
@@ -749,10 +751,10 @@ class ArrayBufferViewAccessBuilder {
           a.JSCallRuntime1(Runtime::kGrowableSharedArrayBufferByteLength,
                            buffer, context, std::nullopt, Operator::kNoWrite)));
       TNode<UintPtrT> byte_length =
-          a.EnterMachineGraph<UintPtrT>(temp, UseInfo::Word());
+          a.EnterMachineGraph<UintPtrT>(temp, UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       return a
           .MachineSelectIf<UintPtrT>(
@@ -792,7 +794,7 @@ class ArrayBufferViewAccessBuilder {
     auto GsabFixedOrNormal = [&]() {
       return MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteLength(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
     };
 
     // If we statically know we cannot have rab/gsab backed, we can simply
@@ -819,12 +821,13 @@ class ArrayBufferViewAccessBuilder {
     auto RabFixed = [&]() {
       TNode<UintPtrT> unchecked_byte_length = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteLength(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
       TNode<UintPtrT> underlying_byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       return a
           .MachineSelectIf<UintPtrT>(a.UintPtrLessThanOrEqual(
@@ -855,10 +858,11 @@ class ArrayBufferViewAccessBuilder {
     // Case 3: Length-tracking backed by RAB (JSArrayBuffer stores the length)
     auto RabTracking = [&]() {
       TNode<UintPtrT> byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       return a
           .MachineSelectIf<UintPtrT>(
@@ -879,10 +883,10 @@ class ArrayBufferViewAccessBuilder {
           a.JSCallRuntime1(Runtime::kGrowableSharedArrayBufferByteLength,
                            buffer, context, std::nullopt, Operator::kNoWrite)));
       TNode<UintPtrT> byte_length =
-          a.EnterMachineGraph<UintPtrT>(temp, UseInfo::Word());
+          a.EnterMachineGraph<UintPtrT>(temp, UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       return a
           .MachineSelectIf<UintPtrT>(
@@ -940,10 +944,11 @@ class ArrayBufferViewAccessBuilder {
     auto RabLengthTracking = [&]() {
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       TNode<UintPtrT> underlying_byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
 
       return a.Word32Or(detached_bit,
                         a.UintPtrLessThan(underlying_byte_length, byte_offset));
@@ -952,13 +957,14 @@ class ArrayBufferViewAccessBuilder {
     auto RabFixed = [&]() {
       TNode<UintPtrT> unchecked_byte_length = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteLength(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
       TNode<UintPtrT> byte_offset = MachineLoadField<UintPtrT>(
           AccessBuilder::ForJSArrayBufferViewByteOffset(), view,
-          UseInfo::Word());
+          UseInfo::UintPtr());
 
       TNode<UintPtrT> underlying_byte_length = MachineLoadField<UintPtrT>(
-          AccessBuilder::ForJSArrayBufferByteLength(), buffer, UseInfo::Word());
+          AccessBuilder::ForJSArrayBufferByteLength(), buffer,
+          UseInfo::UintPtr());
 
       return a.Word32Or(
           detached_bit,
@@ -998,7 +1004,7 @@ TNode<Number> JSGraphAssembler::ArrayBufferViewByteLength(
                                        std::move(elements_kinds_candidates));
   return ExitMachineGraph<Number>(
       builder.BuildByteLength(array_buffer_view, context),
-      MachineType::PointerRepresentation(),
+      MachineType::UintPtr().representation(),
       TypeCache::Get()->kJSArrayBufferByteLengthType);
 }
 
@@ -1024,7 +1030,7 @@ TNode<Number> JSGraphAssembler::TypedArrayLength(
   ArrayBufferViewAccessBuilder builder(this, JS_TYPED_ARRAY_TYPE,
                                        std::move(elements_kinds_candidates));
   return ExitMachineGraph<Number>(builder.BuildLength(typed_array, context),
-                                  MachineType::PointerRepresentation(),
+                                  MachineType::UintPtr().representation(),
                                   TypeCache::Get()->kJSTypedArrayLengthType);
 }
 

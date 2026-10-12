@@ -6859,7 +6859,7 @@ Reduction JSCallReducer::ReduceArrayIteratorPrototypeNext(Node* node) {
         jsgraph()->machine()->WordShr(), byte_length,
         jsgraph()->UintPtrConstant(ElementsKindToShiftSize(elements_kind)));
     length = graph()->NewNode(
-        common()->ExitMachineGraph(MachineType::PointerRepresentation(),
+        common()->ExitMachineGraph(MachineType::UintPtr().representation(),
                                    TypeCache::Get()->kJSTypedArrayLengthType),
         byte_length_shifted);
   } else {
@@ -8628,9 +8628,9 @@ Reduction JSCallReducer::ReduceArrayBufferViewAccessor(
 
   // Load the {receiver}s field.
   DCHECK_EQ(access.machine_type.representation(),
-            MachineType::PointerRepresentation());
+            MachineType::UintPtr().representation());
   TNode<UintPtrT> value = a.EnterMachineGraph<UintPtrT>(
-      a.LoadField<UintPtrT>(access, receiver), UseInfo::Word());
+      a.LoadField<UintPtrT>(access, receiver), UseInfo::UintPtr());
 
   // See if we can skip the detaching check.
   if (!depended_on_detaching_protector) {
@@ -8657,7 +8657,7 @@ Reduction JSCallReducer::ReduceArrayBufferViewAccessor(
   }
 
   TNode<Number> result =
-      a.ExitMachineGraph<Number>(value, MachineType::PointerRepresentation(),
+      a.ExitMachineGraph<Number>(value, MachineType::UintPtr().representation(),
                                  TypeCache::Get()->kJSTypedArrayLengthType);
   return ReplaceWithSubgraph(&a, result);
 }
