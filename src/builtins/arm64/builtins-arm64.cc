@@ -2069,14 +2069,15 @@ void Generate_ContinueToBuiltinHelper(MacroAssembler* masm,
     }
   }
 
-  // Restore registers in pairs.
+  // Restore registers in pairs. The deoptimizer wrote one full capability per
+  // slot, so the loads must be capability-width.
   int offset = -BuiltinContinuationFrameConstants::kFixedFrameSizeFromFp -
                allocatable_register_count * kSystemPointerSize;
   for (int i = allocatable_register_count - 1; i > 0; i -= 2) {
     int code1 = config->GetAllocatableGeneralCode(i);
     int code2 = config->GetAllocatableGeneralCode(i - 1);
-    Register reg1 = Register::from_code(code1);
-    Register reg2 = Register::from_code(code2);
+    Register reg1 = Register::cap_from_code(code1);
+    Register reg2 = Register::cap_from_code(code2);
     __ Ldp(reg1, reg2, MemOperand(fp, offset));
     offset += 2 * kSystemPointerSize;
   }
@@ -2084,7 +2085,7 @@ void Generate_ContinueToBuiltinHelper(MacroAssembler* masm,
   // Restore first register separately, if number of registers is odd.
   if (allocatable_register_count % 2 != 0) {
     int code = config->GetAllocatableGeneralCode(0);
-    __ Ldr(Register::from_code(code), MemOperand(fp, offset));
+    __ Ldr(Register::cap_from_code(code), MemOperand(fp, offset));
   }
 
   if (javascript_builtin) __ SmiUntag(kJavaScriptCallArgCountRegister);
