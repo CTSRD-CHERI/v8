@@ -1707,7 +1707,7 @@ void Assembler::alignu(const Register& cd, const Register& cn,
   DCHECK(operand.IsImmediate());
   int64_t immediate = operand.ImmediateValue();
   DCHECK(is_uint6(immediate));
-  Emit(ALIGNU | AlignImmLiteral(immediate) | Cn(cn) | Cd(cd));
+  Emit(ALIGNU | AlignImmLiteral(immediate) | CnCSP(cn) | CdCSP(cd));
 }
 
 void Assembler::alignd(const Register& cd, const Register& cn,
@@ -1717,7 +1717,7 @@ void Assembler::alignd(const Register& cd, const Register& cn,
   DCHECK(operand.IsImmediate());
   int64_t immediate = operand.ImmediateValue();
   DCHECK(is_uint6(immediate));
-  Emit(ALIGND | AlignImmLiteral(immediate) | Cn(cn) | Cd(cd));
+  Emit(ALIGND | AlignImmLiteral(immediate) | CnCSP(cn) | CdCSP(cd));
 }
 
 void Assembler::scvalue(const Register& cd, const Register& cn,
