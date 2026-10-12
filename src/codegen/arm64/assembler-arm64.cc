@@ -957,6 +957,7 @@ void Assembler::bl(Label* label) {
 }
 
 void Assembler::cbz(const Register& rt, int imm19) {
+  DCHECK(rt.Is64Bits() || rt.Is32Bits());
   Emit(SF(rt) | CBZ | ImmCmpBranch(imm19) | Rt(rt));
 }
 
@@ -965,6 +966,7 @@ void Assembler::cbz(const Register& rt, Label* label) {
 }
 
 void Assembler::cbnz(const Register& rt, int imm19) {
+  DCHECK(rt.Is64Bits() || rt.Is32Bits());
   Emit(SF(rt) | CBNZ | ImmCmpBranch(imm19) | Rt(rt));
 }
 
@@ -2607,6 +2609,7 @@ void Assembler::mov(const Register& rd, const Register& rm) {
   if (rd.IsSP() || rm.IsSP()) {
     add(rd, rm, 0);
   } else {
+    DCHECK(!rd.IsC() && !rm.IsC());
     orr(rd, AppropriateZeroRegFor(rd), rm);
   }
 }
