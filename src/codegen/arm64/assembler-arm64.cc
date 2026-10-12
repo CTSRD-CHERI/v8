@@ -1259,6 +1259,9 @@ void Assembler::ConditionalSelect(const Register& rd, const Register& rn,
                                   ConditionalSelectOp op) {
   DCHECK(rd.SizeInBits() == rn.SizeInBits());
   DCHECK(rd.SizeInBits() == rm.SizeInBits());
+  // Only CSEL has a capability encoding, and csel() dispatches to it, so a
+  // capability reaching here would select the 32-bit A64 form and drop the tag.
+  DCHECK(!rd.IsC() && !rn.IsC() && !rm.IsC());
   Emit(SF(rd) | op | Rm(rm) | Cond(cond) | Rn(rn) | Rd(rd));
 }
 

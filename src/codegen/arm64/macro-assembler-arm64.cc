@@ -829,13 +829,16 @@ void MacroAssembler::Csel(const Register& rd, const Register& rn,
     Register zr = AppropriateZeroRegFor(rn);
     if (imm == 0) {
       csel(rd, rn, zr, cond);
-    } else if (imm == 1) {
+      return;
+    }
+    DCHECK(!rd.IsC() && !rn.IsC());
+    if (imm == 1) {
       csinc(rd, rn, zr, cond);
     } else if (imm == -1) {
       csinv(rd, rn, zr, cond);
     } else {
       UseScratchRegisterScope temps(this);
-      Register temp = rd.IsC() ? temps.AcquireX() : temps.AcquireSameSizeAs(rn);
+      Register temp = temps.AcquireSameSizeAs(rn);
       Mov(temp, imm);
       csel(rd, rn, temp, cond);
     }
