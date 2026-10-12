@@ -411,7 +411,9 @@ void MacroAssembler::Subsc(const Register& rd, const Register& cn,
                            const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(operand.reg().IsC());
-  DCHECK(!operand.IsShiftedRegister());
+  // SUBS_c has no shift/extend field, so a non-trivial operand would be
+  // silently ignored.
+  DCHECK(operand.IsPlainRegister() && !operand.IsExtendedRegister());
   if (cn.code() == kSPRegInternalCode) {
     UseScratchRegisterScope temps(this);
     Register temp = temps.AcquireC();
