@@ -2060,7 +2060,7 @@ void Generate_ContinueToBuiltinHelper(MacroAssembler* masm,
 
   if (with_result) {
     if (javascript_builtin) {
-      __ mov(scratch, c0);
+      __ Mov(scratch, c0);
     } else {
       // Overwrite the hole inserted by the deoptimizer with the return value
       // from the LAZY deopt point.
@@ -5070,7 +5070,7 @@ void Builtins::Generate_CallApiGetter(MacroAssembler* masm) {
 #else
   // name_arg = Local<Name>(&name), which is &args_array[kPropertyKeyIndex].
   static_assert(PCA::kPropertyKeyIndex == 0);
-  __ mov(name_arg, property_callback_info_arg);
+  __ Mov(name_arg, property_callback_info_arg);
 #endif
 
   ExternalReference thunk_ref = ER::invoke_accessor_getter_callback();
