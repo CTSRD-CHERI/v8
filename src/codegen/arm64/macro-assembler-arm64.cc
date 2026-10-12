@@ -1372,7 +1372,6 @@ void MacroAssembler::Tbz(const Register& rt, unsigned bit_pos, Label* label) {
   if (V8_UNLIKELY(need_extra_instructions)) {
     Label done;
     tbnz(integer_rt, bit_pos, &done);
-    tbnz(rt, bit_pos, &done);
     B(label);
     bind(&done);
   } else {
