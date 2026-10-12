@@ -3460,6 +3460,10 @@ void InstructionSelector::VisitNode(OpIndex node) {
           return VisitUint64LessThan(node);
         case multi(Kind::kUnsignedLessThanOrEqual, Rep::Capability64()):
           return VisitUint64LessThanOrEqual(node);
+        case multi(Kind::kSignedLessThan, Rep::Capability64()):
+          return VisitInt64LessThan(node);
+        case multi(Kind::kSignedLessThanOrEqual, Rep::Capability64()):
+          return VisitInt64LessThanOrEqual(node);
 #endif
         case multi(Kind::kSignedLessThan, Rep::Word32()):
           return VisitInt32LessThan(node);

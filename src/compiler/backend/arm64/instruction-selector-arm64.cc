@@ -1511,6 +1511,10 @@ class CompareSequence {
         return kArm64Cmp32;
       case RegisterRepresentation::Word64():
         return kArm64Cmp;
+#if V8_TARGET_CHERI
+      case RegisterRepresentation::Capability64():
+        return kArm64Cmp;
+#endif
       case RegisterRepresentation::Float32():
         return kArm64Float32Cmp;
       case RegisterRepresentation::Float64():
@@ -1597,7 +1601,11 @@ static std::optional<FlagsCondition> GetFlagsCondition(
           selector->Get(node).TryCast<ComparisonOp>()) {
     if (comparison->rep == RegisterRepresentation::Word32() ||
         comparison->rep == RegisterRepresentation::Word64() ||
-        comparison->rep == RegisterRepresentation::Tagged()) {
+        comparison->rep == RegisterRepresentation::Tagged()
+#if V8_TARGET_CHERI
+        || comparison->rep == RegisterRepresentation::Capability64()
+#endif
+    ) {
       switch (comparison->kind) {
         case ComparisonOp::Kind::kEqual:
           return FlagsCondition::kEqual;
