@@ -1153,7 +1153,14 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     }
   } else if (addr.IsRegisterOffset() && (addr.extend() == UXTW) &&
              (addr.shift_amount() == 0)) {
-    DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, !rt.IsC());
+    // LoadStoreWRegOffset fixes the integer register-offset class and names the
+    // offset in Rm(). The capability class is a separate encoding that does
+    // support UXTW (spec 4.4.80, 4.4.137) and Assembler::LoadStore already
+    // selects it, so defer capabilities to the complex path.
+    if (rt.IsC()) {
+      LoadStoreMacroComplex(rt, addr, op);
+      return;
+    }
     LoadStoreWRegOffset(memop, addr.regoffset());
     return;
   }
