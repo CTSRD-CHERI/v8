@@ -710,6 +710,9 @@ LS_MACRO_LIST(DEFINE_FUNCTION)
     LoadStorePairMacro(REG, REG2, addr, OP);                     \
   }
 LSPAIR_MACRO_LIST(DEFINE_FUNCTION)
+#if V8_TARGET_CHERI
+LSPAIR_CAP_MACRO_LIST(DEFINE_FUNCTION)
+#endif
 #undef DEFINE_FUNCTION
 
 #define DEFINE_FUNCTION(FN, OP)                                     \

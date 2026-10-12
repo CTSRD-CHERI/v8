@@ -56,9 +56,9 @@ class JumpTableAssembler;
   V(Ldpsw, CPURegister&, rt, rt2, LDPSW_x)
 
 #if V8_TARGET_CHERI
-#define LSPAIR_CAP_MACRO_LIST(V)                         \
-  V(Stpc, Register&, ct, ct2, LoadPairOpFor(ct, ct2))    \
-  V(Ldpc, Register&, ct, ct2, StorePairOpFor(ct, ct2))
+#define LSPAIR_CAP_MACRO_LIST(V)                      \
+  V(Ldpc, Register&, ct, ct2, LoadPairOpFor(ct, ct2)) \
+  V(Stpc, Register&, ct, ct2, StorePairOpFor(ct, ct2))
 #endif
 
 #define LDA_STL_MACRO_LIST(V) \
