@@ -48,14 +48,15 @@ void MacroAssembler::And(const Register& rd, const Register& rn,
 #if V8_TARGET_CHERI
   if (rn.IsC()) {
     DCHECK(rd.IsC());
+    const Operand integer_operand = operand.IsC() ? operand.ToX() : operand;
     if (AreAliased(rn, rd) || rd.IsSP()) {
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
       DCHECK(!AreAliased(rn, temp));
-      LogicalMacro(temp, rn.X(), operand, AND);
+      LogicalMacro(temp, rn.X(), integer_operand, AND);
       Scvalue(rd, rn, temp);
     } else {
-      LogicalMacro(rd.X(), rn.X(), operand, AND);
+      LogicalMacro(rd.X(), rn.X(), integer_operand, AND);
       Scvalue(rd, rn, rd.X());
     }
     return;
@@ -71,14 +72,15 @@ void MacroAssembler::Ands(const Register& rd, const Register& rn,
 #if V8_TARGET_CHERI
   if (rn.IsC()) {
     DCHECK(rd.IsC());
+    const Operand integer_operand = operand.IsC() ? operand.ToX() : operand;
     if (AreAliased(rn, rd) || rd.IsSP()) {
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
       DCHECK(!AreAliased(rn, temp));
-      LogicalMacro(temp, rn.X(), operand, ANDS);
+      LogicalMacro(temp, rn.X(), integer_operand, ANDS);
       Scvalue(rd, rn, temp);
     } else {
-      LogicalMacro(rd.X(), rn.X(), operand, ANDS);
+      LogicalMacro(rd.X(), rn.X(), integer_operand, ANDS);
       Scvalue(rd, rn, rd.X());
     }
     return;
@@ -121,14 +123,15 @@ void MacroAssembler::Orr(const Register& rd, const Register& rn,
 #if V8_TARGET_CHERI
   if (rn.IsC()) {
     DCHECK(rd.IsC());
+    const Operand integer_operand = operand.IsC() ? operand.ToX() : operand;
     if (AreAliased(rn, rd) || rd.IsSP()) {
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
       DCHECK(!AreAliased(rn, temp));
-      LogicalMacro(temp, rn.X(), operand, ORR);
+      LogicalMacro(temp, rn.X(), integer_operand, ORR);
       Scvalue(rd, rn, temp);
     } else {
-      LogicalMacro(rd.X(), rn.X(), operand, ORR);
+      LogicalMacro(rd.X(), rn.X(), integer_operand, ORR);
       Scvalue(rd, rn, rd.X());
     }
     return;
@@ -151,6 +154,23 @@ void MacroAssembler::Eor(const Register& rd, const Register& rn,
                          const Operand& operand) {
   DCHECK(allow_macro_instructions());
   DCHECK(!rd.IsZero());
+#if V8_TARGET_CHERI
+  if (rn.IsC()) {
+    DCHECK(rd.IsC());
+    const Operand integer_operand = operand.IsC() ? operand.ToX() : operand;
+    if (AreAliased(rn, rd) || rd.IsSP()) {
+      UseScratchRegisterScope temps(this);
+      Register temp = temps.AcquireX();
+      DCHECK(!AreAliased(rn, temp));
+      LogicalMacro(temp, rn.X(), integer_operand, EOR);
+      Scvalue(rd, rn, temp);
+    } else {
+      LogicalMacro(rd.X(), rn.X(), integer_operand, EOR);
+      Scvalue(rd, rn, rd.X());
+    }
+    return;
+  }
+#endif
   DCHECK(!rn.IsC());
   DCHECK(!rd.IsC());
   LogicalMacro(rd, rn, operand, EOR);
