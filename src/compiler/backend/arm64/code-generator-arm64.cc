@@ -3102,8 +3102,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
         __ Bind(&compareExchange);
         RecordTrapInfoIfNeeded(zone(), this, opcode, instr, __ pc_offset());
         __ ldaxr(i.OutputCapabilityRegister(), i.TempCapabilityRegister(0));
-        __ Cmp(i.OutputCapabilityRegister(),
-               Operand(i.InputCapabilityRegister(2), UXTX));
+        __ Cmpc(i.OutputCapabilityRegister(), i.InputCapabilityRegister(2));
         __ B(ne, &exit);
         __ stlxr(i.TempRegister32(1), i.InputCapabilityRegister(3),
                  i.TempCapabilityRegister(0));
