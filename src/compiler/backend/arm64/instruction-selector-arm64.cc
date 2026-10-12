@@ -109,6 +109,19 @@ class Arm64OperandGenerator final : public OperandGenerator {
     return std::nullopt;
   }
 
+  bool MatchMemoryIndexConstant(OpIndex node, int64_t* value) const {
+    if (selector()->MatchSignedIntegralConstant(node, value)) return true;
+#if V8_TARGET_CHERI
+    const ConstantOp* constant = selector()->Get(node).TryCast<ConstantOp>();
+    if (constant != nullptr &&
+        constant->kind == ConstantOp::Kind::kCapability64) {
+      *value = static_cast<int64_t>(constant->capability64());
+      return true;
+    }
+#endif
+    return false;
+  }
+
   bool CanBeImmediate(OpIndex node, ImmediateMode mode) {
     const ConstantOp* constant = selector()->Get(node).TryCast<ConstantOp>();
     if (!constant) return false;
@@ -945,7 +958,7 @@ void EmitLoad(InstructionSelector* selector, OpIndex node,
   const Operation& base_op = selector->Get(base);
   int64_t index_constant;
   const bool is_index_constant =
-      selector->MatchSignedIntegralConstant(index, &index_constant);
+      g.MatchMemoryIndexConstant(index, &index_constant);
   if (base_op.Is<Opmask::kExternalConstant>() && is_index_constant) {
     const ConstantOp& constant_base = base_op.Cast<ConstantOp>();
     if (selector->CanAddressRelativeToRootsRegister(
@@ -1310,9 +1323,12 @@ void InstructionSelector::VisitStore(OpIndex node) {
     // can trust the assembler to generate extra instructions if the index does
     // not fit into add or sub. So here only check the immediate for a store.
     OpIndex index = store_view.index().value();
-    if (g.CanBeImmediate(index, COMPRESS_POINTERS_BOOL ? kLoadStoreImm32
-                                                       : kLoadStoreImm64)) {
-      inputs[input_count++] = g.UseImmediate(index);
+    int64_t index_constant;
+    if (g.MatchMemoryIndexConstant(index, &index_constant) &&
+        g.CanBeImmediate(index_constant, COMPRESS_POINTERS_BOOL
+                                             ? kLoadStoreImm32
+                                             : kLoadStoreImm64)) {
+      inputs[input_count++] = g.UseImmediate64(index_constant);
       addressing_mode = kMode_MRI;
     } else {
       inputs[input_count++] = g.UseUniqueRegister(index);
@@ -1408,8 +1424,10 @@ void InstructionSelector::VisitStore(OpIndex node) {
 
   inputs[input_count++] = g.UseRegister(base);
 
-  if (g.CanBeImmediate(index, immediate_mode)) {
-    inputs[input_count++] = g.UseImmediate(index);
+  int64_t store_index_constant;
+  if (g.MatchMemoryIndexConstant(index, &store_index_constant) &&
+      g.CanBeImmediate(store_index_constant, immediate_mode)) {
+    inputs[input_count++] = g.UseImmediate64(store_index_constant);
     opcode |= AddressingModeField::encode(kMode_MRI);
   } else if (TryMatchLoadStoreShift(&g, this, store_rep, node, index,
                                     &inputs[input_count],
