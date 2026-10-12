@@ -3280,7 +3280,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   }
   static bool IsImmLLiteral(int64_t offset);
 #if V8_TARGET_CHERI
-  static bool IsImmSBUnscaled(uint64_t imm) { return is_uint8(imm); }
+  // Spec 4.4.114: both SCBNDS (immediate) classes carry the length in the same
+  // 6-bit imm6 field, the scaled one pre-multiplied by 16.
+  static bool IsImmSBUnscaled(uint64_t imm) { return is_uint6(imm); }
   static bool IsImmSBScaled(uint64_t imm) {
     bool imm_is_size_multiple = ((imm >> 4) << 4) == imm;
     return imm_is_size_multiple && is_uint6(imm >> 4);

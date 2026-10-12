@@ -338,7 +338,7 @@ void MacroAssembler::Scbnds(const Register& cd, const Register& cn,
     if (IsImmSBUnscaled(imm)) {
       scbnds_imm_unscaled(cd, cn, imm);
     } else if (IsImmSBScaled(imm)) {
-      scbnds_imm_scaled(cd, cn, imm << 4);
+      scbnds_imm_scaled(cd, cn, imm >> 4);
     } else {
       UseScratchRegisterScope temps(this);
       Register temp = temps.AcquireX();
