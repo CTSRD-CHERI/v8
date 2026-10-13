@@ -2935,6 +2935,13 @@ class AssemblerOpInterface : public Next {
   }
 
   V<WordPtr> MemoryChunkFromAddress(V<WordPtr> address) {
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+    V<WordPtr> reservation =
+        Load(LoadRootRegister(), LoadOp::Kind::RawAligned().Immutable(),
+             MemoryRepresentation::UintPtr(),
+             IsolateData::heap_reservation_cap_offset());
+    address = SetAddress(reservation, V<Word64>::Cast(address));
+#endif
     return WordPtrBitwiseAnd(address,
                              ~MemoryChunk::GetAlignmentMaskForAssembler());
   }
