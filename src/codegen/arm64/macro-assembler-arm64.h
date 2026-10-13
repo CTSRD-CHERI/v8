@@ -1101,6 +1101,9 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   Operand MoveImmediateForShiftedOp(const Register& dst, int64_t imm,
                                     PreShiftImmMode mode);
 
+  void MemoryChunkHeaderFromObject(const Register& header,
+                                   const Register& object);
+
   void CheckPageFlag(const Register& object, int mask, Condition cc,
                      Label* condition_met);
 

@@ -4192,12 +4192,32 @@ int MacroAssembler::AtomicDecompressTagged(const Register& destination,
   return pc_offset_of_load;
 }
 
+void MacroAssembler::MemoryChunkHeaderFromObject(const Register& header,
+                                                 const Register& object) {
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+  Register address = object.X();
+  UseScratchRegisterScope temps(this);
+  if (AreAliased(header, object)) {
+    address = temps.AcquireX();
+    Mov(address, object.X());
+  }
+  Ldr(header, MemOperand(kRootRegister,
+                         IsolateData::heap_reservation_cap_offset()));
+  Scvalue(header, header, address);
+  static_assert(MemoryChunk::GetAlignmentMaskForAssembler() ==
+                (ScaledInt{1} << kPageSizeBits) - 1);
+  AlignD(header, header, kPageSizeBits);
+#else
+  And(header, object, ~MemoryChunk::GetAlignmentMaskForAssembler());
+#endif
+}
+
 void MacroAssembler::CheckPageFlag(const Register& object, int mask,
                                    Condition cc, Label* condition_met) {
   ASM_CODE_COMMENT(this);
   UseScratchRegisterScope temps(this);
   Register scratch = temps.AcquireX();
-  And(scratch.C(), object, ~MemoryChunk::GetAlignmentMaskForAssembler());
+  MemoryChunkHeaderFromObject(scratch.C(), object);
   Ldr(scratch.X(), MemOperand(scratch.C(), MemoryChunk::FlagsOffset()));
   if (cc == ne) {
     TestAndBranchIfAnySet(scratch, mask, condition_met);
