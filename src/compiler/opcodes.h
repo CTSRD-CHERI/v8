@@ -1389,6 +1389,7 @@
   V(AlignU)                \
   V(AlignD)                \
   V(SetBounds)             \
+  V(SetAddress)            \
   V(SealWithType)
 #else
 #define PURECAP_OP_LIST(V) V(CapabilityIsTagged)
