@@ -19,6 +19,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// Keyed off __FreeBSD__ rather than V8_OS_FREEBSD because this decision has to
+// be made before build_config.h is read.
+#if defined(SIGPROT) && defined(__CHERI_PURE_CAPABILITY__) && \
+    defined(__FreeBSD__)
+#define V8_HAVE_CHERI_FAULT_DETAIL 1
+#include <sys/ucontext.h>
+#endif
+
 #include <map>
 #include <memory>
 #include <ostream>
@@ -198,6 +206,172 @@ void PrintToStderr(const char* output) {
   USE(return_val);
 }
 
+#if V8_HAVE_CHERI_FAULT_DETAIL
+// Reading the instruction at the faulting pc can itself fault, which would
+// recurse into this handler.
+volatile sig_atomic_t in_cheri_fault_dump = 0;
+
+// Scratch for itoa_r(), the only signal-safe formatter here.
+constexpr size_t kCheriPrintBufSize = 32;
+
+// GDB prints a capability as 0x<addr> [<flags>,0x<base>-0x<top>]. Only these
+// six permission bits get a flag character, in this order.
+constexpr struct {
+  uint64_t bit;
+  char flag;
+} kCheriPermFlags[] = {
+    {1 << 17, 'r'}, {1 << 16, 'w'}, {1 << 15, 'x'},
+    {1 << 14, 'R'}, {1 << 13, 'W'}, {1 << 1, 'E'},
+};
+constexpr size_t kCheriPermFlagCount =
+    sizeof(kCheriPermFlags) / sizeof(kCheriPermFlags[0]);
+
+// The same bits by name, spelled as in <machine/cherireg.h>. The compiler only
+// defines macros for twelve of the eighteen.
+constexpr struct {
+  uint64_t bit;
+  const char* name;
+} kCheriPerms[] = {
+    {1 << 0, "global"},
+    {1 << 1, "executive"},
+    {1 << 2, "sw0"},
+    {1 << 3, "sw1"},
+    {1 << 4, "sw2"},
+    {1 << 5, "sw3"},
+    {1 << 6, "load_mutable"},
+    {1 << 7, "compartment_id"},
+    {1 << 8, "invoke"},
+    {1 << 9, "system"},
+    {1 << 10, "unseal"},
+    {1 << 11, "seal"},
+    {1 << 12, "store_local_cap"},
+    {1 << 13, "store_cap"},
+    {1 << 14, "load_cap"},
+    {1 << 15, "execute"},
+    {1 << 16, "store"},
+    {1 << 17, "load"},
+};
+
+// Hex as well as names so the line stays greppable by value.
+void PrintCheriPerms(uint64_t perms, char* buf) {
+  PrintToStderr(" perms=0x");
+  PrintToStderr(internal::itoa_r(static_cast<intptr_t>(perms), buf,
+                                 kCheriPrintBufSize, 16, 0));
+  const char* separator = " ";
+  for (const auto& perm : kCheriPerms) {
+    if ((perms & perm.bit) == 0) continue;
+    PrintToStderr(separator);
+    PrintToStderr(perm.name);
+    separator = "+";
+  }
+}
+
+// Formats a capability the way GDB prints one. Untagged values are just an
+// address: their bounds are leftovers from the last derivation.
+template <typename CapT>
+void PrintCheriCapability(const char* label, CapT cap, char* buf) {
+  PrintToStderr("  ");
+  PrintToStderr(label);
+  PrintToStderr("=0x");
+  PrintToStderr(internal::itoa_r(static_cast<intptr_t>(V8_CHERI_ADDR_GET(cap)),
+                                 buf, kCheriPrintBufSize, 16, 0));
+  if (!V8_CHERI_TAG_GET(cap)) {
+    PrintToStderr(" untagged");
+    return;
+  }
+  // GDB leaves the tag implicit in the bounds; keep the word for grepping.
+  PrintToStderr(" tag=1 [");
+  uint64_t perms = V8_CHERI_PERMS(cap);
+  char flags[kCheriPermFlagCount + 1] = {0};
+  size_t printed = 0;
+  for (const auto& flag : kCheriPermFlags) {
+    if ((perms & flag.bit) == 0) continue;
+    flags[printed++] = flag.flag;
+  }
+  PrintToStderr(flags);
+  PrintToStderr(",0x");
+  PrintToStderr(internal::itoa_r(static_cast<intptr_t>(V8_CHERI_BASE_GET(cap)),
+                                 buf, kCheriPrintBufSize, 16, 0));
+  PrintToStderr("-0x");
+  PrintToStderr(internal::itoa_r(static_cast<intptr_t>(V8_CHERI_TOP_GET(cap)),
+                                 buf, kCheriPrintBufSize, 16, 0));
+  PrintToStderr("]");
+  PrintCheriPerms(perms, buf);
+  // |bl| leaves the return capability sealed with object type 1, which GDB
+  // calls a sentry. Any other type is a user seal.
+  uint64_t otype = V8_CHERI_SEALED(cap);
+  if (otype != 0) PrintToStderr(otype == 1 ? " (sentry)" : " sealed");
+}
+
+// CheriBSD reports the cause of a fault but not the offending register, so
+// sweep the saved register file. Tag faults here are nearly always a
+// capability that reached an integer register: untagged, but not null.
+void PrintCheriFaultDetail(int signal, siginfo_t* info, void* void_context) {
+  char buf[kCheriPrintBufSize] = {0};
+  ucontext_t* context = static_cast<ucontext_t*>(void_context);
+  const auto& caps = context->uc_mcontext.mc_capregs;
+  // SIGPROT reports the instruction in |si_addr|; SIGSEGV/SIGBUS report the
+  // data address there and the instruction in |cap_elr|.
+  uintcap_t pc = signal == SIGPROT
+                     ? reinterpret_cast<uintcap_t>(info->si_addr)
+                     : caps.cap_elr;
+  PrintCheriCapability("pcc", pc, buf);
+  // Code is only guaranteed executable, so load only when it is readable, and
+  // only when the whole word is inside the region. A pc at the very end of its
+  // bounds otherwise faults the handler on its own read, losing the rest of the
+  // dump.
+  uintptr_t insn_address = V8_CHERI_ADDR_GET(pc);
+  if (V8_CHERI_TAG_GET(pc) &&
+      (V8_CHERI_PERMS(pc) & __CHERI_CAP_PERMISSION_PERMIT_LOAD__) != 0 &&
+      insn_address >= V8_CHERI_BASE_GET(pc) &&
+      insn_address + sizeof(uint32_t) <= V8_CHERI_TOP_GET(pc)) {
+    PrintToStderr(" insn=0x");
+    PrintToStderr(internal::itoa_r(
+        static_cast<intptr_t>(*reinterpret_cast<const uint32_t*>(pc)), buf,
+        kCheriPrintBufSize, 16, 8));
+  }
+
+  // CheriBSD fills |mc_capregs| but only sets |_MC_CAP_VALID| in the freebsd64
+  // compatibility path, so gate on the contents: a filled frame always has a
+  // tagged stack pointer. No DDC line, as the entry code never stores |tf_ddc|.
+  if (!V8_CHERI_TAG_GET(caps.cap_sp)) {
+    PrintToStderr("\n  (no saved capability registers)\n");
+    return;
+  }
+  PrintToStderr("\n");
+  PrintCheriCapability("clr", caps.cap_lr, buf);
+  PrintToStderr("\n");
+  PrintCheriCapability("csp", caps.cap_sp, buf);
+
+  // Non-null and untagged is a capability that lost its tag; null is an
+  // untouched register. Capped so a large frame still fits one log block.
+  constexpr int kMaxUntaggedListed = 8;
+  PrintToStderr("\n  untagged:");
+  int listed = 0, remaining = 0;
+  for (int i = 0; i < 30; i++) {
+    uintcap_t cap = caps.cap_x[i];
+    if (V8_CHERI_TAG_GET(cap) || V8_CHERI_ADDR_GET(cap) == 0) continue;
+    if (listed == kMaxUntaggedListed) {
+      remaining++;
+      continue;
+    }
+    PrintToStderr(" c");
+    PrintToStderr(internal::itoa_r(i, buf, kCheriPrintBufSize, 10, 0));
+    PrintToStderr("=0x");
+    PrintToStderr(
+        internal::itoa_r(static_cast<intptr_t>(V8_CHERI_ADDR_GET(cap)), buf,
+                         kCheriPrintBufSize, 16, 0));
+    listed++;
+  }
+  if (remaining > 0) {
+    PrintToStderr(" (+");
+    PrintToStderr(internal::itoa_r(remaining, buf, kCheriPrintBufSize, 10, 0));
+    PrintToStderr(" more)");
+  }
+  PrintToStderr("\n");
+}
+#endif  // V8_HAVE_CHERI_FAULT_DETAIL
+
 void StackDumpSignalHandler(int signal, siginfo_t* info, void* void_context) {
   // NOTE: This code MUST be async-signal safe.
   // NO malloc or stdio is allowed here.
@@ -266,6 +440,66 @@ void StackDumpSignalHandler(int signal, siginfo_t* info, void* void_context) {
       PrintToStderr(" SEGV_ACCERR ");
     else
       PrintToStderr(" <unknown> ");
+#if defined(SIGPROT)
+    // CHERI security exceptions arrive as SIGPROT with the cause in |si_code|.
+  } else if (signal == SIGPROT) {
+    PrintToStderr(" SIGPROT ");
+    // The names are CheriBSD's PROT_CHERI_* codes, derived from the ESR DFSC
+    // field by cheri_esr_to_sicode(). |si_capreg| names the offending register
+    // on riscv only, so it is not read here.
+#if defined(PROT_CHERI_TAG)
+    switch (info->si_code) {
+      case PROT_CHERI_BOUNDS:
+        PrintToStderr("CHERI_BOUNDS_FAULT");
+        break;
+      case PROT_CHERI_TAG:
+        PrintToStderr("CHERI_TAG_FAULT");
+        break;
+      case PROT_CHERI_SEALED:
+        PrintToStderr("CHERI_SEALED_FAULT");
+        break;
+      case PROT_CHERI_TYPE:
+        PrintToStderr("CHERI_TYPE_FAULT");
+        break;
+      case PROT_CHERI_PERM:
+        PrintToStderr("CHERI_PERM_FAULT");
+        break;
+      case PROT_CHERI_IMPRECISE:
+        PrintToStderr("CHERI_IMPRECISE_BOUNDS_FAULT");
+        break;
+      case PROT_CHERI_STORELOCAL:
+        PrintToStderr("CHERI_STORE_LOCAL_FAULT");
+        break;
+      case PROT_CHERI_CINVOKE:
+        PrintToStderr("CHERI_CINVOKE_FAULT");
+        break;
+      case PROT_CHERI_SYSREG:
+        PrintToStderr("CHERI_SYSTEM_REGISTER_FAULT");
+        break;
+      case PROT_CHERI_UNALIGNED_BASE:
+        PrintToStderr("CHERI_UNALIGNED_BASE_FAULT");
+        break;
+      default:
+        PrintToStderr("CHERI_CAUSE_");
+        internal::itoa_r(info->si_code, buf, sizeof(buf), 10, 0);
+        PrintToStderr(buf);
+        break;
+    }
+#else
+    PrintToStderr("CHERI_CAUSE_");
+    internal::itoa_r(info->si_code, buf, sizeof(buf), 10, 0);
+    PrintToStderr(buf);
+#endif  // defined(PROT_CHERI_TAG)
+#if V8_HAVE_CHERI_FAULT_DETAIL
+    if (in_cheri_fault_dump == 0) {
+      in_cheri_fault_dump = 1;
+      PrintToStderr("\n");
+      PrintCheriFaultDetail(signal, info, void_context);
+      in_cheri_fault_dump = 0;
+    }
+#endif  // V8_HAVE_CHERI_FAULT_DETAIL
+    PrintToStderr("\n");
+#endif  // defined(SIGPROT)
   }
   if (signal == SIGBUS || signal == SIGFPE || signal == SIGILL ||
       signal == SIGSEGV) {
@@ -274,6 +508,15 @@ void StackDumpSignalHandler(int signal, siginfo_t* info, void* void_context) {
     PrintToStderr(buf);
   }
   PrintToStderr("\n");
+#if V8_HAVE_CHERI_FAULT_DETAIL
+  // The register sweep still names the allocation behind a plain SEGV/BUS.
+  if ((signal == SIGSEGV || signal == SIGBUS) && in_cheri_fault_dump == 0) {
+    in_cheri_fault_dump = 1;
+    PrintCheriFaultDetail(signal, info, void_context);
+    PrintToStderr("\n");
+    in_cheri_fault_dump = 0;
+  }
+#endif  // V8_HAVE_CHERI_FAULT_DETAIL
   if (dump_stack_in_signal_handler) {
     debug::StackTrace().Print();
     PrintToStderr("[end of stack trace]\n");
@@ -375,6 +618,9 @@ bool EnableInProcessStackDumping() {
   success &= (sigaction(SIGBUS, &action, nullptr) == 0);
   success &= (sigaction(SIGSEGV, &action, nullptr) == 0);
   success &= (sigaction(SIGSYS, &action, nullptr) == 0);
+#if defined(SIGPROT)
+  success &= (sigaction(SIGPROT, &action, nullptr) == 0);
+#endif  // defined(SIGPROT)
 
   dump_stack_in_signal_handler = true;
 
