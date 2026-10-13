@@ -903,6 +903,41 @@ def combine_logs(log_dir: str, output_file: str) -> None:
     )
 
 
+# The decode is best-effort, so it gets a deadline instead of holding up a run
+# whose tests are already finished.
+DECODE_INSN_TIMEOUT: int = 600
+
+
+def decode_faulting_instructions(combined_file: str) -> None:
+    """
+    Turn the raw insn= words in the combined log into mnemonics.
+
+    A subprocess, so both scripts stay independently runnable, and a failure is
+    only a warning: the log is the expensive artefact and is already written.
+    """
+    script: str = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "decode_insns.py"
+    )
+    command: List[str] = [sys.executable, script, "--in-place", combined_file]
+    result: subprocess.CompletedProcess[str]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=DECODE_INSN_TIMEOUT,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        warn(f"Skipping the insn= decode: {error}")
+        return
+    if result.returncode != 0:
+        warn(f"Skipping the insn= decode: {result.stderr.strip()}")
+        return
+    summary: str = result.stdout.strip()
+    if summary:
+        logging.info(summary)
+
+
 def detect_build_config(
     machine: str, remote_v8_root: str, build_dir: str, ssh_user: Optional[str]
 ) -> Dict[str, str]:
@@ -1286,6 +1321,7 @@ def main() -> None:
 
     logging.info(f"Combining logs from '{log_dir}' into '{combined_file}'...")
     combine_logs(log_dir, combined_file)
+    decode_faulting_instructions(combined_file)
 
 
 if __name__ == "__main__":
