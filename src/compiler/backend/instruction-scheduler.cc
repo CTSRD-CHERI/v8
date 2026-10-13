@@ -357,6 +357,7 @@ int InstructionScheduler::GetInstructionFlags(const Instruction* instr) const {
     case kArchAlignU:
     case kArchAlignD:
     case kArchSetBounds:
+    case kArchSetAddress:
     case kArchSealWithType:
       return kNoOpcodeFlags;
 #endif  // __CHERI_PURE_CAPABILITY__

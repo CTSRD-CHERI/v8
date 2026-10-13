@@ -1320,6 +1320,10 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
                 Operand(i.InputInt64(1)));
       break;
+    case kArchSetAddress:
+      __ Scvalue(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                 i.InputRegister64(1));
+      break;
     case kArchSealWithType:
       if (instr->InputAt(1)->IsImmediate()) {
         __ Seal(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),

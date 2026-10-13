@@ -3603,6 +3603,9 @@ class AssemblerOpInterface : public Next {
   V<WordPtr> SetBounds(V<WordPtr> pointer, V<Word64> bounds) {
     return ReduceIfReachableSetBounds(pointer, bounds);
   }
+  V<WordPtr> SetAddress(V<WordPtr> pointer, V<Word64> address) {
+    return ReduceIfReachableSetAddress(pointer, address);
+  }
   V<WordPtr> SealWithType(V<WordPtr> pointer, V<WordPtr> type) {
     return ReduceIfReachableSealWithType(pointer, type);
   }
