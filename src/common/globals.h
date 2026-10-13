@@ -838,7 +838,8 @@ constexpr Address kContiguousReadOnlySpaceMask =
 // Currently we don't support CHERI tight JS object bounding with compressed
 // pointers.
 #ifdef V8_CHERI_BOUND_OBJECTS
-#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
+#if !defined(__CHERI_PURE_CAPABILITY__) || !defined(V8_TARGET_CHERI) || \
+    defined(V8_COMPRESS_POINTERS)
 #error "V8_CHERI_BOUND_OBJECTS needs purecap CHERI without pointer compression"
 #endif
 #define V8_CHERI_HEAP_RESERVATION_BOOL true

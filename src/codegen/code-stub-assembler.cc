@@ -14792,10 +14792,18 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
 
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(
     TNode<IntPtrT> address) {
-  // FIXME(cheri): Not going to work with spatial safety.
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+  TNode<RawPtrT> reservation =
+      Load<RawPtrT>(IsolateField(IsolateFieldId::kHeapReservationCap));
+  TNode<IntPtrT> chunk = SetAddress(reservation, address);
+  return WordAnd(chunk,
+                 IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
+      .MarkAsCapability();
+#else
   return WordAnd(address,
                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
       .MarkAsCapability();
+#endif
 }
 
 TNode<IntPtrT> CodeStubAssembler::BasePageFromMemoryChunk(
