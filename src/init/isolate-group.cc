@@ -14,6 +14,7 @@
 #include "src/compiler-dispatcher/optimizing-compile-dispatcher.h"
 #include "src/execution/isolate.h"
 #include "src/heap/code-range.h"
+#include "src/heap/memory-chunk.h"
 #include "src/heap/memory-pool.h"
 #include "src/heap/read-only-heap.h"
 #include "src/heap/read-only-spaces.h"
@@ -320,6 +321,9 @@ void IsolateGroup::InitializeOncePerProcess() {
 #ifdef V8_COMPRESS_POINTERS
   V8HeapCompressionScheme::InitBase(group->GetPtrComprCageBase());
 #endif  // V8_COMPRESS_POINTERS
+#if V8_CHERI_HEAP_RESERVATION_BOOL
+  MemoryChunk::InitHeapReservationCap(group->heap_reservation_cap());
+#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
 #ifdef V8_ENABLE_SANDBOX
   TrustedSpaceCompressionScheme::InitBase(group->GetTrustedPtrComprCageBase());
 #endif
