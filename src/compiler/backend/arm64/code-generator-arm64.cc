@@ -1318,6 +1318,10 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
                   i.InputRegister64(1));
       }
       break;
+    case kArchSetAddress:
+      __ Scvalue(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                 i.InputRegister64(1));
+      break;
     case kArchSealWithType:
       if (instr->InputAt(1)->IsImmediate()) {
         // FIXME(ds815): Make this possible.

@@ -1222,6 +1222,14 @@ Node* GraphAssembler::SealWithType(Node* pointer, Node* type) {
   return AddNode(graph()->NewNode(machine()->SealWithType(), pointer, type));
 }
 
+Node* GraphAssembler::SetBounds(Node* pointer, Node* size) {
+  return AddNode(graph()->NewNode(machine()->SetBounds(), pointer, size));
+}
+
+Node* GraphAssembler::SetAddress(Node* pointer, Node* address) {
+  return AddNode(graph()->NewNode(machine()->SetAddress(), pointer, address));
+}
+
 Node* GraphAssembler::CapabilityIsTagged(Node* maybe_cap) {
   return AddNode(graph()->NewNode(machine()->CapabilityIsTagged(), maybe_cap));
 }

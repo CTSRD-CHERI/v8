@@ -2638,6 +2638,12 @@ void InstructionSelector::VisitSetBounds(OpIndex node) {
        g.UseRegister(Get(node).input(0)), g.UseAny(Get(node).input(1)));
 }
 
+void InstructionSelector::VisitSetAddress(OpIndex node) {
+  OperandGenerator g(this);
+  Emit(kArchSetAddress, g.DefineAsRegister(node),
+       g.UseRegister(Get(node).input(0)), g.UseRegister(Get(node).input(1)));
+}
+
 void InstructionSelector::VisitSealWithType(OpIndex node) {
   OperandGenerator g(this);
   Emit(kArchSealWithType, g.DefineAsRegister(node),
@@ -3433,6 +3439,8 @@ void InstructionSelector::VisitNode(OpIndex node) {
       return VisitAlignD(node);
     case Opcode::kSetBounds:
       return VisitSetBounds(node);
+    case Opcode::kSetAddress:
+      return VisitSetAddress(node);
     case Opcode::kSealWithType:
       return VisitSealWithType(node);
 #endif
