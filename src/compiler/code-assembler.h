@@ -1139,6 +1139,7 @@ class V8_EXPORT_PRIVATE CodeAssembler {
   }
 
   TNode<IntPtrT> SetBounds(Node* pointer, Node* size);
+  TNode<IntPtrT> SetAddress(Node* pointer, Node* address);
   TNode<IntPtrT> SealWithType(Node* pointer, Node* type);
   template <typename Type>
   TNode<Type> UnalignedLoad(TNode<BytecodeArray> base, TNode<IntPtrT> offset) {
