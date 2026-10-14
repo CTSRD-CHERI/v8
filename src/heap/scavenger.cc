@@ -1384,7 +1384,7 @@ size_t ScavengerCollector::QuarantinedPageSweeper::JobTask::SweepPage(
       free_space_handler(heap_, start, filler_size, should_zap_);
       filler_size_on_page += filler_size;
     }
-    start = object_adress + object_size;
+    start = MemoryChunk::AddressWithHeapBounds(object_adress + object_size);
   }
   Address end = page->area_end();
   if (start != end) {
