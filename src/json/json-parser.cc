@@ -701,7 +701,7 @@ class FoldedMutableHeapNumberAllocation {
 
   FoldedMutableHeapNumberAllocation(Isolate* isolate, int count) {
     if (count == 0) return;
-    int size = count * sizeof(HeapNumber);
+    int size = count * ALIGN_TO_ALLOCATION_ALIGNMENT(sizeof(HeapNumber));
     raw_bytes_ = isolate->factory()->NewByteArray(size);
   }
 
