@@ -2116,11 +2116,7 @@ TEST(TestAlignmentCalculations) {
   // Maximum fill amounts are consistent.
   int maximum_double_misalignment = kDoubleSize - kTaggedSize;
   int max_word_fill = Heap::GetMaximumFillToAlign(kTaggedAligned);
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-  CHECK_EQ(16, max_word_fill);
-#else   // !(__CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS)
   CHECK_EQ(0, max_word_fill);
-#endif  // __CHERI_PURE_CAPABILITY__ && !V8_COMPRESS_POINTERS
   int max_double_fill = Heap::GetMaximumFillToAlign(kDoubleAligned);
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
   CHECK_EQ(0, max_double_fill);

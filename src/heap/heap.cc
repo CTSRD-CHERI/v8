@@ -3042,11 +3042,7 @@ int Heap::GetMaximumFillToAlign(AllocationAlignment alignment) {
       return kCodeAlignment;
 #endif
     case kTaggedAligned:
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-      return kTaggedSize;
-#else
       return 0;
-#endif
     case kDoubleAligned:
     case kDoubleUnaligned:
 #if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
