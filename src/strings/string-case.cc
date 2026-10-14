@@ -16,7 +16,13 @@ namespace internal {
 // FastAsciiConvert tries to do character processing on a word_t basis if
 // source and destination strings are properly aligned. Natural alignment of
 // string data depends on kTaggedSize so we define word_t via Tagged_t.
+#if V8_TARGET_CHERI
+// Tagged_t is 16 bytes here, and these masks only convert the low 8 bytes of
+// each word, so the upper half is copied through unconverted.
+using word_t = uint64_t;
+#else
 using word_t = std::make_unsigned_t<Tagged_t>;
+#endif
 
 constexpr word_t kWordTAllBitsSet = std::numeric_limits<word_t>::max();
 constexpr word_t kOneInEveryByte = kWordTAllBitsSet / 0xFF;
