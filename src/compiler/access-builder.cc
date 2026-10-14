@@ -133,7 +133,15 @@ FieldAccess AccessBuilder::ForBigIntOptionalPadding() {
 
 // static
 FieldAccess AccessBuilder::ForBigIntLeastSignificantDigit64() {
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+  // The header is 24 bytes and sizes round up to 16, so the first digit lands
+  // in existing padding and the size delta says nothing. The access only needs
+  // room for that digit at the data start, which is what this checks.
+  DCHECK_GE(BigInt::SizeFor(1), OFFSET_OF_DATA_START(BigInt) +
+                                    static_cast<size_t>(BigInt::kDigitSize));
+#else
   DCHECK_EQ(BigInt::SizeFor(1) - BigInt::SizeFor(0), 8);
+#endif
   FieldAccess access = {
       kTaggedBase,      OFFSET_OF_DATA_START(BigInt),   MaybeHandle<Name>(),
       OptionalMapRef(), TypeCache::Get()->kBigUint64,   MachineType::Uint64(),
