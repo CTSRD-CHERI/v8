@@ -479,11 +479,11 @@ Tagged<HeapObject> ReadOnlySpace::TryAllocateLinearlyAligned(
 
   top_ = new_top;
   if (filler_size > 0) {
-    return heap()->PrecedeWithFiller(HeapObject::FromAddress(current_top),
-                                     filler_size);
+    heap()->CreateFillerObjectAt(current_top, filler_size);
+    current_top += filler_size;
   }
 
-  return HeapObject::FromAddress(current_top);
+  return HeapObject::FromAddress(current_top, size_in_bytes);
 }
 
 AllocationResult ReadOnlySpace::AllocateRawAligned(
@@ -516,7 +516,8 @@ AllocationResult ReadOnlySpace::AllocateRawUnaligned(int size_in_bytes) {
   Address new_top = current_top + size_in_bytes;
   DCHECK_LE(new_top, limit_);
   top_ = new_top;
-  Tagged<HeapObject> object = HeapObject::FromAddress(current_top);
+  Tagged<HeapObject> object =
+      HeapObject::FromAddress(current_top, size_in_bytes);
 
   DCHECK(!object.is_null());
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(object.address(), size_in_bytes);

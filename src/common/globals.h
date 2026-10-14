@@ -843,9 +843,11 @@ constexpr Address kContiguousReadOnlySpaceMask =
 #error "V8_CHERI_BOUND_OBJECTS needs purecap CHERI without pointer compression"
 #endif
 #define V8_CHERI_HEAP_RESERVATION_BOOL true
+#define V8_CHERI_BOUND_OBJECTS_BOOL true
 constexpr size_t kCheriHeapReservationSize = size_t{64} * GB;
 #else
 #define V8_CHERI_HEAP_RESERVATION_BOOL false
+#define V8_CHERI_BOUND_OBJECTS_BOOL false
 #endif
 
 // -----------------------------------------------------------------------------
