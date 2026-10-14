@@ -47,8 +47,15 @@ class LinearAllocationArea final {
 
   V8_INLINE bool DecrementTopIfAdjacent(Address new_top, size_t bytes) {
     Verify();
+#ifdef __CHERI_PURE_CAPABILITY__
+    // Keep new_top address but not new_top's bounds.
+    if (static_cast<ptraddr_t>(new_top) + bytes ==
+        static_cast<ptraddr_t>(top_)) {
+      top_ = V8_CHERI_ADDR_SET(top_, static_cast<ptraddr_t>(new_top));
+#else
     if ((new_top + bytes) == top_) {
       top_ = new_top;
+#endif
       if (start_ > top_) {
         ResetStart();
       }
