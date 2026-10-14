@@ -1465,7 +1465,7 @@ DirectHandle<HeapObject> RegExpMacroAssemblerARM64::GetCode(
         if (num_registers_left_on_stack <= kNumRegistersToUnroll) {
           for (int i = 0; i < num_registers_left_on_stack / 2; i++) {
             __ Ldp(capture_end, capture_start,
-                   MemOperand(base, -kSystemPointerSize, PostIndex));
+                   MemOperand(base, -kSystemPointerAddrSize, PostIndex));
             // Offsets need to be relative to the start of the string.
             if (mode() == UC16) {
               __ Add(capture_start, input_length,
@@ -1486,7 +1486,7 @@ DirectHandle<HeapObject> RegExpMacroAssemblerARM64::GetCode(
 
           __ Bind(&loop);
           __ Ldp(capture_end, capture_start,
-                 MemOperand(base, -kSystemPointerSize, PostIndex));
+                 MemOperand(base, -kSystemPointerAddrSize, PostIndex));
           if (mode() == UC16) {
             __ Add(capture_start, input_length, Operand(capture_start, ASR, 1));
             __ Add(capture_end, input_length, Operand(capture_end, ASR, 1));
