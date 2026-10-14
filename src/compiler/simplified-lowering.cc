@@ -3949,7 +3949,7 @@ class RepresentationSelector {
       }
       case IrOpcode::kTypedArrayLength: {
         VisitUnop<T>(node, UseInfo::AnyTagged(),
-                     MachineType::PointerRepresentation());
+                     MachineType::IntPtr().representation());
         return;
       }
       case IrOpcode::kStringSubstring: {
