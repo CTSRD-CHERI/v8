@@ -2799,8 +2799,9 @@ class AssemblerOpInterface : public Next {
       return Word32Equal(Word32BitwiseAnd(V<Word32>::Cast(object), kSmiTagMask),
                          kSmiTag);
     } else {
-      return WordPtrEqual(
-          WordPtrBitwiseAnd(V<WordPtr>::Cast(object), kSmiTagMask), kSmiTag);
+      return MachineWordEqual(
+          MachineWordBitwiseAnd(V<MachineWord>::Cast(object), kSmiTagMask),
+          kSmiTag);
     }
   }
 
