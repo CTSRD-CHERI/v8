@@ -241,6 +241,19 @@ class HeapObject : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
     return Tagged<HeapObject>(address + kHeapObjectTag);
   }
 
+  // On CHERI builds with strict object bounding, the HeapObject pointer carries
+  // bounds specified by (address, size).
+  static inline Tagged<HeapObject> FromAddress(Address address, size_t size) {
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+    size = ALIGN_TO_ALLOCATION_ALIGNMENT(size);
+    // TODO(zyj20): think about non-representable bounds
+    Address bounded = V8_CHERI_SET_BOUNDS(address, size);
+    return FromAddress(bounded);
+#else
+    return FromAddress(address);
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+  }
+
   // Returns the address of this HeapObject.
   inline Address address() const { return ptr() - kHeapObjectTag; }
 
