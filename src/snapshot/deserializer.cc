@@ -1157,6 +1157,9 @@ int Deserializer<IsolateT>::ReadReadOnlyHeapRef(uint8_t data,
   ReadOnlyPage* page = read_only_space->pages()[chunk_index];
   Address address = page->OffsetToAddress(chunk_offset);
   Tagged<HeapObject> heap_object = HeapObject::FromAddress(address);
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+  heap_object = HeapObject::FromAddress(address, heap_object->Size());
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
 
   if (v8_flags.trace_deserialization) {
     PrintF("%*sReadOnlyHeapRef [%u, %u] : ", depth_, "", chunk_index,
