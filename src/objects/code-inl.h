@@ -272,7 +272,9 @@ int Code::GetOffsetFromInstructionStart(Isolate* isolate, Address pc) const {
   // NOTE(zyj20): Take into account that the LSB of sealed PCC is set.
   // The resulting capability could be invalid but it won't be
   // used as a pointer anyways.
-  const Address offset = (pc & ~1) - InstructionStart(isolate, pc);
+  // The instruction start may carry the same C64 bit, so clear it on both
+  // sides; otherwise the first instruction reports an offset of -1.
+  const Address offset = (pc & ~1) - (InstructionStart(isolate, pc) & ~1);
 #else
   const Address offset = pc - InstructionStart(isolate, pc);
 #endif
