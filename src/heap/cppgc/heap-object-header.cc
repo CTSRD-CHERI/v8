@@ -22,6 +22,9 @@ void HeapObjectHeader::CheckApiConstants() {
                 FullyConstructedField::kMask);
   static_assert(api_constants::kFullyConstructedBitFieldOffsetFromPayload ==
                 (sizeof(encoded_high_) + sizeof(encoded_low_)));
+  static_assert(api_constants::kFullyConstructedBitFieldOffsetFromPayload ==
+                sizeof(HeapObjectHeader) -
+                    OFFSET_OF(HeapObjectHeader, encoded_high_));
 }
 
 void HeapObjectHeader::Finalize() {

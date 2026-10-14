@@ -155,6 +155,11 @@ class HeapObjectHeader {
   inline void StoreEncoded(uint16_t bits, uint16_t mask);
 
 #if defined(V8_HOST_ARCH_64_BIT)
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Padding to the allocation granularity; it must precede the encoded halves,
+  // which are located relative to the *payload*.
+  uint8_t cheri_padding_[8];
+#endif  // __CHERI_PURE_CAPABILITY__
   // If cage is enabled, to save on space required by sweeper metadata, we store
   // the list of to-be-finalized objects inlined in HeapObjectHeader.
 #if defined(CPPGC_CAGED_HEAP)
@@ -165,9 +170,6 @@ class HeapObjectHeader {
 #endif  // defined(V8_HOST_ARCH_64_BIT)
   uint16_t encoded_high_;
   uint16_t encoded_low_;
-#ifdef __CHERI_PURE_CAPABILITY__
-  uint8_t cheri_padding_[8];
-#endif
 };
 
 static_assert(kAllocationGranularity == sizeof(HeapObjectHeader),
