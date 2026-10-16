@@ -771,6 +771,13 @@ class MachineOptimizationReducer : public Next {
 
     using Kind = WordBinopOp::Kind;
 
+#if V8_TARGET_CHERI
+    if (rep == WordRepresentation::Capability64() && kind != Kind::kAdd &&
+        kind != Kind::kSub && kind != Kind::kBitwiseAnd) {
+      return ReduceWordBinop(left, right, kind, WordRepresentation::Word64());
+    }
+#endif
+
     DCHECK_EQ(rep,
               any_of(WordRepresentation::Word32(), WordRepresentation::Word64()
 #if V8_TARGET_CHERI
