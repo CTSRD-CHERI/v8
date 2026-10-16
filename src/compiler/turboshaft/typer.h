@@ -1220,7 +1220,10 @@ class Typer {
           return Word32Type::Any();
       }
     } else {
-      DCHECK_EQ(rep, WordRepresentation::Word64());
+      // Pointer-width binops are WordPtr (Capability64) on CHERI rather than
+      // Word64. Need to accept it here as well.
+      DCHECK(rep == WordRepresentation::Word64() ||
+             rep == WordRepresentation::WordPtr());
       switch (kind) {
         case WordBinopOp::Kind::kAdd:
           return TypeWord64Add(left_type, right_type, zone);
