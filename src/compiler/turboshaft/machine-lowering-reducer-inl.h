@@ -3562,8 +3562,8 @@ class MachineLoweringReducer : public Next {
   }
 
   V<None> REDUCE(StoreMessage)(V<WordPtr> offset, V<Object> object) {
-    __ StoreField(offset, AccessBuilder::ForExternalIntPtr(),
-                  __ BitcastTaggedToWordPtr(object));
+    __ StoreOffHeap(offset, object,
+                    MemoryRepresentation::UncompressedTaggedPointer());
     return V<None>::Invalid();
   }
 
@@ -4270,7 +4270,18 @@ class MachineLoweringReducer : public Next {
       untagged_base =
           __ ChangeUint32ToUintPtr(__ TruncateWordPtrToWord32(untagged_base));
     }
+#if V8_TARGET_CHERI
+    Label<WordPtr> done(this);
+    IF (__ CapabilityIsTagged(external)) {
+      GOTO(done, __ WordPtrAdd(external, untagged_base));
+    } ELSE {
+      GOTO(done, __ WordPtrAdd(untagged_base, external));
+    }
+    BIND(done, data_ptr);
+    return data_ptr;
+#else
     return __ WordPtrAdd(untagged_base, external);
+#endif
   }
 
   V<Word32> ComputeUnseededHash(V<Word32> value) {
