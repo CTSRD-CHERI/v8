@@ -116,10 +116,11 @@ class OperationMatcher {
     switch (op->kind) {
       case ConstantOp::Kind::kWord32:
       case ConstantOp::Kind::kWord64:
+        return op->integral() == 0;
 #if V8_TARGET_CHERI
       case ConstantOp::Kind::kCapability64:
+        return op->capability64() == 0;
 #endif
-        return op->integral() == 0;
       case ConstantOp::Kind::kFloat32:
         return op->float32().get_scalar() == 0;
       case ConstantOp::Kind::kFloat64:
