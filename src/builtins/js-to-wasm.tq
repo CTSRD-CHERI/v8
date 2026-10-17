@@ -589,9 +589,10 @@ macro JSToWasmWrapperHelper(
         otherwise unreachable;
     let allocator = NewReturnSlotAllocator();
 
-    let retIt = returnTypes.Iterator();
-    while (!retIt.Empty()) {
-      const retType = retIt.NextNotEmpty();
+    // Not Slice::Iterator: its object/start fields cross back phis, whose
+    // representation comes from the static type, so the base arrives untagged.
+    for (let retIndex: intptr = 0; retIndex < returnCount; retIndex++) {
+      const retType = *returnTypes.UncheckedAtIndex(retIndex);
       if (retType == kWasmI32Type) {
         allocator.AllocGP();
       } else if (retType == kWasmI64Type) {
@@ -613,9 +614,8 @@ macro JSToWasmWrapperHelper(
     // Second round: reference values.
     if (hasRefReturns) {
       allocator.StartRefs();
-      retIt = returnTypes.Iterator();
-      while (!retIt.Empty()) {
-        const retType = retIt.NextNotEmpty();
+      for (let retIndex: intptr = 0; retIndex < returnCount; retIndex++) {
+        const retType = *returnTypes.UncheckedAtIndex(retIndex);
         if ((retType & kValueTypeIsRefBit) != 0) {
           allocator.AllocGP();
         }
