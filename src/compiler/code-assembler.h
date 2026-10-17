@@ -241,11 +241,7 @@ class CodeAssemblerParameterizedLabel;
 #define CODE_ASSEMBLER_BINARY_MAYBECAP_LIST(V)                          \
   V(WordOr, WordT, WordT, WordT)                                        \
   V(WordAnd, WordT, WordT, WordT)                                       \
-  V(WordXor, WordT, WordT, WordT)                                       \
-  V(WordRor, WordT, WordT, IntegralT)                                   \
-  V(WordShl, WordT, WordT, IntegralT)                                   \
-  V(WordShr, WordT, WordT, IntegralT)                                   \
-  V(WordSar, WordT, WordT, IntegralT)
+  V(WordXor, WordT, WordT, WordT)
 
 #define CODE_ASSEMBLER_BINARY_OP_LIST(V)                                \
   CODE_ASSEMBLER_COMPARE_BINARY_OP_LIST(V)                              \
@@ -290,6 +286,10 @@ class CodeAssemblerParameterizedLabel;
   V(Uint64MulHigh, Uint64T, Uint64T, Uint64T)                           \
   V(Int64Div, Int64T, Int64T, Int64T)                                   \
   V(Int64Mod, Int64T, Int64T, Int64T)                                   \
+  V(WordRor, WordT, WordT, IntegralT)                                   \
+  V(WordShl, WordT, WordT, IntegralT)                                   \
+  V(WordShr, WordT, WordT, IntegralT)                                   \
+  V(WordSar, WordT, WordT, IntegralT)                                   \
   V(WordSarShiftOutZeros, WordT, WordT, IntegralT)                      \
   V(Word32Or, Word32T, Word32T, Word32T)                                \
   V(Word32And, Word32T, Word32T, Word32T)                               \
