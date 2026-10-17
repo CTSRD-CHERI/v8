@@ -820,7 +820,7 @@ macro JSToWasmWrapperHelper(
         const param =
             UnsafeCast<FixedArray>(convertedTagged).objects[paramIndex];
         let toRef = locationAllocator.GetGPSlot();
-        *toRef = BitcastTaggedToWord(param);
+        StoreFullTaggedNoWriteBarrier(toRef.GCUnsafeRawPtr(), param);
       }
     }
   }
@@ -992,8 +992,8 @@ builtin JSToWasmHandleReturns(
       check((retType & kValueTypeIsRefBit) != 0);
       const ptr = %RawDownCast<RawPtr<uintptr>>(
           wrapperBuffer + kWrapperBufferGPReturnRegister1);
-      const rawRef = *GetRefAt<uintptr>(ptr, 0);
-      const value = BitcastWordToTagged(rawRef);
+      // Written by a 128-bit store; a 64-bit load would drop the tag.
+      const value = LoadFullTagged(ptr);
       return WasmToJSObject(jsContext, value, retType);
     }
   }
@@ -1043,8 +1043,7 @@ builtin JSToWasmHandleReturns(
       const retType = *retTypes.UncheckedAtIndex(k);
       if ((retType & kValueTypeIsRefBit) != 0) {
         const slot = locationAllocator.GetGPSlot();
-        const rawRef = *slot;
-        const value: Object = BitcastWordToTagged(rawRef);
+        const value: Object = LoadFullTagged(slot.GCUnsafeRawPtr());
         // Store the wasm object in the JSArray to make it GC safe. The
         // transformation will happen later in a second loop.
         fixedArray.objects[k] = value;
