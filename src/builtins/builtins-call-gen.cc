@@ -547,8 +547,12 @@ TF_BUILTIN(CallWithSpread, CallOrConstructBuiltinsAssembler) {
   auto context = Parameter<Context>(Descriptor::kContext);
 #ifndef V8_COMPRESS_POINTERS
   CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<UintPtrT>(context)));
-  CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<UintPtrT>(spread)));
-  CSA_DCHECK(this, CapabilityIsTagged(ReinterpretCast<UintPtrT>(target)));
+  CSA_DCHECK(this,
+             Word32Or(TaggedIsSmi(spread),
+                      CapabilityIsTagged(ReinterpretCast<UintPtrT>(spread))));
+  CSA_DCHECK(this,
+             Word32Or(TaggedIsSmi(target),
+                      CapabilityIsTagged(ReinterpretCast<UintPtrT>(target))));
 #endif  // V8_COMPRESS_POINTERS
   CallOrConstructWithSpread(target, new_target, spread, args_count, context);
 }
