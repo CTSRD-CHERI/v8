@@ -104,11 +104,11 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
 
   let locationAllocator = LocationAllocatorForParams(inParams, 0);
 
-  let paramIt = paramTypes.Iterator();
-
+  // Not Slice::Iterator: its object/start fields cross phis, whose
+  // representation comes from the static type, so the base arrives untagged.
   let hasTaggedParams: bool = false;
-  while (!paramIt.Empty()) {
-    const paramType = paramIt.NextNotEmpty();
+  for (let paramIndex: intptr = 0; paramIndex < paramCount; paramIndex++) {
+    const paramType = *paramTypes.UncheckedAtIndex(paramIndex);
     if (paramType == kWasmI32Type) {
       const slot = locationAllocator.GetGPSlot();
       let val: int32;
@@ -165,13 +165,11 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
   if (hasTaggedParams) {
     locationAllocator.StartRefs();
     nextIndex = 1;
-    paramIt = paramTypes.Iterator();
-    while (!paramIt.Empty()) {
-      const paramType = paramIt.NextNotEmpty();
+    for (let paramIndex: intptr = 0; paramIndex < paramCount; paramIndex++) {
+      const paramType = *paramTypes.UncheckedAtIndex(paramIndex);
       if ((paramType & kValueTypeIsRefBit) != 0) {
         const slot = locationAllocator.GetGPSlot();
-        const rawRef = *slot;
-        const value = BitcastWordToTagged(rawRef);
+        const value = LoadFullTagged(slot.GCUnsafeRawPtr());
         outParams.objects[nextIndex] =
             WasmToJSObject(data.native_context, value, paramType);
       }
@@ -213,17 +211,16 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
   locationAllocator =
       LocationAllocatorForReturns(gpRegSlots, fpRegSlots, stackSlots);
 
-  let returnIt = returnTypes.Iterator();
   nextIndex = 0;
   let hasTagged: bool = false;
-  while (!returnIt.Empty()) {
+  for (let retIndex: intptr = 0; retIndex < returnCount; retIndex++) {
     let retVal: JSAny;
     if (returnCount == 1) {
       retVal = result;
     } else {
       retVal = UnsafeCast<JSAny>(resultFixedArray.objects[nextIndex]);
     }
-    const retType = returnIt.NextNotEmpty();
+    const retType = *returnTypes.UncheckedAtIndex(retIndex);
     if (retType == kWasmI32Type) {
       let toRef = locationAllocator.GetGPSlot();
       typeswitch (retVal) {
@@ -264,7 +261,7 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
         // There are no other values, we can write the object directly into the
         // result buffer.
         let toRef = locationAllocator.GetGPSlot();
-        *toRef = BitcastTaggedToWord(converted);
+        StoreFullTaggedNoWriteBarrier(toRef.GCUnsafeRawPtr(), converted);
       } else {
         // Storing the converted value back in the FixedArray serves two
         // purposes:
@@ -280,14 +277,13 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
   }
   if (hasTagged) {
     locationAllocator.StartRefs();
-    returnIt = returnTypes.Iterator();
     nextIndex = 0;
-    while (!returnIt.Empty()) {
-      const retType = returnIt.NextNotEmpty();
+    for (let retIndex: intptr = 0; retIndex < returnCount; retIndex++) {
+      const retType = *returnTypes.UncheckedAtIndex(retIndex);
       if ((retType & kValueTypeIsRefBit) != 0) {
         let toRef = locationAllocator.GetGPSlot();
         const value = resultFixedArray.objects[nextIndex];
-        *toRef = BitcastTaggedToWord(value);
+        StoreFullTaggedNoWriteBarrier(toRef.GCUnsafeRawPtr(), value);
       }
       nextIndex++;
     }
