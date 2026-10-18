@@ -78,7 +78,6 @@ struct assert_field_size {
 #define WASM_TRUSTED_INSTANCE_DATA_FIELD_SIZE(name) \
   FIELD_SIZE(WasmTrustedInstanceData::k##name##Offset)
 
-#if V8_TARGET_CHERI
 #define LOAD_INSTANCE_FIELD(dst, name, load_size, pinned)            \
   __ LoadFromInstance(                                               \
       dst, LoadInstanceIntoRegister(pinned, dst.C()),                \
@@ -93,22 +92,6 @@ struct assert_field_size {
   __ LoadTaggedPointerFromInstance(                                        \
       dst, LoadInstanceIntoRegister(pinned, dst.C()),                      \
       WASM_TRUSTED_INSTANCE_DATA_FIELD_OFFSET(name));
-#else  // !V8_TARGET_CHERI
-#define LOAD_INSTANCE_FIELD(dst, name, load_size, pinned)            \
-  __ LoadFromInstance(                                               \
-      dst, LoadInstanceIntoRegister(pinned, dst),                    \
-      WASM_TRUSTED_INSTANCE_DATA_FIELD_OFFSET(name),                 \
-      assert_field_size<WASM_TRUSTED_INSTANCE_DATA_FIELD_SIZE(name), \
-                        load_size>::size);
-
-#define LOAD_TAGGED_PTR_INSTANCE_FIELD(dst, name, pinned)                  \
-  static_assert(                                                           \
-      WASM_TRUSTED_INSTANCE_DATA_FIELD_SIZE(name) == kTaggedSize,          \
-      "field in WasmTrustedInstanceData does not have the expected size"); \
-  __ LoadTaggedPointerFromInstance(                                        \
-      dst, LoadInstanceIntoRegister(pinned, dst),                          \
-      WASM_TRUSTED_INSTANCE_DATA_FIELD_OFFSET(name));
-#endif  // V8_TARGET_CHERI
 
 #define LOAD_TAGGED_PTR_FROM_INSTANCE(dst, name, instance)                 \
   static_assert(                                                           \
@@ -1294,7 +1277,7 @@ class LiftoffCompiler {
       Register scratch =
           pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C();
       Register instance =
-          pinned.set(LoadInstanceIntoRegister(pinned, scratch)).C();
+          pinned.set(LoadInstanceIntoRegister(pinned, scratch));
       // Load the map.
       __ LoadMap(scratch, instance);
       // Load the instance type.
@@ -1901,11 +1884,13 @@ class LiftoffCompiler {
     pinned.set(caught_tag);
 
     CODE_COMMENT("load expected exception tag");
-    Register imm_tag = pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp();
+    Register imm_tag =
+        pinned.set(__ GetUnusedRegister(kGpReg, pinned)).gp().C();
     LOAD_TAGGED_PTR_INSTANCE_FIELD(imm_tag, TagsTable, pinned);
-    __ LoadTaggedPointer(imm_tag, imm_tag, no_reg,
-                         wasm::ObjectAccess::ElementOffsetInTaggedFixedArray(
-                             catch_case.maybe_tag.tag_imm.index));
+    __ LoadTaggedPointer(
+        imm_tag, imm_tag, no_reg,
+        wasm::ObjectAccess::ElementOffsetInTaggedFixedArray(
+            catch_case.maybe_tag.tag_imm.index));
 
     VarState exn = __ cache_state() -> stack_state.back();
 
@@ -1921,15 +1906,15 @@ class LiftoffCompiler {
       LiftoffRegister undefined =
           pinned.set(__ GetUnusedRegister(kGpReg, pinned));
       __ LoadFullPointer(
-          undefined.gp(), kRootRegister,
+          undefined.gp().C(), kRootRegister,
           IsolateData::root_slot_offset(RootIndex::kUndefinedValue));
       LiftoffRegister js_tag = pinned.set(__ GetUnusedRegister(kGpReg, pinned));
-      LOAD_TAGGED_PTR_INSTANCE_FIELD(js_tag.gp(), NativeContext, pinned);
+      LOAD_TAGGED_PTR_INSTANCE_FIELD(js_tag.gp().C(), NativeContext, pinned);
       __ LoadTaggedPointer(
-          js_tag.gp(), js_tag.gp(), no_reg,
+          js_tag.gp().C(), js_tag.gp().C(), no_reg,
           NativeContext::SlotOffset(Context::WASM_JS_TAG_INDEX));
       __ LoadTaggedPointer(
-          js_tag.gp(), js_tag.gp(), no_reg,
+          js_tag.gp().C(), js_tag.gp().C(), no_reg,
           wasm::ObjectAccess::ToTagged(WasmTagObject::kTagOffset));
       {
         LiftoffAssembler::CacheState initial_state(zone_);
@@ -3810,7 +3795,7 @@ class LiftoffCompiler {
       LOAD_INSTANCE_FIELD(mem_size.gp(), Memory0Size, kSystemPointerAddrSize,
                           pinned);
     } else {
-      LOAD_PROTECTED_PTR_INSTANCE_FIELD(mem_size.gp(), MemoryBasesAndSizes,
+      LOAD_PROTECTED_PTR_INSTANCE_FIELD(mem_size.gp().C(), MemoryBasesAndSizes,
                                         pinned);
       // FIXME(ds815): Check if this is sensible.
       int buffer_offset =
@@ -3882,7 +3867,8 @@ class LiftoffCompiler {
     LiftoffRegList pinned;
 
     LiftoffRegister info = pinned.set(__ GetUnusedRegister(kGpReg, pinned));
-    __ AllocateStackSlot(info.gp(), sizeof(GlobalTracingInfo));
+    // AllocateStackSlot does Mov(addr, csp); an X destination drops the tag.
+    __ AllocateStackSlot(info.gp().C(), sizeof(GlobalTracingInfo));
 
     LiftoffRegister data = pinned.set(__ GetUnusedRegister(kGpReg, pinned));
 
@@ -5964,7 +5950,7 @@ class LiftoffCompiler {
         wasm::ObjectAccess::ElementOffsetInTaggedFixedArray(imm.index));
 
     // Finally, call WasmThrow.
-    Register instance_data = __ cache_state() -> cached_instance_data.C();
+    Register instance_data = CachedInstanceDataOrNone();
     if (instance_data == no_reg) {
       instance_data = __ GetUnusedRegister(kGpReg, pinned).gp().C();
       __ LoadInstanceDataFromFrame(instance_data);
@@ -6963,6 +6949,11 @@ class LiftoffCompiler {
 #endif
   }
 
+  Register CachedInstanceDataOrNone() {
+    Register cached = __ cache_state()->cached_instance_data;
+    return cached.IsNone() ? cached : cached.C();
+  }
+
   // Pop a VarState and if needed transform it to an intptr.
   // When truncating from u64 to u32, the {*high_word} is updated to contain
   // the ORed combination of all high words.
@@ -7135,7 +7126,7 @@ class LiftoffCompiler {
     DCHECK(MatchingMemTypeOnTopOfStack(imm.memory.memory));
     VarState dst = PopIndexToVarState(&mem_offsets_high_word, &pinned);
 
-    Register instance_data = __ cache_state() -> cached_instance_data.C();
+    Register instance_data = CachedInstanceDataOrNone();
     if (instance_data == no_reg) {
       instance_data = __ GetUnusedRegister(kGpReg, pinned).gp().C();
       __ LoadInstanceDataFromFrame(instance_data);
@@ -7210,7 +7201,7 @@ class LiftoffCompiler {
     DCHECK(MatchingMemTypeOnTopOfStack(imm.memory_dst.memory));
     VarState dst = PopIndexToVarState(&mem_offsets_high_word, &pinned);
 
-    Register instance_data = __ cache_state() -> cached_instance_data.C();
+    Register instance_data = CachedInstanceDataOrNone();
     if (instance_data == no_reg) {
       instance_data = __ GetUnusedRegister(kGpReg, pinned).gp().C();
       __ LoadInstanceDataFromFrame(instance_data);
@@ -7259,7 +7250,7 @@ class LiftoffCompiler {
     DCHECK(MatchingMemTypeOnTopOfStack(imm.memory));
     VarState dst = PopIndexToVarState(&mem_offsets_high_word, &pinned);
 
-    Register instance_data = __ cache_state() -> cached_instance_data.C();
+    Register instance_data = CachedInstanceDataOrNone();
     if (instance_data == no_reg) {
       instance_data = __ GetUnusedRegister(kGpReg, pinned).gp().C();
       __ LoadInstanceDataFromFrame(instance_data);
@@ -7854,7 +7845,7 @@ class LiftoffCompiler {
     }
     LiftoffRegister value =
         __ GetUnusedRegister(reg_class_for(elem_kind), pinned);
-    LoadAtomicObjectField(decoder, value, array.gp(), index.gp(),
+    LoadAtomicObjectField(decoder, value, array.gp().C(), index.gp(),
                           wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                           elem_kind, is_signed, false, memory_order, pinned);
     __ PushRegister(unpacked(elem_kind), value);
@@ -8020,7 +8011,7 @@ class LiftoffCompiler {
           SCOPED_CODE_COMMENT("Check for optimized prototype setup");
           Register actual = tmp1.gp();
           LiftoffRegister expected = tmp2;
-          LOAD_TAGGED_PTR_INSTANCE_FIELD(actual, WellKnownImports, pinned);
+          LOAD_TAGGED_PTR_INSTANCE_FIELD(actual.C(), WellKnownImports, pinned);
           int field_offset =
               wasm::ObjectAccess::ElementOffsetInTaggedFixedAddressArray(
                   matcher.function_index());
@@ -8043,7 +8034,7 @@ class LiftoffCompiler {
           static constexpr int kNumInts = 9;
           static constexpr int kBufferSize =
               RoundUp(kNumInts * kInt32Size, kSystemPointerSize);
-          __ AllocateStackSlot(buffer.gp(), kBufferSize);
+          __ AllocateStackSlot(buffer.gp().C(), kBufferSize);
           for (int i = 0; i < kNumInts; i++) {
             LiftoffRegister temp = tmp2;
             __ LoadConstant(temp, WasmValue(matcher.recorded_constant(i)));
@@ -8052,10 +8043,10 @@ class LiftoffCompiler {
           }
           // Get the "constructors" global.
           LiftoffRegister global = tmp2;
-          LOAD_TAGGED_PTR_INSTANCE_FIELD(tmp2.gp(), TaggedGlobalsBuffer,
+          LOAD_TAGGED_PTR_INSTANCE_FIELD(tmp2.gp().C(), TaggedGlobalsBuffer,
                                          pinned);
           __ LoadTaggedPointer(
-              tmp2.gp(), global.gp(), no_reg,
+              tmp2.gp().C(), global.gp().C(), no_reg,
               wasm::ObjectAccess::ElementOffsetInTaggedFixedArray(
                   matcher.global_offset()));
 
@@ -10072,8 +10063,13 @@ class LiftoffCompiler {
       index_reg = no_reg;
       __ emit_ptrsize_muli(entry_offset, entry_offset,
                            WasmDispatchTable::kEntrySize);
+#if V8_TARGET_CHERI
+      __ Add(dispatch_table_base.gp_reg().C(), dispatch_table_base.gp_reg().C(),
+             Operand(entry_offset));
+#else
       __ emit_ptrsize_add(dispatch_table_base.gp_reg(),
                           dispatch_table_base.gp_reg(), entry_offset);
+#endif
       if (index_reg_still_used) temps.Return(std::move(entry_offset));
       dispatch_table_offset =
           wasm::ObjectAccess::ToTagged(WasmDispatchTable::kEntriesOffset);
@@ -10179,8 +10175,8 @@ class LiftoffCompiler {
         // Instead of {pinned}, we use {kGpCacheRegList} as the list of pinned
         // registers, to prevent any attempt to cache the instance, which would
         // be incompatible with the {FREEZE_STATE} that is in effect here.
-        LOAD_TAGGED_PTR_INSTANCE_FIELD(formal_rtt.gp_reg(), ManagedObjectMaps,
-                                       kGpCacheRegList);
+        LOAD_TAGGED_PTR_INSTANCE_FIELD(formal_rtt.gp_reg().C(),
+                                       ManagedObjectMaps, kGpCacheRegList);
         __ LoadTaggedPointer(
             formal_rtt.gp_reg().C(), formal_rtt.gp_reg().C(), no_reg,
             wasm::ObjectAccess::ElementOffsetInTaggedFixedArray(
@@ -10204,7 +10200,7 @@ class LiftoffCompiler {
 
       // The first parameter will be either a WasmTrustedInstanceData or a
       // WasmImportData.
-      Register implicit_arg = temps.Acquire(kGpReg).gp();
+      Register implicit_arg = temps.Acquire(kGpReg).gp().C();
       Register target = temps.Acquire(kGpReg).gp();
 
       {
@@ -10787,7 +10783,8 @@ class LiftoffCompiler {
     DCHECK_EQ(no_reg, __ cache_state()->cached_instance_data);
     SCOPED_CODE_COMMENT("load instance");
     Register instance = __ cache_state()->TrySetCachedInstanceRegister(
-        pinned | LiftoffRegList{fallback}).C();
+        pinned | LiftoffRegList{fallback});
+    if (instance != no_reg) instance = instance.C();
     if (instance == no_reg) instance = fallback;
     DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, instance.IsC());
     __ LoadInstanceDataFromFrame(instance);
