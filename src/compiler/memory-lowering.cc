@@ -326,6 +326,11 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
             allocate_operator_.get(), allocate_builtin, reservation_size));
 #if V8_TARGET_CHERI
         vfalse = __ CapSub(vfalse, __ IntPtrConstant(kHeapObjectTag));
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+        Node* lab_top =
+            __ Load(MachineType::Pointer(), top_address, __ IntPtrConstant(0));
+        vfalse = __ SetAddress(lab_top, vfalse);
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
 #else
         vfalse = __ IntSub(vfalse, __ IntPtrConstant(kHeapObjectTag));
 #endif

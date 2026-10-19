@@ -414,9 +414,16 @@ class MemoryOptimizationReducer : public Next {
     if (__ Bind(call_runtime)) {
       V<HeapObject> allocated = __ template Call<HeapObject>(
           allocate_builtin, {reservation_size}, AllocateBuiltinDescriptor());
-      __ SetVariable(top(type),
-                     __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
-                                   __ IntPtrConstant(kHeapObjectTag)));
+      V<WordPtr> allocated_addr =
+          __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
+                        __ IntPtrConstant(kHeapObjectTag));
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+      V<WordPtr> lab_top =
+          __ LoadOffHeap(top_address, MemoryRepresentation::UintPtr());
+      allocated_addr =
+          __ SetAddress(lab_top, V<Word64>::Cast(allocated_addr));
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+      __ SetVariable(top(type), allocated_addr);
       __ Goto(done);
     }
 
