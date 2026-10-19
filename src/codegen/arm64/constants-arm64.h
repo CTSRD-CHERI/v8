@@ -295,9 +295,10 @@ using float16 = uint16_t;
   V_(Ct2, 14, 10, Bits) /* Load second dest /        */            \
   V_(Cs, 20, 16, Bits)  /* Store-exclusive status    */            \
                                                                    \
-  /* Morello add/subtract capability immediate */                  \
+  /* Morello add/subtract capability immediate: 23 is the op. */   \
+  /* The shift field is bit 22 alone, unlike the integer class. */ \
   V_(ImmAddSubCapability, 21, 10, Bits)                            \
-  V_(ShiftAddSubCapability, 23, 22, Bits)                          \
+  V_(ShiftAddSubCapability, 22, 22, Bits)                          \
   /* Morello ImmLLiteral (Imm17 as opposed to Imm19) */            \
   V_(CImmLLiteral, 21, 5, Bits)                                    \
   /* Morello AlignU/AlignD 6-bit immediate */                      \
