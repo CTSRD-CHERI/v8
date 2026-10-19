@@ -422,7 +422,7 @@ def parse_gtest_list(output: str, prefix: str) -> List[str]:
     tests: List[str] = []
     current_case: Optional[str] = None
     for line in output.splitlines():
-        line = line.rstrip()
+        line = line.split("#", 1)[0].rstrip()
         if not line:
             continue
         # A test case line ends with a dot and has no leading space
