@@ -19,13 +19,8 @@ class TestWithMarkingBitmap : public ::testing::Test {
 
 constexpr MarkBit::CellType kMarkedCell =
     std::numeric_limits<MarkBit::CellType>::max();
-#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
-constexpr MarkBit::CellType kLowerHalfMarkedCell =
-    kMarkedCell >> (((sizeof(kMarkedCell) / 2) * CHAR_BIT) / 2);
-#else
 constexpr MarkBit::CellType kLowerHalfMarkedCell =
     kMarkedCell >> ((sizeof(kMarkedCell) * CHAR_BIT) / 2);
-#endif
 constexpr MarkBit::CellType kHigherHalfMarkedCell = ~kLowerHalfMarkedCell;
 constexpr MarkBit::CellType kWhiteCell = static_cast<MarkBit::CellType>(0x0);
 constexpr uint8_t kMarkedByte = 0xFF;
