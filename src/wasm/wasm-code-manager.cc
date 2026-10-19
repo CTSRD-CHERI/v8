@@ -2104,6 +2104,16 @@ NativeModule::JumpTablesRef NativeModule::FindJumpTablesForRegionLocked(
   for (auto& code_space_data : code_space_data_) {
     DCHECK_IMPLIES(code_space_data.jump_table, code_space_data.far_jump_table);
     if (!code_space_data.far_jump_table) continue;
+#if V8_TARGET_CHERI
+    // Both of a code space's tables lie inside its region, so requiring the
+    // region to contain code_region keeps every direct table call in-bounds;
+    // out-of-mapping targets are declined by EmitJumpSlot and routed through
+    // the far table.
+    if (!code_space_data.region.contains(code_region.begin()) ||
+        !code_space_data.region.contains(code_region.end() - 1)) {
+      continue;
+    }
+#endif  // V8_TARGET_CHERI
     // Only return these jump tables if they are reachable from the whole
     // {code_region}.
     if (kNeedsFarJumpsBetweenCodeSpaces &&
