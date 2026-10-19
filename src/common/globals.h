@@ -1488,6 +1488,10 @@ constexpr bool IsAnyLargeSpace(AllocationSpace space) {
          space == SHARED_LO_SPACE || space == TRUSTED_LO_SPACE;
 }
 
+constexpr bool ShouldBoundObjectsInSpace(AllocationSpace space) {
+  return V8_CHERI_BOUND_OBJECTS_BOOL && !IsAnyCodeSpace(space);
+}
+
 constexpr const char* ToString(AllocationSpace space) {
   switch (space) {
     case AllocationSpace::RO_SPACE:

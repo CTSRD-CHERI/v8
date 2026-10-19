@@ -42,8 +42,10 @@ AllocationResult MainAllocator::AllocateFastUnaligned(int size_in_bytes,
   if (!allocation_info().CanIncrementTop(size_in_bytes)) {
     return AllocationResult::Failure();
   }
-  Tagged<HeapObject> obj = HeapObject::FromAddress(
-    allocation_info().IncrementTop(size_in_bytes), size_in_bytes);
+  Address start = allocation_info().IncrementTop(size_in_bytes);
+  Tagged<HeapObject> obj = bound_objects_
+                               ? HeapObject::FromAddress(start, size_in_bytes)
+                               : HeapObject::FromAddress(start);
 
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(obj.address(), size_in_bytes);
 
@@ -72,7 +74,9 @@ AllocationResult MainAllocator::AllocateFastAligned(
     start += filler_size;
   }
   // In CHERI, the object pointer bounds don't include the filler
-  Tagged<HeapObject> obj = HeapObject::FromAddress(start, size_in_bytes);
+  Tagged<HeapObject> obj = bound_objects_
+                               ? HeapObject::FromAddress(start, size_in_bytes)
+                               : HeapObject::FromAddress(start);
 
   MSAN_ALLOCATED_UNINITIALIZED_MEMORY(obj.address(), size_in_bytes);
 

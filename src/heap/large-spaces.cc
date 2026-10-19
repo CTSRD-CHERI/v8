@@ -130,7 +130,9 @@ AllocationResult OldLargeObjectSpace::AllocateRaw(LocalHeap* local_heap,
   LargePage* page = AllocateLargePage(object_size, executable, hint);
   if (page == nullptr) return AllocationResult::Failure();
   Tagged<HeapObject> object =
-      HeapObject::FromAddress(page->area_start(), object_size);
+      ShouldBoundObjectsInSpace(identity())
+          ? HeapObject::FromAddress(page->area_start(), object_size)
+          : HeapObject::FromAddress(page->area_start());
   if (local_heap->is_main_thread() && identity() != SHARED_LO_SPACE) {
     UpdatePendingObject(object);
   }
