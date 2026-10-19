@@ -1122,18 +1122,8 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     if (IsImmLSScaled(offset, size_log2)) {
 #if V8_TARGET_CHERI
       if (rt.IsC()) {
-        if (offset >= 0) {
-          LoadStoreCapScaledImmOffset(memop, static_cast<int>(offset),
-                                      size_log2);
-        } else {
-          UseScratchRegisterScope temps(this);
-          Register offset_reg =
-              temps
-                  .PushAndAcquireFirstAvailable(CPURegList(rt.C(), addr.base()))
-                  .X();
-          Mov(offset_reg, offset);
-          LoadStoreMacroComplex(rt, MemOperand(addr.base(), offset_reg), op);
-        }
+        DCHECK_GE(offset, 0);
+        LoadStoreCapScaledImmOffset(memop, static_cast<int>(offset), size_log2);
         return;
       }
 #endif
