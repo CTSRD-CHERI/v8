@@ -371,6 +371,7 @@ class MainAllocator {
 
   const bool supports_extending_lab_;
   const BlackAllocation black_allocation_;
+  const bool should_set_object_bounds_;
 
   friend class AllocatorPolicy;
   friend class PagedSpaceAllocatorPolicy;
