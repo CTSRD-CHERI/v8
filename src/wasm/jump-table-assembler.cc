@@ -11,6 +11,17 @@ namespace v8 {
 namespace internal {
 namespace wasm {
 
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+static Address SetC64BitFromUnsealedTarget(Address target) {
+  if (!V8_CHERI_SEALED(target)) {
+    target |= 1;
+  }
+  DCHECK(V8_CHERI_TAG_GET(target));
+  DCHECK(V8_CHERI_ADDR_GET(target) & 1);
+  return target;
+}
+#endif  // V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+
 // static
 void JumpTableAssembler::GenerateLazyCompileTable(
     Address base, uint32_t num_slots, uint32_t num_imported_functions,
@@ -306,6 +317,12 @@ bool JumpTableAssembler::EmitJumpSlot(Address target) {
   static constexpr ptrdiff_t kCodeEntryMarkerSize = 0;
 #endif
 
+#if V8_TARGET_CHERI
+  if (!V8_CHERI_INBOUNDS(pc_, V8_CHERI_ADDR_GET(target))) {
+    return false;
+  }
+#endif  // V8_TARGET_CHERI
+
   int64_t target_offset = MacroAssembler::CalculateTargetOffset(
       target, RelocInfo::NO_INFO,
       reinterpret_cast<uint8_t*>(pc_ + kCodeEntryMarkerSize));
@@ -357,6 +374,9 @@ void JumpTableAssembler::EmitFarJumpSlot(Address target) {
   emit<uint32_t>(inst[3]);
 #endif
   CHECK_IMPLIES(V8_TARGET_CHERI_BOOL, IsAligned(pc_, kSystemPointerSize));
+#if V8_TARGET_CHERI
+  target = SetC64BitFromUnsealedTarget(target);
+#endif
   emit<Address>(target);
 
 #ifdef __CHERI_PURE_CAPABILITY__
@@ -377,6 +397,9 @@ void JumpTableAssembler::PatchFarJumpSlot(WritableJitAllocation& jit_allocation,
 #endif
   // The slot needs to be pointer-size aligned so we can atomically update it.
   DCHECK(IsAligned(slot + kTargetOffset, kSystemPointerSize));
+#if V8_TARGET_CHERI
+  target = SetC64BitFromUnsealedTarget(target);
+#endif
   jit_allocation.WriteValue(slot + kTargetOffset, target, kRelaxedStore);
   // The data update is guaranteed to be atomic since it's a properly aligned
   // and stores a single machine word. This update will eventually be observed
