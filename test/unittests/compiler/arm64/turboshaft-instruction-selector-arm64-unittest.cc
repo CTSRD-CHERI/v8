@@ -5897,6 +5897,15 @@ static const MemoryAccess kMemoryAccesses[] = {
      kLoadStoreImmediates64},
 };
 
+// Mirrors GetLoad/StoreOpcodeAndImmediate(): native pointers are capabilities.
+#if V8_TARGET_CHERI
+constexpr ArchOpcode kLdrNativePointer = kArm64LdrCapability;
+constexpr ArchOpcode kStrNativePointer = kArm64StrCapability;
+#else
+constexpr ArchOpcode kLdrNativePointer = kArm64Ldr;
+constexpr ArchOpcode kStrNativePointer = kArm64Str;
+#endif
+
 static const MemoryAccess kMemoryAccessesTagged[] = {
 #ifdef V8_COMPRESS_POINTERS
     {MemoryRepresentation::AnyTagged(),
@@ -5932,49 +5941,49 @@ static const MemoryAccess kMemoryAccessesTagged[] = {
 #else
     {MemoryRepresentation::AnyTagged(),
      RegisterRepresentation::Compressed(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
     {MemoryRepresentation::TaggedPointer(),
      RegisterRepresentation::Compressed(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
     {MemoryRepresentation::TaggedSigned(),
      RegisterRepresentation::Compressed(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
     {MemoryRepresentation::AnyTagged(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
     {MemoryRepresentation::TaggedPointer(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
     {MemoryRepresentation::TaggedSigned(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
+     kLdrNativePointer,
      kArm64StrCompressTagged,
      kLoadStoreImmediates64},
 #endif  // V8_COMPRESS_POINTERS
     {MemoryRepresentation::AnyUncompressedTagged(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
-     kArm64Str,
+     kLdrNativePointer,
+     kStrNativePointer,
      kLoadStoreImmediates64},
     {MemoryRepresentation::UncompressedTaggedPointer(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
-     kArm64Str,
+     kLdrNativePointer,
+     kStrNativePointer,
      kLoadStoreImmediates64},
     {MemoryRepresentation::UncompressedTaggedSigned(),
      RegisterRepresentation::Tagged(),
-     kArm64Ldr,
-     kArm64Str,
+     kLdrNativePointer,
+     kStrNativePointer,
      kLoadStoreImmediates64},
 };
 // clang-format on
