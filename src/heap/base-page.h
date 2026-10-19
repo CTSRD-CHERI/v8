@@ -122,6 +122,19 @@ class BasePage {
     return MemoryChunk::FromAddress(area_start());
   }
 
+  // On CHERI, widen an object-bounded pointer.
+  Address AddressWithPageBounds(Address address) const {
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+    DCHECK_LE(static_cast<ptraddr_t>(area_start_),
+              static_cast<ptraddr_t>(address));
+    DCHECK_LE(static_cast<ptraddr_t>(address),
+              static_cast<ptraddr_t>(area_end_));
+    return V8_CHERI_ADDR_SET(area_start_, static_cast<ptraddr_t>(address));
+#else
+    return address;
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+  }
+
   bool is_pinned_for_testing() const {
     const bool is_pinned = IsPinnedForTestingField::decode(flags_);
     DCHECK_IMPLIES(is_pinned, !is_forced_evacuation_candidate_for_testing());
