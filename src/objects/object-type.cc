@@ -11,6 +11,24 @@
 namespace v8 {
 namespace internal {
 
+#if defined(DEBUG) && defined(__CHERI_PURE_CAPABILITY__)
+// Print() follows the map word, which faults on an untagged value.
+static void PrintUntaggedValue(Address value,
+                               std::stringstream& value_description) {
+  const ptraddr_t addr = V8_CHERI_ADDR_GET(value);
+  const ptraddr_t base = V8_CHERI_BASE_GET(value);
+  const uint64_t len = V8_CHERI_LENGTH_GET(value);
+  const uint64_t perms = V8_CHERI_PERMS(value);
+  uint64_t halves[2] = {0, 0};
+  std::memcpy(halves, &value, sizeof(halves));
+  value_description << "<untagged raw_value" << std::hex << " addr=0x" << addr
+                    << " lo=0x" << halves[0] << " hi=0x" << halves[1]
+                    << " base=0x" << base << " len=0x" << len << " perms=0x"
+                    << perms << " sealed=" << V8_CHERI_SEALED(value) << std::dec
+                    << ">";
+}
+#endif  // defined(DEBUG) && defined(__CHERI_PURE_CAPABILITY__)
+
 Address CheckObjectType(Address raw_value, Address raw_type,
                         Address raw_location) {
 #ifdef DEBUG
@@ -75,7 +93,15 @@ Address CheckObjectType(Address raw_value, Address raw_type,
   }
   Tagged<MaybeObject> maybe_value(raw_value);
   std::stringstream value_description;
+#ifdef __CHERI_PURE_CAPABILITY__
+  if (maybe_value.IsSmi() || V8_CHERI_TAG_GET(maybe_value.ptr())) {
+    Print(maybe_value, value_description);
+  } else {
+    PrintUntaggedValue(maybe_value.ptr(), value_description);
+  }
+#else
   Print(maybe_value, value_description);
+#endif  // __CHERI_PURE_CAPABILITY__
   FATAL(
       "Type cast failed in %s\n"
       "  Expected %s but found %s",
