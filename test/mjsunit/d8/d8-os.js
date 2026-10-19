@@ -41,7 +41,8 @@ function arg_error(str) {
   }
 }
 
-const kOsNameValues = ['linux', 'macos', 'windows', 'android', 'unknown'];
+const kOsNameValues =
+    ['linux', 'macos', 'windows', 'android', 'freebsd', 'unknown'];
 assertTrue(kOsNameValues.includes(os.name));
 
 assertTrue(os.d8Path.length > 0);
