@@ -849,6 +849,23 @@ void WasmCodeAllocator::InitializeCodeRange(NativeModule* native_module,
 #endif  // V8_OS_WIN64
 }
 
+// Each reservation is a separate mapping, so on CHERI its capability ends at
+// the mapping edge. DisjointAllocationPool coalesces adjacent free regions
+// and reservations are taken consecutively, so an allocation spanning a
+// boundary would bounds-fault on the first write past the end. Constrain the
+// result to one reservation; empty lets the caller grow the code space.
+base::AddressRegion WasmCodeAllocator::AllocateCodeSpaceInReservation(
+    size_t size, base::AddressRegion region) {
+  for (const VirtualMemory& vmem : owned_code_space_) {
+    base::AddressRegion candidate = vmem.region().GetOverlap(region);
+    if (candidate.is_empty()) continue;
+    base::AddressRegion code_space =
+        free_code_space_.AllocateInRegion(size, candidate);
+    if (!code_space.is_empty()) return code_space;
+  }
+  return base::AddressRegion();
+}
+
 base::Vector<uint8_t> WasmCodeAllocator::AllocateForCode(
     NativeModule* native_module, size_t size) {
   return AllocateForCodeInRegion(native_module, size, kUnrestrictedRegion);
@@ -865,7 +882,7 @@ base::Vector<uint8_t> WasmCodeAllocator::AllocateForCodeInRegion(
   auto* code_manager = GetWasmCodeManager();
   size = RoundUp<kCodeAlignment>(size);
   base::AddressRegion code_space =
-      free_code_space_.AllocateInRegion(size, region);
+      AllocateCodeSpaceInReservation(size, region);
   if (V8_UNLIKELY(code_space.is_empty())) {
     // Only allocations without a specific region are allowed to fail. Otherwise
     // the region must have been allocated big enough to hold all initial
@@ -910,7 +927,7 @@ base::Vector<uint8_t> WasmCodeAllocator::AllocateForCodeInRegion(
                                   static_cast<int>(owned_code_space_.size()));
     }
 
-    code_space = free_code_space_.Allocate(size);
+    code_space = AllocateCodeSpaceInReservation(size, region);
     CHECK(!code_space.is_empty());
   }
   const Address commit_page_size = CommitPageSize();

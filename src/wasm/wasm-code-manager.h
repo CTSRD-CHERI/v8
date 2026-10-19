@@ -607,6 +607,11 @@ class WasmCodeAllocator {
   DisjointAllocationPool freed_code_space_;
   std::vector<VirtualMemory> owned_code_space_;
 
+  // Like free_code_space_.AllocateInRegion, but confined to a single
+  // reservation; empty if no reservation has room.
+  base::AddressRegion AllocateCodeSpaceInReservation(
+      size_t size, base::AddressRegion region);
+
   // End of fields protected by {mutex_}.
   //////////////////////////////////////////////////////////////////////////////
 
