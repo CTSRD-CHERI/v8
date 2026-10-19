@@ -14,6 +14,7 @@
   "msan": false,
   "sandbox_hardware_support": false,
   "simulator_run": false,
+  "temporal": false,
   "tsan": false,
   "ubsan": false,
   "use_sanitizer": false,

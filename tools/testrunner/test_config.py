@@ -24,7 +24,8 @@ class TestConfig(object):
                target_os,
                timeout,
                verbose,
-               regenerate_expected_files=False):
+               regenerate_expected_files=False,
+               notemporal=False):
     self.command_prefix = command_prefix
     self.extra_flags = extra_flags
     self.extra_d8_flags = extra_d8_flags
@@ -34,6 +35,7 @@ class TestConfig(object):
     self.mode_flags = mode_flags
     self.no_harness = no_harness
     self.noi18n = noi18n
+    self.notemporal = notemporal
     # random_seed is always not None.
     self.random_seed = random_seed or random_utils.random_seed()
     self.run_skipped = run_skipped

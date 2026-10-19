@@ -270,9 +270,9 @@ class StandardRunnerTest(TestRunnerTest):
         "mode=debug, msan=True, no_harness=False, no_simd_hardware=False, "
         "novfp3=False, optimize_for_size=False, sandbox_hardware_support=True, "
         "simulator_run=False, slow_dchecks=False, "
-        "system=linux, target_cpu=x86, tsan=True, ubsan=True, "
-        "use_sanitizer=True, v8_target_cpu=x86, verify_heap=False, "
-        "verify_predictable=False")
+        "system=linux, target_cpu=x86, temporal=False, tsan=True, "
+        "ubsan=True, use_sanitizer=True, v8_target_cpu=x86, "
+        "verify_heap=False, verify_predictable=False")
     result.stdout_includes('>>> Running tests for ia32.release')
     result.has_returncode(0)
     # TODO(machenbach): Test some more implications of the auto-detected

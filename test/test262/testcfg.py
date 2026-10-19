@@ -144,6 +144,8 @@ class TestLoader(testsuite.JSTestLoader):
         return True
       self.local_staging_implementations.add(test.path_js)
     features = test.test_record.get("features", [])
+    if self.test_config.notemporal and "Temporal" in features:
+      return True
     return SKIPPED_FEATURES.intersection(features)
 
 

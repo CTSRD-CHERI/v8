@@ -697,6 +697,7 @@ class BaseTestRunner(object):
         timeout=timeout,
         verbose=self.options.verbose,
         regenerate_expected_files=self.options.regenerate_expected_files,
+        notemporal=not self.build_config.temporal,
     )
 
   # TODO(majeski): remove options & args parameters
