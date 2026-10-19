@@ -323,7 +323,12 @@ TEST_F(HeapTest, ExpectedDefaultGenerationLimitsForPhysicalMemory) {
     const uint64_t expected_young =
         v8_flags.minor_ms ? young_limit.minor_ms : young_limit.scavenger;
 #else
+    // HeapLimitMultiplier() scales with pointer size, doubling the limit.
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    const uint64_t expected_old = 2 * old_limit.arch_64bit;
+#else
     const uint64_t expected_old = old_limit.arch_64bit;
+#endif
     const uint64_t expected_young =
         v8_flags.minor_ms ? young_limit.minor_ms : young_limit.scavenger;
 #endif
@@ -422,7 +427,12 @@ TEST_F(HeapTest, ExpectedNewGenerationLimitsForPhysicalMemory) {
 #if defined(V8_TARGET_ARCH_32_BIT)
     const uint64_t expected_old = old_limit.arch_32bit;
 #else
+#if defined(__CHERI_PURE_CAPABILITY__) && !defined(V8_COMPRESS_POINTERS)
+    const uint64_t expected_old =
+        std::min<uint64_t>(2 * old_limit.arch_64bit, 4 * kGB);
+#else
     const uint64_t expected_old = old_limit.arch_64bit;
+#endif
 #endif
 
 #if V8_OS_ANDROID
