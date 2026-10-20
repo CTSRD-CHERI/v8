@@ -173,15 +173,6 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
   }
 #endif  // V8_CHERI_HEAP_RESERVATION_BOOL
 
-  static Address AddressWithHeapBounds(Address address) {
-#if V8_CHERI_BOUND_OBJECTS_BOOL
-    return V8_CHERI_ADDR_SET(heap_reservation_cap_,
-                             static_cast<ptraddr_t>(address));
-#else
-    return address;
-#endif
-  }
-
   V8_INLINE static MemoryChunk* FromAddress(Address addr) {
     return reinterpret_cast<MemoryChunk*>(BaseAddress(addr));
   }
