@@ -119,6 +119,10 @@ class MemoryLowering final : public Reducer {
   // defined.
   Node* AlignToAllocationAlignment(Node* address);
 
+#if V8_TARGET_CHERI
+  Node* BoundAllocation(Node* address, Node* size);
+#endif  // V8_TARGET_CHERI
+
   TFGraph* graph() const { return graph_; }
   Isolate* isolate() const { return isolate_; }
   Zone* zone() const { return zone_; }

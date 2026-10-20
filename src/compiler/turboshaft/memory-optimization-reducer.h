@@ -77,6 +77,8 @@ inline const AllocateOp* UnwrapAllocate(const Graph* graph,
       op = &graph->Get(capadd->left());
     } else if (const CapSubOp* capsub = op->TryCast<CapSubOp>()) {
       op = &graph->Get(capsub->left());
+    } else if (const SetBoundsOp* set_bounds = op->TryCast<SetBoundsOp>()) {
+      op = &graph->Get(set_bounds->pointer());
 #endif
     } else {
       return nullptr;
@@ -275,6 +277,9 @@ class MemoryOptimizationReducer : public Next {
     if (v8_flags.single_generation && type == AllocationType::kYoung) {
       type = AllocationType::kOld;
     }
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+    size = AlignToAllocationAlignment(size);
+#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
 
     V<WordPtr> top_address = __ IsolateField(
         type == AllocationType::kYoung ? IsolateFieldId::kNewAllocationInfoTop
@@ -286,6 +291,9 @@ class MemoryOptimizationReducer : public Next {
       __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)), size));
       __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                       MemoryRepresentation::UintPtr());
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+      obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
       return __ BitcastWordPtrToHeapObject(
           __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
     }
@@ -349,22 +357,14 @@ class MemoryOptimizationReducer : public Next {
       if (!constant_size) {
         // Check if we can do bump pointer allocation here.
         V<WordPtr> top_value = __ GetVariable(top(type));
+        V<WordPtr> obj_addr = top_value;
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+        obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
         __ SetVariable(result,
                        __ BitcastWordPtrToHeapObject(__ WordPtrAdd(
-                           top_value, __ IntPtrConstant(kHeapObjectTag))));
-#if V8_TARGET_CHERI
-        // On CHERI the object alignment is 16 bytes, but an object whose last
-        // field is an 8-byte double (e.g. HeapNumber) has a size that is only a
-        // multiple of 8, so without this the allocation top would end up
-        // misaligned and every later 16-byte capability access to the heap
-        // would fault.
-        V<WordPtr> aligned_size = __ WordPtrBitwiseAnd(
-            __ WordPtrAdd(size, __ WordPtrConstant(kObjectAlignment - 1)),
-            __ WordPtrConstant(~static_cast<ScaledUint>(kObjectAlignmentMask)));
-        V<WordPtr> new_top = __ WordPtrAdd(top_value, aligned_size);
-#else
+                           obj_addr, __ IntPtrConstant(kHeapObjectTag))));
         V<WordPtr> new_top = __ WordPtrAdd(top_value, size);
-#endif
         V<WordPtr> limit =
             __ LoadOffHeap(limit_address, MemoryRepresentation::UintPtr());
         __ GotoIfNot(LIKELY(__ UintPtrLessThan(new_top, limit)), call_runtime);
@@ -438,6 +438,9 @@ class MemoryOptimizationReducer : public Next {
     __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)), size));
     __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                     MemoryRepresentation::UintPtr());
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+    obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
     return __ BitcastWordPtrToHeapObject(
         __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
   }
@@ -578,6 +581,19 @@ class MemoryOptimizationReducer : public Next {
     __ StoreOffHeap(__ IsolateField(IsolateFieldId::kLastYoungAllocation),
                     last_value, MemoryRepresentation::UintPtr());
   }
+
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+  V<WordPtr> AlignToAllocationAlignment(V<WordPtr> size) {
+    uint64_t constant_size;
+    if (__ matcher().MatchIntegralWordConstant(
+            size, WordRepresentation::WordPtr(), &constant_size)) {
+      return __ UintPtrConstant(ALIGN_TO_ALLOCATION_ALIGNMENT(constant_size));
+    }
+    return __ WordPtrBitwiseAnd(
+        __ WordPtrAdd(size, __ WordPtrConstant(kPointerAlignmentMask)),
+        __ WordPtrConstant(~static_cast<ScaledUint>(kPointerAlignmentMask)));
+  }
+#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
 
   V<WordPtr> GetLimitAddress(AllocationType type) {
     return __ IsolateField(type == AllocationType::kYoung
