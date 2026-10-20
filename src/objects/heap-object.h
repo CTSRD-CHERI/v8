@@ -246,7 +246,6 @@ class HeapObject : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
   static inline Tagged<HeapObject> FromAddressWithBounds(Address address,
                                                          size_t size) {
 #if V8_CHERI_BOUND_OBJECTS_BOOL
-    size = ALIGN_TO_ALLOCATION_ALIGNMENT(size);
     // TODO(zyj20): think about non-representable bounds
     Address bounded = V8_CHERI_SET_BOUNDS(address, size);
     return FromAddress(bounded);
