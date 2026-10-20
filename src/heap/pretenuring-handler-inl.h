@@ -91,15 +91,19 @@ Tagged<AllocationMemento> PretenuringHandler::FindAllocationMemento(
     return {};
   }
 
+  BasePage* object_page =
+      MemoryChunk::FromAddress(object_address)->Metadata(heap->isolate());
   // If the page is being swept, treat it as if the memento was already swept
   // and bail out.
   if constexpr (mode != FindMementoMode::kForGC) {
-    MemoryChunk* object_chunk = MemoryChunk::FromAddress(object_address);
-    NormalPage* object_page = NormalPage::cast(object_chunk->Metadata());
-    if (!object_page->SweepingDone()) {
+    if (!NormalPage::cast(object_page)->SweepingDone()) {
       return {};
     }
   }
+  // The potential memento may be outside the object pointer bounds, for example,
+  // when there isn't a memento. If we don't widen the bounds, the memento map
+  // check below crashes in CHERI.
+  memento_address = object_page->AddressWithPageBounds(memento_address);
 
   Tagged<HeapObject> candidate = HeapObject::FromAddress(memento_address);
   ObjectSlot candidate_map_slot = candidate->map_slot();
