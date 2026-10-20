@@ -121,6 +121,9 @@ void MemoryAnalyzer::ProcessAllocation(const AllocateOp& alloc) {
   if (uint64_t size_value{}; OperationMatcher(input_graph).MatchWordPtrConstant(
                                  alloc.size(), &size_value)) {
     new_size = OBJECT_POINTER_ALIGN(size_value);
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+    new_size = ALIGN_TO_ALLOCATION_ALIGNMENT(*new_size);
+#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
   }
   // If the new allocation has a static size and is of the same type, then we
   // can fold it into the previous allocation unless the folded allocation would
