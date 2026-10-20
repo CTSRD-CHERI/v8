@@ -3516,6 +3516,7 @@ Tagged<FixedArrayBase> Heap::LeftTrimFixedArray(Tagged<FixedArrayBase> object,
 
   const int len = object->length();
   DCHECK(elements_to_trim <= len);
+  const int new_size = object->Size() - bytes_to_trim;
 
   // Calculate location of new array start.
   Address old_start = object.address();
@@ -3540,7 +3541,7 @@ Tagged<FixedArrayBase> Heap::LeftTrimFixedArray(Tagged<FixedArrayBase> object,
                       Smi::FromInt(len - elements_to_trim));
 
   Tagged<FixedArrayBase> new_object =
-      Cast<FixedArrayBase>(HeapObject::FromAddress(new_start));
+      Cast<FixedArrayBase>(HeapObject::FromAddress(new_start, new_size));
 
   if (isolate()->log_object_relocation()) {
     // Notify the heap profiler of change in object layout.
