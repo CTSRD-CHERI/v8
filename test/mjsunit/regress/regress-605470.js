@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Flags: --stack-size=2048
+
 function function_with_m_args(m) {
   var source = '(function f() { return; })(';
   for (var arg = 0; arg < m ; arg++) {

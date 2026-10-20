@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Flags: --stack-size=2048
+
 var x = Array(100000);
 y =  Array.apply(Array, x);
 y.unshift(4);

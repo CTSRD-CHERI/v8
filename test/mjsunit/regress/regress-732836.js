@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Flags: --stack-size=2048
+
 function boom() {
   var args = [];
   for (var i = 0; i < 110000; i++)

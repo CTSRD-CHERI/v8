@@ -22,7 +22,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // This neuters too low stack size passed by the flag fuzzer.
-// Flags: --stack-size=864
+// Flags: --stack-size=2048
 
 description('Tests to ensure that Function.apply works correctly for Arrays, arguments and array-like objects.');
 

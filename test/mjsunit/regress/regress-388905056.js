@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 // Flags: --allow-natives-syntax --nolazy-feedback-allocation
-// Flags: --stress-concurrent-inlining
+// Flags: --stress-concurrent-inlining --stack-size=2048
 
 function f() {}
 let array = [];

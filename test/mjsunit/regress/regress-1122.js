@@ -32,6 +32,8 @@
 // See http://code.google.com/p/v8/issues/detail?id=1122 and
 // http://code.google.com/p/v8/issues/detail?id=1413.
 
+// Flags: --stack-size=2048
+
 function function_with_n_params_and_m_args(n, m) {
   test_prefix = 'prefix ';
   test_suffix = ' suffix';

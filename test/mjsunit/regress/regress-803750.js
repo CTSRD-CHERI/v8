@@ -3,5 +3,7 @@
 // found in the LICENSE file.
 
 // Verify that very large arrays can be constructed.
+// Flags: --stack-size=2048
+
 assertEquals(Array.isArray(Array.of.apply(Array, Array(65536))), true);
 assertEquals(Array.isArray(Array.of.apply(null, Array(65536))), true);
