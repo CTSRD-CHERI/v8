@@ -1500,9 +1500,6 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                                                  AllocationFlags flags,
                                                  TNode<RawPtrT> top_address,
                                                  TNode<RawPtrT> limit_address) {
-  // TODO(cheri): Add proper bounds here. We can't be too strict yet because we
-  // don't know what we are allocating, but we can certainly bound to
-  // size_in_bytes as we currently have holes.
   Label if_out_of_memory(this, Label::kDeferred);
 
   // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
@@ -1656,14 +1653,6 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
           IntPtrSub(rounded_top, UncheckedCast<IntPtrT>(top)).MarkAsInteger();
       DCHECK(!padding_needed.IsCapability());
       address = RawPtrAdd(top, padding_needed);
-#if V8_CHERI_TIGHT_BOUNDS
-      // Narrowing the bounds here breaks the page-header accesses that
-      // MemoryChunkFromAddress performs by masking off the low address bits, so
-      // it is off by default; see V8_CHERI_TIGHT_BOUNDS in src/base/macros.h.
-      address = UncheckedCast<RawPtrT>(
-          SetBounds(address.value(), adjusted_size.value()));
-      DCHECK(address.IsCapability());
-#endif
 #else
       // Store a filler and increase the address by 4.
       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
@@ -1675,6 +1664,16 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
 
       BIND(&next);
     }
+
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+    // Bounds are rounded up to the allocation alignment because that's the allocated size.
+    constexpr intptr_t kMask = static_cast<intptr_t>(kPointerAlignmentMask);
+    TNode<IntPtrT> bounds_size = WordAnd(
+        IntPtrAdd(size_in_bytes, IntPtrConstant(kMask)), IntPtrConstant(~kMask));
+    address =
+        UncheckedCast<RawPtrT>(SetBounds(address.value(), bounds_size));
+    DCHECK(address.IsCapability());
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
 
     result = BitcastWordToTagged(
         RawPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
