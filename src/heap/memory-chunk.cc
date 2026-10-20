@@ -14,14 +14,14 @@
 namespace v8 {
 namespace internal {
 
-#if V8_CHERI_HEAP_RESERVATION_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
 Address MemoryChunk::heap_reservation_cap_ = kNullAddress;
 
 // static
 void MemoryChunk::InitHeapReservationCap(Address cap) {
   heap_reservation_cap_ = cap;
 }
-#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 // This check is here to ensure that the lower 32 bits of any real heap object
 // can't overlap with the lower 32 bits of cleared weak reference value and

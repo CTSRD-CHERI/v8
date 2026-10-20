@@ -56,9 +56,9 @@ class ReadOnlyHeapImageDeserializer final {
           DeserializeReadOnlyRootsTable();
           break;
         case Bytecode::kFinalizeReadOnlySpace:
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
           BoundReferences();
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
           ro_space()->FinalizeSpaceForDeserialization(source_->GetUint30());
           return;
       }
@@ -105,10 +105,10 @@ class ReadOnlyHeapImageDeserializer final {
           const_cast<uint8_t*>(source_->data() + source_->position());
       ro::BitSet tagged_slots(data, tagged_slots_size_in_bits);
       DecodeTaggedSlots(start, tagged_slots);
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
       relocated_segments_.push_back(
           {start, data, tagged_slots.size_in_bits()});
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
       source_->Advance(static_cast<int>(tagged_slots.size_in_bytes()));
     }
   }
@@ -158,7 +158,7 @@ class ReadOnlyHeapImageDeserializer final {
     return isolate_->read_only_heap()->read_only_space();
   }
 
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   static_assert(!V8_STATIC_ROOTS_BOOL,
                 "CHERI object bounding does not support static roots");
   
@@ -191,13 +191,13 @@ class ReadOnlyHeapImageDeserializer final {
     Tagged<HeapObject> object = Cast<HeapObject>(Tagged<Object>(ptr));
     return HeapObject::FromAddress(object.address(), object->Size()).ptr();
   }
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
   SnapshotByteSource* const source_;
   Isolate* const isolate_;
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   std::vector<RelocatedSegment> relocated_segments_;
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
 };
 
 ReadOnlyDeserializer::ReadOnlyDeserializer(Isolate* isolate,
