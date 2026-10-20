@@ -14757,16 +14757,15 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   TNode<IntPtrT> new_space_top_page_header =
       MemoryChunkFromAddress(new_space_top);
 
+  // Bail out if the object sits on the page boundary as no memento can follow.
+  // On CHERI, touching the memory outside the page boundary will crash.
+  GotoIf(WordNotEqual(object_page_header, memento_last_word_page_header),
+         &no_memento_found);
+
   // If the object is in new space, we need to check whether respective
   // potential memento object is on the same page as the current top.
-  GotoIf(WordEqual(memento_last_word_page_header, new_space_top_page_header),
-         &top_check);
-
-  // The object is on a different page than allocation top. Bail out if the
-  // object sits on the page boundary as no memento can follow and we cannot
-  // touch the memory following it.
-  Branch(WordEqual(object_page_header, memento_last_word_page_header),
-         &map_check, &no_memento_found);
+  Branch(WordEqual(memento_last_word_page_header, new_space_top_page_header),
+         &top_check, &map_check);
 
   // If top is on the same page as the current object, we need to check whether
   // we are below top.
@@ -14779,8 +14778,11 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   // Memento map check.
   BIND(&map_check);
   {
-    TNode<AnyTaggedT> maybe_mapword =
-        LoadObjectField(object, kMementoMapOffset);
+    TNode<IntPtrT> memento_map_address = AddressWithPageBounds(
+        object_page_header,
+        IntPtrAdd(object_word,
+                  IntPtrConstant(kMementoMapOffset - kHeapObjectTag)));
+    TNode<AnyTaggedT> maybe_mapword = Load<AnyTaggedT>(memento_map_address);
     TNode<AnyTaggedT> memento_mapword =
         LoadRootMapWord(RootIndex::kAllocationMementoMap);
     Branch(TaggedEqual(maybe_mapword, memento_mapword), memento_found,
@@ -14788,6 +14790,18 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   }
   BIND(&no_memento_found);
   Comment("] TrapAllocationMemento");
+}
+
+TNode<IntPtrT> CodeStubAssembler::AddressWithPageBounds(
+    TNode<IntPtrT> memory_chunk, TNode<IntPtrT> address) {
+#if V8_CHERI_BOUND_OBJECTS_BOOL
+  TNode<IntPtrT> page = BasePageFromMemoryChunk(memory_chunk);
+  TNode<RawPtrT> area_start =
+      Load<RawPtrT>(page, IntPtrConstant(BasePage::AreaStartOffset()));
+  return SetAddress(area_start, address);
+#else
+  return address;
+#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
 }
 
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(

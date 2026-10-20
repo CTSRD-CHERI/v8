@@ -4115,6 +4115,9 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
   TNode<IntPtrT> BasePageFromMemoryChunk(TNode<IntPtrT> address);
   // Equivalent to BasePage::FromAddress().
   TNode<IntPtrT> BasePageFromAddress(TNode<IntPtrT> address);
+  // Equivalent to BasePage::AddressWithPageBounds(). For CHERI.
+  TNode<IntPtrT> AddressWithPageBounds(TNode<IntPtrT> memory_chunk,
+                                       TNode<IntPtrT> address);
 
   // Store a weak in-place reference into the FeedbackVector.
   TNode<MaybeObject> StoreWeakReferenceInFeedbackVector(
