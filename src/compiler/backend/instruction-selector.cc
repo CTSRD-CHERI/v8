@@ -2634,8 +2634,13 @@ void InstructionSelector::VisitAlignD(OpIndex node) {
 
 void InstructionSelector::VisitSetBounds(OpIndex node) {
   OperandGenerator g(this);
+  OpIndex length = Get(node).input(1);
+  const ConstantOp* constant = Get(length).TryCast<ConstantOp>();
+  InstructionOperand length_operand =
+      constant && constant->IsIntegral() ? g.UseImmediate(length)
+                                         : g.UseRegister(length);
   Emit(kArchSetBounds, g.DefineAsRegister(node),
-       g.UseRegister(Get(node).input(0)), g.UseAny(Get(node).input(1)));
+       g.UseRegister(Get(node).input(0)), length_operand);
 }
 
 void InstructionSelector::VisitSetAddress(OpIndex node) {
