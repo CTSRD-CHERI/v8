@@ -10,7 +10,7 @@
 #include "src/base/platform/mutex.h"
 #include "src/base/region-allocator.h"
 
-#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_CHERI_BOUND_OBJECTS)
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_CHERI_TIGHT_BOUNDS)
 #define V8_CHERI_BOUND_PAGES_BOOL true
 #else
 #define V8_CHERI_BOUND_PAGES_BOOL false
