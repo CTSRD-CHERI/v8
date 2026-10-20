@@ -244,13 +244,13 @@ class HeapObject : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
   // On CHERI builds with strict object bounding, the HeapObject pointer carries
   // bounds specified by (address, size).
   static inline Tagged<HeapObject> FromAddress(Address address, size_t size) {
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
     // TODO(zyj20): think about non-representable bounds
     Address bounded = V8_CHERI_SET_BOUNDS(address, size);
     return FromAddress(bounded);
 #else
     return FromAddress(address);
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
   }
 
   // Returns the address of this HeapObject.

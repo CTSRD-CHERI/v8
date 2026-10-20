@@ -601,7 +601,7 @@ bool OS::SetPermissions(void* address, size_t size, OS::MemoryPermission access,
   DCHECK_NE(0, V8_CHERI_PERMS(address) & CHERI_PERM_SW_VMEM);
 #endif
 #if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD && \
-    defined(V8_CHERI_BOUND_OBJECTS)
+    defined(V8_CHERI_TIGHT_BOUNDS)
   // In CHERI bounded builds, we have a heap reservation mapping and pages
   // inside the reservation can be recycled for other purposes. Therefore,
   // don't pass PROT_MAX().

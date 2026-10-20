@@ -411,7 +411,7 @@ size_t Heap::AllocatorLimitOnMaxOldGenerationSize(uint64_t physical_memory) {
   return kPtrComprCageReservationSize -
          YoungGenerationSizeFromSemiSpaceSize(
              DefaultMaxSemiSpaceSize(physical_memory));
-#elif V8_CHERI_HEAP_RESERVATION_BOOL
+#elif V8_CHERI_TIGHT_BOUNDS
   // Every heap page comes out of the CHERI heap reservation.
   return kCheriHeapReservationSize -
          YoungGenerationSizeFromSemiSpaceSize(

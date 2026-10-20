@@ -102,7 +102,7 @@ class IsolateData final {
 #endif
         ,
         js_dispatch_table_base_(group->js_dispatch_table()->base_address())
-#ifdef V8_CHERI_BOUND_OBJECTS
+#ifdef V8_CHERI_TIGHT_BOUNDS
         ,
         heap_reservation_cap_(group->heap_reservation_cap())
 #endif
@@ -178,7 +178,7 @@ class IsolateData final {
 
   // The value of kPointerCageBaseRegister.
   Address cage_base() const { return cage_base_; }
-#ifdef V8_CHERI_BOUND_OBJECTS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   Address heap_reservation_cap() const { return heap_reservation_cap_; }
 #endif
   StackGuard* stack_guard() { return &stack_guard_; }
@@ -429,7 +429,7 @@ class IsolateData final {
   // This is data that should be preserved on newly created continuations.
   Tagged<Object> continuation_preserved_embedder_data_ = Smi::zero();
 
-#ifdef V8_CHERI_BOUND_OBJECTS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   const Address heap_reservation_cap_ = kNullAddress;
 #endif
 

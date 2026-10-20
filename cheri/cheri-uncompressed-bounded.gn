@@ -25,8 +25,8 @@ v8_enable_pointer_compression = false
 v8_enable_external_code_space = false
 v8_enable_sandbox = false
 
-# CHERI object bounding
-v8_cheri_bound_objects = true
+# CHERI tight bounds on heap objects
+v8_cheri_tight_bounds = true
 
 arm_control_flow_integrity = "none"
 #v8_enable_control_flow_integrity = false

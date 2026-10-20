@@ -828,7 +828,7 @@ constexpr Address kContiguousReadOnlySpaceMask =
 
 #endif  // COMPRESS_POINTERS_IN_SHARED_CAGE_BOOL
 
-// To support CHERI tight JS object, we need a way to re-derive a capability
+// To support CHERI tight JS object bounding, we need a way to re-derive a capability
 // for a page header from the address of an object.
 // On builds without pointer compression, all isolates are in the same
 // IsolateGroup. We store a single capability covering the whole heap owned by
@@ -837,18 +837,13 @@ constexpr Address kContiguousReadOnlySpaceMask =
 //
 // Currently we don't support CHERI tight JS object bounding with compressed
 // pointers.
-#ifdef V8_CHERI_BOUND_OBJECTS
+#ifdef V8_CHERI_TIGHT_BOUNDS
 #if !defined(__CHERI_PURE_CAPABILITY__) || !defined(V8_TARGET_CHERI) || \
     defined(V8_COMPRESS_POINTERS)
-#error "V8_CHERI_BOUND_OBJECTS needs purecap CHERI without pointer compression"
+#error "V8_CHERI_TIGHT_BOUNDS needs purecap CHERI without pointer compression"
 #endif
-#define V8_CHERI_HEAP_RESERVATION_BOOL true
-#define V8_CHERI_BOUND_OBJECTS_BOOL true
 constexpr size_t kCheriHeapReservationSize = size_t{64} * GB;
-#else
-#define V8_CHERI_HEAP_RESERVATION_BOOL false
-#define V8_CHERI_BOUND_OBJECTS_BOOL false
-#endif
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 // -----------------------------------------------------------------------------
 // Declarations for use in both the preparser and the rest of V8.
@@ -1489,7 +1484,11 @@ constexpr bool IsAnyLargeSpace(AllocationSpace space) {
 }
 
 constexpr bool ShouldBoundObjectsInSpace(AllocationSpace space) {
-  return V8_CHERI_BOUND_OBJECTS_BOOL && !IsAnyCodeSpace(space);
+#if V8_CHERI_TIGHT_BOUNDS
+  return !IsAnyCodeSpace(space);
+#else
+  return false;
+#endif  // V8_CHERI_TIGHT_BOUNDS
 }
 
 constexpr const char* ToString(AllocationSpace space) {

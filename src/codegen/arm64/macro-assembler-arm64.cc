@@ -4193,7 +4193,7 @@ int MacroAssembler::AtomicDecompressTagged(const Register& destination,
 
 void MacroAssembler::MemoryChunkHeaderFromObject(const Register& header,
                                                  const Register& object) {
-#if V8_CHERI_HEAP_RESERVATION_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   Register address = object.X();
   UseScratchRegisterScope temps(this);
   if (AreAliased(header, object)) {

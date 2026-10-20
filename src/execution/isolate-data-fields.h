@@ -96,12 +96,12 @@ static constexpr int kFastCCallAlignmentPaddingCount = 1;
   V(StressDeoptCount, kUInt64Size, stress_deopt_count)                         \
   ISOLATE_DATA_FIELDS_TIERING(V)
 
-#ifdef V8_CHERI_BOUND_OBJECTS
+#ifdef V8_CHERI_TIGHT_BOUNDS
 #define ISOLATE_DATA_FIELDS_CHERI(V) \
   V(HeapReservationCap, kSystemPointerSize, heap_reservation_cap)
 #else
 #define ISOLATE_DATA_FIELDS_CHERI(V)
-#endif  // V8_CHERI_BOUND_OBJECTS
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 #ifdef V8_COMPRESS_POINTERS
 #define ISOLATE_DATA_FIELDS_POINTER_COMPRESSION(V)      \

@@ -2935,7 +2935,7 @@ class AssemblerOpInterface : public Next {
   }
 
   V<WordPtr> MemoryChunkFromAddress(V<WordPtr> address) {
-#if V8_CHERI_HEAP_RESERVATION_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
     V<WordPtr> reservation =
         Load(LoadRootRegister(), LoadOp::Kind::RawAligned().Immutable(),
              MemoryRepresentation::UintPtr(),

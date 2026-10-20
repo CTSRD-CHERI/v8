@@ -143,7 +143,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
 
   V8_INLINE Address address() const { return reinterpret_cast<Address>(this); }
 
-#if V8_CHERI_HEAP_RESERVATION_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   static Address BaseAddress(Address a) {
     // LINT.IfChange
     // If this changes, we also need to update
@@ -159,7 +159,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
 
   static void InitHeapReservationCap(Address cap);
   static Address heap_reservation_cap() { return heap_reservation_cap_; }
-#else   // !V8_CHERI_HEAP_RESERVATION_BOOL
+#else   // !V8_CHERI_TIGHT_BOUNDS
   static constexpr Address BaseAddress(Address a) {
     // LINT.IfChange
     // If this changes, we also need to update
@@ -171,7 +171,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
     // LINT.ThenChange(/src/codegen/code-stub-assembler.cc, /src/codegen/ia32/macro-assembler-ia32.cc, /src/codegen/x64/macro-assembler-x64.cc, /src/compiler/turboshaft/assembler.h)
     // clang-format on
   }
-#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
   V8_INLINE static MemoryChunk* FromAddress(Address addr) {
     return reinterpret_cast<MemoryChunk*>(BaseAddress(addr));
@@ -329,9 +329,9 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
       (static_cast<ScaledUint>(1) << kPageSizeBits);
   static constexpr ScaledInt kAlignmentMask = kAlignment - 1;
 
-#if V8_CHERI_HEAP_RESERVATION_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   static Address heap_reservation_cap_;
-#endif  // V8_CHERI_HEAP_RESERVATION_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 #ifdef V8_ENABLE_SANDBOX
 #ifndef V8_EXTERNAL_CODE_SPACE
