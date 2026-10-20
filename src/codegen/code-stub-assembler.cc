@@ -5341,16 +5341,31 @@ TNode<JSArray> CodeStubAssembler::AllocateJSArray(
   return result;
 }
 
+TNode<HeapObject> CodeStubAssembler::BoundHeapObject(TNode<HeapObject> object,
+                                                     TNode<IntPtrT> size) {
+#if V8_CHERI_TIGHT_BOUNDS
+  TNode<IntPtrT> address =
+      IntPtrSub(BitcastTaggedToWord(object), IntPtrConstant(kHeapObjectTag));
+  address = SetBounds(address, size);
+  return UncheckedCast<HeapObject>(BitcastWordToTagged(
+      IntPtrAdd(address, IntPtrConstant(kHeapObjectTag))));
+#else
+  return object;
+#endif  // V8_CHERI_TIGHT_BOUNDS
+}
+
 namespace {
 
 // To prevent GC between the array and elements allocation, the elements
 // object allocation is folded together with the js-array allocation.
 TNode<FixedArrayBase> InnerAllocateElements(CodeStubAssembler* csa,
                                             TNode<JSArray> js_array,
-                                            int offset) {
-  return csa->UncheckedCast<FixedArrayBase>(
+                                            int offset, TNode<IntPtrT> size) {
+  TNode<HeapObject> elements = csa->UncheckedCast<HeapObject>(
       csa->BitcastWordToTagged(csa->IntPtrAdd(
           csa->BitcastTaggedToWord(js_array), csa->IntPtrConstant(offset))));
+  return csa->UncheckedCast<FixedArrayBase>(
+      csa->BoundHeapObject(elements, size));
 }
 
 }  // namespace
@@ -5466,7 +5481,15 @@ CodeStubAssembler::AllocateUninitializedJSArrayWithElements(
     // Fold all objects into a single new space allocation.
     array =
         AllocateUninitializedJSArray(array_map, length, allocation_site, size);
-    elements = InnerAllocateElements(this, array.value(), elements_offset);
+    constexpr intptr_t kMask = static_cast<intptr_t>(kObjectAlignmentMask);
+    TNode<IntPtrT> elements_size = WordAnd(
+        IntPtrAdd(IntPtrSub(size, IntPtrConstant(elements_offset)),
+                  IntPtrConstant(kMask)),
+        IntPtrConstant(~kMask));
+    elements = InnerAllocateElements(this, array.value(), elements_offset,
+                                     elements_size);
+    array = UncheckedCast<JSArray>(
+        BoundHeapObject(array.value(), IntPtrConstant(array_header_size)));
 
     StoreObjectFieldNoWriteBarrier(array.value(), JSObject::kElementsOffset,
                                    elements.value());

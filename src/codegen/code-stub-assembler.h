@@ -696,6 +696,9 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
 
   TNode<BoolT> IsRegularHeapObjectSize(TNode<IntPtrT> size);
 
+  TNode<HeapObject> BoundHeapObject(TNode<HeapObject> object,
+                                    TNode<IntPtrT> size);
+
   using BranchGenerator = std::function<void(Label*, Label*)>;
   template <typename T>
   using NodeGenerator = std::function<TNode<T>()>;
