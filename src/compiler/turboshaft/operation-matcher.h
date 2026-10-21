@@ -233,7 +233,11 @@ class OperationMatcher {
             *signed_constant = static_cast<int32_t>(op->signed_integral());
           }
           return true;
-        } else if (rep.value() == WordRepresentation::Word64()) {
+        } else if (rep.value() == WordRepresentation::Word64()
+#if V8_TARGET_CHERI
+                   || rep.value() == WordRepresentation::Capability64()
+#endif
+        ) {
           if (unsigned_constant) {
             *unsigned_constant = op->integral();
           }
@@ -243,6 +247,19 @@ class OperationMatcher {
           return true;
         }
         return false;
+#if V8_TARGET_CHERI
+      case ConstantOp::Kind::kCapability64:
+        if (rep.value() == WordRepresentation::Capability64()) {
+          if (unsigned_constant) {
+            *unsigned_constant = static_cast<uint64_t>(op->capability64());
+          }
+          if (signed_constant) {
+            *signed_constant = static_cast<int64_t>(op->capability64());
+          }
+          return true;
+        }
+        return false;
+#endif
       default:
         return false;
     }
