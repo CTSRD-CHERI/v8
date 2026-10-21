@@ -1253,7 +1253,7 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
     DCHECK_LT(index, IsolateData::GetRawArgumentCount());
     StoreNoWriteBarrier(MachineRepresentationOf<Type>::value,
                         IsolateField(IsolateFieldId::kRawArguments),
-                        IntPtrConstant(index * kDoubleSize), value);
+                        IntPtrConstant(index * kSystemPointerSize), value);
   }
 
   // Load a field from an object on the heap.
