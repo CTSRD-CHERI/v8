@@ -1389,10 +1389,10 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
 #endif
 
   // Target machine word-size assumed by this builder.
+  bool Is32() const { return word() == MachineRepresentation::kWord32; }
 #if V8_TARGET_CHERI
   // For CHERI the machine representation is twice the word size of the
   // native architure.
-  bool Is32() const { return false; }
   bool Is64() const {
     if (word() == MachineRepresentation::kCapability64) {
       static_assert(kSystemPointerSize == (2 * kSystemPointerAddrSize));
@@ -1402,7 +1402,6 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
     }
   }
 #else
-  bool Is32() const { return word() == MachineRepresentation::kWord32; }
   bool Is64() const { return word() == MachineRepresentation::kWord64; }
 #endif
   MachineRepresentation word() const { return word_; }
