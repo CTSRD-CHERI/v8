@@ -294,7 +294,12 @@ void StringBuiltinsAssembler::StringEqual_FastLoop(
   TNode<RawPtrT> lhs_data = DirectStringData(lhs, lhs_instance_type);
   TNode<RawPtrT> rhs_data = DirectStringData(rhs, rhs_instance_type);
 
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+  // The loop only has 4- and 8-byte integer loads.
+  const int kChunk = kSystemPointerAddrSize;
+#else
   const int kChunk = kTaggedSize;
+#endif
   static_assert(kObjectAlignment % kChunk == 0);
   // Round up the byte_length to `ceiling(length / kChunk) * kChunk`
   TNode<IntPtrT> rounded_up_len = UncheckedCast<IntPtrT>(WordAnd(
@@ -340,15 +345,8 @@ void StringBuiltinsAssembler::StringEqual_FastLoop(
 
   // Compare strings in chunks of either 4 or 8 bytes, depending on the
   // alignment of allocations.
-#ifdef __CHERI_PURE_CAPABILITY__
-  static_assert(kChunk == ElementSizeInBytes(MachineRepresentation::kWord64) ||
-                kChunk == ElementSizeInBytes(MachineRepresentation::kWord32) ||
-                kChunk ==
-                    ElementSizeInBytes(MachineRepresentation::kCapability64));
-#else   // !__CHERI_PURE_CAPABILITY__
   static_assert(kChunk == ElementSizeInBytes(MachineRepresentation::kWord64) ||
                 kChunk == ElementSizeInBytes(MachineRepresentation::kWord32));
-#endif  // __CHERI_PURE_CAPABILITY__
   TVARIABLE(RawPtrT, rhs_ptr, rhs_data);
   VariableList vars({&rhs_ptr}, zone());
 
