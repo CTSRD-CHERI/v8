@@ -4852,7 +4852,7 @@ void MacroAssembler::MoveObjectAndSlot(Register dst_object, Register dst_slot,
   ASM_CODE_COMMENT(this);
   DCHECK_NE(dst_object, dst_slot);
   // If `offset` is a register, it cannot overlap with `object`.
-  DCHECK_IMPLIES(!offset.IsImmediate(), offset.reg() != object);
+  DCHECK_IMPLIES(!offset.IsImmediate(), offset.reg().code() != object.code());
 
   DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL,
                  dst_object.IsC());
@@ -4861,23 +4861,23 @@ void MacroAssembler::MoveObjectAndSlot(Register dst_object, Register dst_slot,
   DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL, object.IsC());
   // If the slot register does not overlap with the object register, we can
   // overwrite it.
-  if (dst_slot != object) {
+  if (dst_slot.code() != object.code()) {
     Add(dst_slot, object, offset);
     Mov(dst_object, object);
     return;
   }
 
-  DCHECK_EQ(dst_slot, object);
+  DCHECK_EQ(dst_slot.code(), object.code());
 
   // If the destination object register does not overlap with the offset
   // register, we can overwrite it.
-  if (offset.IsImmediate() || (offset.reg() != dst_object)) {
+  if (offset.IsImmediate() || offset.reg().code() != dst_object.code()) {
     Mov(dst_object, dst_slot);
     Add(dst_slot, dst_slot, offset);
     return;
   }
 
-  DCHECK_EQ(dst_object, offset.reg());
+  DCHECK_EQ(dst_object.code(), offset.reg().code());
 
   // We only have `dst_slot` and `dst_object` left as distinct registers so we
   // have to swap them. We write this as a add+sub sequence to avoid using a
