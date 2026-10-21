@@ -356,6 +356,10 @@ class MachineOptimizationReducer : public Next {
             cst->kind == ConstantOp::Kind::kWord64) {
           if (to == RegisterRepresentation::Word64()) {
             return __ Word64Constant(cst->integral());
+#if V8_TARGET_CHERI
+          } else if (to == RegisterRepresentation::WordPtr()) {
+            return __ WordPtrConstant(static_cast<uintptr_t>(cst->integral()));
+#endif
           } else {
             DCHECK_EQ(to, RegisterRepresentation::Word32());
             return __ Word32Constant(static_cast<uint32_t>(cst->integral()));
