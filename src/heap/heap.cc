@@ -3594,10 +3594,12 @@ void Heap::RightTrimArray(Tagged<Array> object, uint32_t new_capacity_raw,
     DCHECK_EQ(gc_state(), MARK_COMPACT);
   }
 
-  const int bytes_to_trim = (old_capacity - new_capacity) * Array::kElementSize;
+  // Array::SizeFor pads to 16 bytes in CHERI. bytes_to_trim needs to be 16 bytes
+  // aligned too.
+  const int old_size = Array::SizeFor(old_capacity);
+  const int bytes_to_trim = old_size - Array::SizeFor(new_capacity);
 
   // Calculate location of new array end.
-  const int old_size = Array::SizeFor(old_capacity);
   DCHECK_EQ(object->AllocatedSize(), old_size);
   Address old_end = object.address() + old_size;
   Address new_end = old_end - bytes_to_trim;
