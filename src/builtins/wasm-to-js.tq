@@ -71,13 +71,12 @@ transitioning macro WasmToJSWrapper(data: WasmImportData): WasmToJSResult {
   }
 
   const returnCount = *torque_internal::unsafe::NewOffHeapReference(
-      %RawDownCast<RawPtr<intptr>>(data.sig + 0));
+      %RawDownCast<RawPtr<intptr>>(data.sig + kWasmReturnCountOffset));
   const paramCount = *torque_internal::unsafe::NewOffHeapReference(
       %RawDownCast<RawPtr<intptr>>(
-          data.sig + torque_internal::SizeOf<intptr>()));
+          data.sig + kWasmParameterCountOffset));
   const valueTypesStorage = *torque_internal::unsafe::NewOffHeapReference(
-      %RawDownCast<RawPtr<RawPtr<uint32>>>(
-          data.sig + 2 * torque_internal::SizeOf<intptr>()));
+      %RawDownCast<RawPtr<RawPtr<uint32>>>(data.sig + kWasmSigTypesOffset));
   const signatureValueTypes =
       torque_internal::unsafe::NewOffHeapConstSlice<uint32>(
           valueTypesStorage, paramCount + returnCount);
