@@ -2303,7 +2303,7 @@ TEST(TestAlignedOverAllocation) {
   Address start;
   Tagged<HeapObject> obj;
   Tagged<HeapObject> filler;
-  if (double_misalignment) {
+  if (double_misalignment > 0) {
     start = AlignOldSpace(kDoubleAligned, 0);
     obj = OldSpaceAllocateAligned(kTaggedSize, kDoubleAligned);
     // The object is aligned.
