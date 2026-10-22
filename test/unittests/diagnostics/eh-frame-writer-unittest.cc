@@ -41,8 +41,9 @@ TEST_F(EhFrameWriterTest, Alignment) {
   EhFrameIterator iterator = MakeIterator(&writer);
   ASSERT_EQ(0, EhFrameConstants::kEhFrameHdrSize % 4);
   ASSERT_EQ(0, EhFrameConstants::kEhFrameTerminatorSize % 4);
+  static const int kSizeFields = 2 * kInt32Size;
   EXPECT_EQ(0, (iterator.GetBufferSize() - EhFrameConstants::kEhFrameHdrSize -
-                EhFrameConstants::kEhFrameTerminatorSize) %
+                EhFrameConstants::kEhFrameTerminatorSize - kSizeFields) %
                    kSystemPointerSize);
 }
 
@@ -303,7 +304,7 @@ TEST_F(EhFrameWriterTest, PcOffsetEncoding32bitDelta) {
 TEST_F(EhFrameWriterTest, SaveRegisterUnsignedOffset) {
   Register test_register = Register::from_code(kTestRegisterCode);
   static const int kOffset =
-      EhFrameConstants::kDataAlignmentFactor > 0 ? 12344 : -12344;
+      EhFrameConstants::kDataAlignmentFactor > 0 ? 12336 : -12336;
 
   EhFrameWriter writer(zone());
   writer.Initialize();
@@ -322,7 +323,7 @@ TEST_F(EhFrameWriterTest, SaveRegisterUnsignedOffset) {
 TEST_F(EhFrameWriterTest, SaveRegisterSignedOffset) {
   Register test_register = Register::from_code(kTestRegisterCode);
   static const int kOffset =
-      EhFrameConstants::kDataAlignmentFactor < 0 ? 12344 : -12344;
+      EhFrameConstants::kDataAlignmentFactor < 0 ? 12336 : -12336;
 
   ASSERT_EQ(kOffset % EhFrameConstants::kDataAlignmentFactor, 0);
 
