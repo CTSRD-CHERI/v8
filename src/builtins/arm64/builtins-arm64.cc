@@ -5381,8 +5381,7 @@ void Generate_DeoptimizationEntry(MacroAssembler* masm,
   temps.Exclude(c17);
   Register continuation = c17;
   __ Ldr(continuation, MemOperand(last_output_frame,
-                                   FrameDescription::continuation_offset()));
-  __ PrepareC64Jump(continuation);
+                                  FrameDescription::continuation_offset()));
   __ Ldr(lr, MemOperand(last_output_frame, FrameDescription::pc_offset()));
 #ifdef V8_ENABLE_CONTROL_FLOW_INTEGRITY
   __ Autibsp();
@@ -5392,6 +5391,10 @@ void Generate_DeoptimizationEntry(MacroAssembler* masm,
   // register.
   Label end;
   __ CompareAndBranch(continuation, 0, eq, &end);
+  // Only a non-null continuation is an entry point, so only it may have the C64
+  // bit set. Setting it on the null sentinel turns it into the address 1 and
+  // takes the branch below instead of the return.
+  __ PrepareC64Jump(continuation);
   __ Br(continuation);
   __ Bind(&end);
   __ Ret();
