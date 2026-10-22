@@ -924,9 +924,9 @@ class WasmFXResumeDescriptor final
   SANDBOXING_MODE(kSandboxed)
   DEFINE_RESULT_AND_PARAMETERS_NO_CONTEXT(1, kTargetStack, kArgBuffer)
   DEFINE_RESULT_AND_PARAMETER_TYPES(
-      MachineType::IntPtr(),  // Return: result buffer.
-      MachineType::IntPtr(),  // Param 0: target stack.
-      MachineType::IntPtr())  // Param 1: arg buffer.
+      MachineType::Pointer(),  // Return: result buffer.
+      MachineType::Pointer(),  // Param 0: target stack.
+      MachineType::Pointer())  // Param 1: arg buffer.
   DECLARE_DESCRIPTOR(WasmFXResumeDescriptor)
 
   static constexpr int kMaxRegisterParams = 2;
@@ -941,8 +941,8 @@ class WasmFXResumeThrowDescriptor final
   DEFINE_RESULT_AND_PARAMETERS_NO_CONTEXT(1, kTargetStack, kTag, kException,
                                           kInstance)
   DEFINE_RESULT_AND_PARAMETER_TYPES(
-      MachineType::IntPtr(),         // Return: result buffer.
-      MachineType::IntPtr(),         // Param 0: target stack.
+      MachineType::Pointer(),        // Return: result buffer.
+      MachineType::Pointer(),        // Param 0: target stack.
       MachineType::TaggedPointer(),  // Param 1: tag.
       MachineType::TaggedPointer(),  // Param 2: array.
       MachineType::TaggedPointer())  // Param 3: instance.
@@ -958,10 +958,10 @@ class WasmFXSuspendDescriptor final
   SANDBOXING_MODE(kSandboxed)
   DEFINE_RESULT_AND_PARAMETERS(1, kTag, kContinuation, kArgBuffer)
   DEFINE_RESULT_AND_PARAMETER_TYPES(
-      MachineType::IntPtr(),         // Result: arg buffer
+      MachineType::Pointer(),        // Result: arg buffer
       MachineType::TaggedPointer(),  // Param 0: tag.
       MachineType::TaggedPointer(),  // Param 1: continuation.
-      MachineType::IntPtr())         // Param 2: arg buffer.
+      MachineType::Pointer())        // Param 2: arg buffer.
   DECLARE_DESCRIPTOR(WasmFXSuspendDescriptor)
 
   static constexpr int kMaxRegisterParams = 3;
