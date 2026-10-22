@@ -144,22 +144,10 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
   V8_INLINE Address address() const { return reinterpret_cast<Address>(this); }
 
 #if V8_CHERI_TIGHT_BOUNDS
-  static Address BaseAddress(Address a) {
-    // LINT.IfChange
-    // If this changes, we also need to update
-    // - CodeStubAssembler::MemoryChunkFromAddress
-    // - MacroAssembler::MemoryChunkHeaderFromObject
-    // - AssemblerOpInterface::MemoryChunkFromAddress
-    return V8_CHERI_ADDR_SET(heap_reservation_cap_,
-                             static_cast<ptraddr_t>(a) & ~kAlignmentMask);
-    // clang-format off
-    // LINT.ThenChange(/src/codegen/code-stub-assembler.cc, /src/codegen/arm64/macro-assembler-arm64.cc, /src/compiler/turboshaft/assembler.h)
-    // clang-format on
-  }
-
   static void InitHeapReservationCap(Address cap);
-  static Address heap_reservation_cap() { return heap_reservation_cap_; }
-#else   // !V8_CHERI_TIGHT_BOUNDS
+#endif  // V8_CHERI_TIGHT_BOUNDS
+
+  // On CHERI, the returned pointer has the same provenance as a.
   static constexpr Address BaseAddress(Address a) {
     // LINT.IfChange
     // If this changes, we also need to update
@@ -171,10 +159,26 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
     // LINT.ThenChange(/src/codegen/code-stub-assembler.cc, /src/codegen/ia32/macro-assembler-ia32.cc, /src/codegen/x64/macro-assembler-x64.cc, /src/compiler/turboshaft/assembler.h)
     // clang-format on
   }
-#endif  // V8_CHERI_TIGHT_BOUNDS
 
+  // On CHERI, the returned pointer doesn't have the same provenance
+  // as a. The returned pointer points and covers the MemoryChunk header.
   V8_INLINE static MemoryChunk* FromAddress(Address addr) {
+#if V8_CHERI_TIGHT_BOUNDS
+    // LINT.IfChange
+    // If this changes, we also need to update
+    // - CodeStubAssembler::MemoryChunkFromAddress
+    // - MacroAssembler::MemoryChunkHeaderFromObject
+    // - AssemblerOpInterface::MemoryChunkFromAddress
+    return reinterpret_cast<MemoryChunk*>(V8_CHERI_SET_BOUNDS_EXACT(
+        V8_CHERI_ADDR_SET(heap_reservation_cap_,
+                          static_cast<ptraddr_t>(BaseAddress(addr))),
+        sizeof(MemoryChunk)));
+    // clang-format off
+    // LINT.ThenChange(/src/codegen/code-stub-assembler.cc, /src/codegen/arm64/macro-assembler-arm64.cc, /src/compiler/turboshaft/assembler.h)
+    // clang-format on
+#else
     return reinterpret_cast<MemoryChunk*>(BaseAddress(addr));
+#endif  // V8_CHERI_TIGHT_BOUNDS
   }
 
   template <typename HeapObject>

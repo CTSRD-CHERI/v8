@@ -117,9 +117,13 @@ class BasePage {
     allocated_bytes_ -= bytes;
   }
 
-  MemoryChunk* Chunk() { return MemoryChunk::FromAddress(area_start()); }
+  MemoryChunk* Chunk() {
+    return reinterpret_cast<MemoryChunk*>(
+        MemoryChunk::BaseAddress(area_start()));
+  }
   const MemoryChunk* Chunk() const {
-    return MemoryChunk::FromAddress(area_start());
+    return reinterpret_cast<const MemoryChunk*>(
+        MemoryChunk::BaseAddress(area_start()));
   }
 
   // On CHERI, widen an object-bounded pointer.
