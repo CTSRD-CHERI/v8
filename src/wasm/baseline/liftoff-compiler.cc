@@ -8211,7 +8211,7 @@ class LiftoffCompiler {
     MaybeEmitNullCheck(decoder, ref.gp(), pinned, ref_val.type);
 
     LiftoffRegister value = __ GetUnusedRegister(kGpReg, pinned);
-    __ LoadMap(value.gp(), ref.gp());
+    __ LoadMap(value.gp().C(), ref.gp().C());
     LoadObjectField(
         decoder, value, value.gp(), no_reg,
         wasm::ObjectAccess::ToTagged(Map::kInstanceDescriptorsOffset), kRef,
@@ -10201,12 +10201,12 @@ class LiftoffCompiler {
       // The first parameter will be either a WasmTrustedInstanceData or a
       // WasmImportData.
       Register implicit_arg = temps.Acquire(kGpReg).gp().C();
-      Register target = temps.Acquire(kGpReg).gp();
+      Register target = temps.Acquire(kGpReg).gp().C();
 
       {
         SCOPED_CODE_COMMENT("Load implicit arg and target from dispatch table");
         __ LoadProtectedPointer(
-            implicit_arg, dispatch_table_base.gp_reg(),
+            implicit_arg, dispatch_table_base.gp_reg().C(),
             dispatch_table_offset + WasmDispatchTable::kImplicitArgBias);
         __ LoadCodePointer(
             target, dispatch_table_base.gp_reg(),
@@ -10376,7 +10376,7 @@ class LiftoffCompiler {
                       .Params(kRef, kI32, kRef),
 #endif
                   {vector_var, index_var, func_ref_var}, decoder->position());
-      target_reg = LiftoffRegister(kReturnRegister0).gp();
+      target_reg = kReturnRegister0;
       implicit_arg_reg = kReturnRegister1;
     } else {  // v8_flags.wasm_inlining
       // Non-feedback-collecting version.
