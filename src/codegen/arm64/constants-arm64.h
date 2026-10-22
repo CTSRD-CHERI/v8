@@ -300,7 +300,7 @@ using float16 = uint16_t;
   V_(ImmAddSubCapability, 21, 10, Bits)                            \
   V_(ShiftAddSubCapability, 22, 22, Bits)                          \
   /* Morello ImmLLiteral (Imm17 as opposed to Imm19) */            \
-  V_(CImmLLiteral, 21, 5, Bits)                                    \
+  V_(CImmLLiteral, 21, 5, SignedBits)                              \
   /* Morello AlignU/AlignD 6-bit immediate */                      \
   V_(AlignImmLiteral, 20, 15, Bits)                                \
   /* Morello alternate base load instruction */                    \
@@ -592,8 +592,8 @@ constexpr AddSubOp ADD_c = 0x00000000;
 // Add (immediate) to identify add and subtract operations.
 constexpr AddSubOp SUB_c = 0x00800000;
 constexpr AddSubOp CompareCapabilitiesFixed = 0xC2E09800;
-constexpr AddSubOp CompareCapabilitiesFMask = 0xC2E09800;
-constexpr AddSubOp CompareCapabilitiesMask = 0xC2E09800;
+constexpr AddSubOp CompareCapabilitiesFMask = 0xFFE0FC00;
+constexpr AddSubOp CompareCapabilitiesMask = 0xFFE0FC00;
 constexpr AddSubOp SUBS_c = CompareCapabilitiesFixed;
 #endif
 constexpr AddSubOp AddSubOpMask = 0x60000000;
@@ -1325,8 +1325,8 @@ using LoadStoreRegisterOffset = uint32_t;
 #if V8_TARGET_CHERI
 constexpr LoadStoreRegisterOffset
     LoadStoreCapRegisterOffsetNormalFixed = 0xA2204800;
-constexpr LoadStoreRegisterOffset
-    LoadStoreCapRegisterOffsetNormalFMask= 0xFF204C00;
+constexpr LoadStoreRegisterOffset LoadStoreCapRegisterOffsetNormalFMask =
+    0xFFA04C00;
 constexpr LoadStoreRegisterOffset
     LoadStoreCapRegisterOffsetNormalMask = 0xFFE04C00;
 // 4.4.80 LDR (register offset, capability, normal base)
@@ -1421,10 +1421,17 @@ constexpr LoadStoreAcquireReleaseOp LDAR_c =
     LoadStoreAcquireReleaseFixed_c | 0x405F0000;
 constexpr LoadStoreAcquireReleaseOp STLR_c =
     LoadStoreAcquireReleaseFixed_c | 0x401F0000;
-constexpr LoadStoreAcquireReleaseOp LDAXR_c =
-    LoadStoreAcquireReleaseFixed_c | 0x205F0000;
-constexpr LoadStoreAcquireReleaseOp STLXR_c =
-    LoadStoreAcquireReleaseFixed_c | 0x20000000;
+
+// Load/store exclusive (capability).
+// [0 0100 0010 0][L][pair][Rs][rel][Ct2][Rn][Ct], where the single-register
+// forms require the reserved Rt2 field to be all ones.
+using LoadStoreCapExclusiveOp = uint32_t;
+constexpr LoadStoreCapExclusiveOp LoadStoreCapExclusiveFixed = 0x22000000;
+constexpr LoadStoreCapExclusiveOp LoadStoreCapExclusiveFMask = 0xFF800000;
+constexpr LoadStoreCapExclusiveOp LDAXR_c =
+    LoadStoreCapExclusiveFixed | 0x0040FC00;
+constexpr LoadStoreCapExclusiveOp STLXR_c =
+    LoadStoreCapExclusiveFixed | 0x0000FC00;
 #endif
 
 // Compare and swap acquire/release [Armv8.1].
@@ -3064,6 +3071,39 @@ static_assert(ALIGND == 0xc2c01800);
 #endif
 
 #if V8_TARGET_CHERI
+// Fixed/FMask pairs checked by DispatchingDecoderVisitor, which asserts that a
+// word routed to a visitor matches the visitor's pair exactly.
+using MorelloOp = uint32_t;
+constexpr MorelloOp LoadStoreCapAcquireReleaseFixed = 0x42000000;
+constexpr MorelloOp LoadStoreCapAcquireReleaseFMask = 0xFF800000;
+constexpr MorelloOp LoadStorePairCapNonTemporalFixed = 0x62000000;
+constexpr MorelloOp LoadStorePairCapNonTemporalFMask = 0xFF800000;
+constexpr MorelloOp LoadStoreCapUnsignedOffsetAltBaseFixed = 0x82400000;
+constexpr MorelloOp LoadStoreCapUnsignedOffsetAltBaseFMask = 0xFFC00000;
+constexpr MorelloOp LoadStoreRegisterOffsetAltBaseFixed = 0x82800000;
+constexpr MorelloOp LoadStoreRegisterOffsetAltBaseFMask = 0xFF800000;
+constexpr MorelloOp LoadStoreCapUnscaledOffsetTranslatedFixed = 0xA2000800;
+constexpr MorelloOp LoadStoreCapUnscaledOffsetTranslatedFMask = 0xFF200C00;
+constexpr MorelloOp AtomicMemoryCapFixed = 0xA2200000;
+constexpr MorelloOp AtomicMemoryCapFMask = 0xFF200000;
+constexpr MorelloOp CapSystemRegisterFixed = 0xC2800000;
+constexpr MorelloOp CapSystemRegisterFMask = 0xFFE00000;
+constexpr MorelloOp CapabilityMiscFixed = 0xC2C00000;
+constexpr MorelloOp CapabilityMiscFMask = 0xFFE00000;
+constexpr MorelloOp BranchToRegisterCapFixed = 0xC2C01000;
+constexpr MorelloOp BranchToRegisterCapFMask = 0xFFE01C00;
+constexpr MorelloOp AlignCapabilityFMask = 0xFFE01800;
+constexpr MorelloOp CapabilityFlagsFixed = 0xC2E00000;
+constexpr MorelloOp CapabilityFlagsFMask = 0xFFE00C00;
+constexpr MorelloOp LoadStoreCapRegisterOffsetAltBaseFixed = 0xC2E00400;
+constexpr MorelloOp LoadStoreCapRegisterOffsetAltBaseFMask = 0xFFE00400;
+constexpr MorelloOp CapabilityArithmeticFixed = 0xC2E00800;
+constexpr MorelloOp CapabilityArithmeticFMask = 0xFFE00C00;
+constexpr MorelloOp LoadStoreUnscaledOffsetAltBaseFixed = 0xE2000000;
+constexpr MorelloOp LoadStoreUnscaledOffsetAltBaseFMask = 0xFF000000;
+#endif
+
+#if V8_TARGET_CHERI
 using ChktgdOp = uint32_t;
 constexpr ChktgdOp CHKTGD = 0xC2C23001;
 
@@ -3110,7 +3150,7 @@ constexpr GetField1Op GCVALUE = GetField1Fixed | 0x00004000;
 
 using SetField1Op = uint32_t;
 constexpr SetField1Op SetField1Fixed = 0xC2C00000;
-constexpr SetField1Op SetField1FMask = 0xFFE09C00;
+constexpr SetField1Op SetField1FMask = 0xFFE00000;
 constexpr SetField1Op SetField1Mask = 0xFFE0FC00;
 // 4.4.114 SCBNDS (immediate)
 // Set Bounds (immediate) derives Capability Bounds using the source Capability

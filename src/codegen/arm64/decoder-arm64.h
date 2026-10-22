@@ -15,22 +15,36 @@ namespace internal {
 
 // List macro containing all visitors needed by the decoder class.
 #if defined(__CHERI_PURE_CAPABILITY__)
-#define VISITOR_LIST(V)                  \
-  ARM64_VISITOR_LIST(V)                  \
-  V(AddSubCapExtended)                   \
-  V(AddSubCapImmediate)                  \
-  V(CompareCapabilities)                 \
-  V(CopyCapability)                      \
-  V(ConditionalSelectCap)                \
-  V(GetField1)                           \
-  V(LoadStoreCapUnscaledOffsetNormal)    \
-  V(LoadStoreCapUnsignedOffsetCapNormal) \
-  V(LoadStoreCapRegisterOffsetNormal)    \
-  V(LoadStorePostCapIndex)               \
-  V(LoadStorePreCapIndex)                \
-  V(LoadStorePairCapPostIndex)           \
-  V(LoadStorePairCapPreIndex)            \
-  V(LoadStorePairCapOffset)              \
+#define VISITOR_LIST(V)                   \
+  ARM64_VISITOR_LIST(V)                   \
+  V(AddSubCapExtended)                    \
+  V(AddSubCapImmediate)                   \
+  V(AlignCapability)                      \
+  V(AtomicMemoryCap)                      \
+  V(BranchToRegisterCap)                  \
+  V(CapabilityArithmetic)                 \
+  V(CapabilityFlags)                      \
+  V(CapabilityMisc)                       \
+  V(CapSystemRegister)                    \
+  V(CompareCapabilities)                  \
+  V(ConditionalSelectCap)                 \
+  V(LoadLiteralCap)                       \
+  V(LoadStoreCapAcquireRelease)           \
+  V(LoadStoreCapExclusive)                \
+  V(LoadStoreCapRegisterOffsetAltBase)    \
+  V(LoadStoreCapRegisterOffsetNormal)     \
+  V(LoadStoreCapUnscaledOffsetNormal)     \
+  V(LoadStoreCapUnscaledOffsetTranslated) \
+  V(LoadStoreCapUnsignedOffsetAltBase)    \
+  V(LoadStoreCapUnsignedOffsetCapNormal)  \
+  V(LoadStorePairCapNonTemporal)          \
+  V(LoadStorePairCapOffset)               \
+  V(LoadStorePairCapPostIndex)            \
+  V(LoadStorePairCapPreIndex)             \
+  V(LoadStorePostCapIndex)                \
+  V(LoadStorePreCapIndex)                 \
+  V(LoadStoreRegisterOffsetAltBase)       \
+  V(LoadStoreUnscaledOffsetAltBase)       \
   V(SetField1)
 #else
 #define VISITOR_LIST(V)                 \
@@ -236,62 +250,41 @@ class Decoder : public V {
   void DecodeNEONScalarDataProcessing(Instruction* instr);
 
 #if defined(__CHERI_PURE_CAPABILITY__)
-  // Decode the Morello add/subtract immediate instruction, and call the
-  // corresponding  visitors.
-  // On entry, instruction bits 27:24 = 0x2.
+  // Decode the Morello encodings: bits 28:24 = 0x2, then op0 = bits 31:29,
+  // bit 23 and sel = bits 22:21. Encodings reserved by the ISA decode as
+  // unallocated; valid ones with no dedicated visitor as unimplemented.
   void DecodeMorello(Instruction* instr);
 
-  // Decode the Morello add/subtract capability instruction,
-  // and call the corresponding visitors.
-  void DecodeMorelloAddSubCapability(Instruction* instr);
+  // Morello load/store exclusive, op0 = 1 and bit 23 = 0.
+  void DecodeMorelloExclusive(Instruction* instr);
 
-  // Decode the Morello add extended register instruction,
-  // and call the corresponding visitors.
-  void DecodeMorelloAddExtendedRegister(Instruction* instr);
+  // Morello load/store acquire/release, op0 = 2 and bit 23 = 0.
+  void DecodeMorelloAcquireRelease(Instruction* instr);
 
-  // Decode the Morello branch immediate instruction,
-  // and call the corresponding visitors.
-  void DecodeMorelloBranch(Instruction* instr);
+  // Morello load/store pair non-temporal, op0 = 3 and bit 23 = 0.
+  void DecodeMorelloPairNonTemporal(Instruction* instr);
 
-  // Decode the Morello get/set system register instruction,
-  // and call the corresponding visitors.
-  void DecodeMorelloGetSetSystemRegister(Instruction* instr);
+  // Morello load literal and unsigned offset via an alternative base
+  // register, op0 = 4 and bit 23 = 0.
+  void DecodeMorelloLiteralOrAltBaseUnsigned(Instruction* instr);
 
-  // Decode the Morello LDR literal instruction,
-  // and call the corresponding visitors.
-  void DecodeMorelloLdrLiteral(Instruction* instr);
+  // Morello unscaled offset, register offset and atomic memory operations,
+  // op0 = 5.
+  void DecodeMorelloUnscaledRegisterAtomic(Instruction* instr);
 
-  // Decode the Morello load_store_misc1 instructions,
-  // and call the corresponding visitors.
-  void DecodeMorelloLoadStoreMisc1(Instruction* instr);
+  // Morello capability data processing and the capability forms of the
+  // system register accessors, op0 = 6 and bit 23 = 1.
+  void DecodeMorelloCapDataProcessing(Instruction* instr);
 
-  // Decode the Morello load_store_misc2 instructions,
-  // and call the // corresponding visitors.
-  void DecodeMorelloLoadStoreMisc2(Instruction* instr);
-
-  // Decode the Morello load_store_misc3 instructions,
-  // and call the // corresponding visitors.
-  void DecodeMorelloLoadStoreMisc3(Instruction* instr);
-
-  // Decode the Morello load_store_misc4 instructions,
-  // and call the corresponding visitors.
-  void DecodeMorelloLoadStoreMisc4(Instruction* instr);
-
-  // Decode the Morello load/store register via laternative base instructions,
-  // and call the corresponding visitors.
-  void DecodeMorelloLoadStoreRegisterViaAlternativeBase(Instruction* instr);
-
-  // Decode the Morello load/store unsigned offset instructions,
-  // and call the corresponding visitors.
-  void DecodeMorelloLoadStoreUnsignedOffset(Instruction* instr);
-
-  // Decode the Morello load/store unsigned offset voa alternative base instructions,
-  // and call the corresponding visitors.
-  void DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(Instruction* instr);
-
-  // Decode the Morello misc instructions,
-  // and call the corresponding visitors.
+  // Morello capability field manipulation, op0 = 6, bit 23 = 1 and sel = 2.
   void DecodeMorelloMisc(Instruction* instr);
+
+  // Morello load/store register offset via an alternative base register and
+  // the flag-setting conversions, op0 = 6, bit 23 = 1 and sel = 3.
+  void DecodeMorelloAltBaseRegisterOffset(Instruction* instr);
+
+  // Morello unscaled offset via an alternative base register, op0 = 7.
+  void DecodeMorelloUnscaledOffsetAltBase(Instruction* instr);
 #endif
 };
 

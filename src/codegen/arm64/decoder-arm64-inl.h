@@ -207,6 +207,10 @@ void Decoder<V>::DecodeBranchSystemException(Instruction* instr) {
           }
         }
       } else {
+#if V8_TARGET_CHERI
+        // BR/BLR/RET are encoded in the capability space on Morello.
+        V::VisitUnallocated(instr);
+#else
         if ((instr->Bit(24) == 0x1) || (instr->Bits(20, 16) != 0x1F) ||
             (instr->Bits(15, 10) != 0) || (instr->Bits(4, 0) != 0) ||
             (instr->Bits(24, 21) == 0x3) || (instr->Bits(24, 22) == 0x3)) {
@@ -214,6 +218,7 @@ void Decoder<V>::DecodeBranchSystemException(Instruction* instr) {
         } else {
           V::VisitUnconditionalBranchToRegister(instr);
         }
+#endif
       }
       break;
     }
@@ -862,494 +867,359 @@ void Decoder<V>::DecodeNEONScalarDataProcessing(Instruction* instr) {
 template <typename V>
 void Decoder<V>::DecodeMorello(Instruction* instr) {
   DCHECK_EQ(0x2, instr->Bits(28, 24));
-  // Morello encodings: [31-29 op0][0 0010][23-21 op1][20-16][15 op2][14-13][12-10 op3][9-0]
+  // Morello encodings: [31-29 op0][0 0010][23-21 op1][20-16][15 op2][14-13]
+  // [12-10 op3][9-0].
   switch (instr->Bits(31, 29)) {
     case 0x0:
-      // op0: 000 Morello add/subtract capability
-      DecodeMorelloAddSubCapability(instr);
+      // op0: 000 Add/subtract (immediate).
+      V::VisitAddSubCapImmediate(instr);
       break;
     case 0x1:
-       // op0: 001 Morello load store misc1
-       DecodeMorelloLoadStoreMisc1(instr);
+      // op0: 001 Load/store exclusive and load/store pair (post-index).
+      DecodeMorelloExclusive(instr);
       break;
     case 0x2:
-      // op0: 010 Morello load store misc2
-       DecodeMorelloLoadStoreMisc2(instr);
+      // op0: 010 Load/store acquire/release and load/store pair (offset).
+      DecodeMorelloAcquireRelease(instr);
       break;
     case 0x3:
-      // op0: 011 Morello load store misc3
-       DecodeMorelloLoadStoreMisc3(instr);
+      // op0: 011 Load/store pair (non-temporal and pre-index).
+      DecodeMorelloPairNonTemporal(instr);
       break;
     case 0x4:
-        if (instr->Bit(23) == 0) {
-          if (instr->Bit(23) == 0) {
-	    // op0: 100 op1: 00x: LDR (literal)
-	    DecodeMorelloLdrLiteral(instr);
-	  } else {
-	    // op0: 100 op1: 01x: Morello load/store unsigned offset via alternaitve base
-	    DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(instr);
-	  }
-	} else  {
-	  // op0: 100 op1: 1xx: Morello load/store register via alternative base
-	  DecodeMorelloLoadStoreRegisterViaAlternativeBase(instr);
-	}
+      // op0: 100 Load literal, load/store via an alternative base.
+      DecodeMorelloLiteralOrAltBaseUnsigned(instr);
       break;
     case 0x5:
-      // op0: 101 Morello load store misc4
-       DecodeMorelloLoadStoreMisc4(instr);
+      // op0: 101 Load/store unscaled, register offset, atomics.
+      DecodeMorelloUnscaledRegisterAtomic(instr);
       break;
     case 0x6:
       if (instr->Bit(23) == 0) {
-        // op0: 110 op1: 0xx Morello load unsigned offset
-	DecodeMorelloLoadStoreUnsignedOffset(instr);
+        // op0: 110, op1: 0xx Load/store (unsigned offset, capability).
+        V::VisitLoadStoreCapUnsignedOffsetCapNormal(instr);
       } else {
-	switch (instr->Bits(22, 21)) {
-	  case 0x00:
-	    // op0: 110 op1: 100 Morello get/set system register
-	    DecodeMorelloGetSetSystemRegister(instr);
-	    break;
-	  case 0x01:
-	    // op0: 110 op1: 101 Morello ADD (extended register)
-	    DecodeMorelloAddExtendedRegister(instr);
-	    break;
-          case 0x02:
-	    // op0: 110 op1: 11x Morello morello_misc
-	    DecodeMorelloMisc(instr);
-	    break;
-	  default:
-	    break;
+        // op0: 110, op1: 1xx Data processing.
+        DecodeMorelloCapDataProcessing(instr);
       }
       break;
-    }
+    case 0x7:
+      // op0: 111 Load/store unscaled via an alternative base.
+      DecodeMorelloUnscaledOffsetAltBase(instr);
+      break;
   }
 }
 
 template <typename V>
-void Decoder<V>::DecodeMorelloAddSubCapability(Instruction* instr) {
-  DCHECK_EQ(0x02, instr->Bits(31, 24)); // [0000 0010][A][sh][imm12][Cn][Cd]
-  V::VisitAddSubCapImmediate(instr);
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloBranch(Instruction* instr) {
-  DCHECK_EQ(0x18584, instr->Bits(31, 15)); // [11][000101100][00100][opc][100][Cn][00000]
-  DCHECK_EQ(0x04, instr->Bits(19, 15));
-  DCHECK_EQ(0x00, instr->Bits(4, 0));
-  V::VisitUnconditionalBranchToRegister(instr);
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloAddExtendedRegister(Instruction* instr) {
-  DCHECK_EQ(0x615, instr->Bits(31, 21)); // [110 0001 0101][Rm][option][imm3][Cn][Cd]
-  V::VisitAddSubCapExtended(instr);
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloGetSetSystemRegister(Instruction* instr) {
-  DCHECK_EQ(0x314, instr->Bits(31, 21)); // [110 0001 0100][L][o0][op1][CRn][CRm][op2][Ct]
-  if (instr->Bit(20) == 0) {
-     // L: 0 MSR
-  } else {
-     // L: 1 MSR
-  }
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloLdrLiteral(Instruction* instr) {
-  DCHECK_EQ(0x208, instr->Bits(31, 22)); // [10 0000 1000][imm17][Ct]
-  // TODO(gcjenkinson): Decoding of Morello LDR literal
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreMisc1(Instruction* instr) {
-  DCHECK_EQ(0x22, instr->Bits(31, 24)); //  [0010 0010][L][op][Rs][o2][Ct2][Rn][Ct]
-  if (instr->Bit(23) == 0) {
-    // op0: 0 Morello load/ exclusive
-    if (instr->Bit(22) == 0) {
-      if (instr->Bit(21) == 0) {
-        DCHECK_EQ(0x1F, instr->Bits(14,10)); // Ct2: 11111
-        if (instr->Bit(15) == 0) {
-          // L: 0, op: 0, o2: 0 STXR
-	} else {
-          // L: 0, op: 0, o2: 1 STLXR
-	}
-      } else {
-        if (instr->Bit(15) == 0) {
-          // L: 0, op: 1, o2: 0 STXP
-        } else {
-          // L: 0, op: 1, o2: 1 STLXP
-        }
-      }
-    } else {
-      DCHECK_EQ(0x1F, instr->Bits(20, 16)); // Rs: 11111
-      if (instr->Bit(21) == 0) {
-        DCHECK_EQ(0x1F, instr->Bits(14, 10)); // Ct2: 11111
-        if (instr->Bit(15) == 0) {
-          // L: 1, op: 0, o2: 0 LDXR
-        } else {
-          // L: 1, op: 0, o2: 1 LDAXR
-        }
-      } else {
-        if (instr->Bit(15) == 0) {
-          // L: 1, op: 1, o2: 0 LDXP
-        } else {
-          // L: 1, op: 1, o2: 1 LDAXP
-        }
-      }
-    }
-  } else {
-    // op0: 1 Morello load/store pair postindex
+void Decoder<V>::DecodeMorelloExclusive(Instruction* instr) {
+  DCHECK_EQ(0x1, instr->Bits(31, 29));
+  if (instr->Bit(23) != 0) {
+    // op1: 1xx Load/store pair (post-index).
     V::VisitLoadStorePairCapPostIndex(instr);
+    return;
+  }
+  // [L][pair][Rs][rel][Ct2][Rn][Ct]. LDAXR/LDXR and STXR/LDXR have RES0
+  // fields where the pair forms carry a second register.
+  if (instr->Bit(21) == 0 && instr->Bits(14, 10) != 0x1F) {
+    V::VisitUnallocated(instr);
+  } else if (instr->Bit(22) != 0 && instr->Bits(20, 16) != 0x1F) {
+    V::VisitUnallocated(instr);
+  } else {
+    V::VisitLoadStoreCapExclusive(instr);
   }
 }
 
 template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreMisc2(Instruction* instr) {
-  DCHECK_EQ(0x42, instr->Bits(31, 24)); // [0 0100 0100][op0][][op1][][op2][]
-  if (instr->Bit(23) == 0) {
-    if (instr->Bit(21) == 0) {
-      if (instr->Bit(15) == 0) {
-	// op0: 0, op1: 0, op2: 0 Morello load/store acquire/release capability via alternative base
-	DCHECK_EQ(0x1F, instr->Bits(20, 16)); // Rs: 11111
-	DCHECK_EQ(0x1F, instr->Bits(14, 10)); // Ct2: 11111
-	if (instr->Bit(22) == 0) {
-	  // L: 0 STLR (capability, alternative base)
-	} else {
-	  // L: 1 LDAR (capability, alternative base)
-	}
-      } else {
-	// op0: 0, op1: 0, op2: 1 Morello load/store acquire/release
-	DCHECK_EQ(0x1F, instr->InstructionBits()); // Temp
-	DCHECK_EQ(0x1F, instr->Bits(20, 16)); // Rs: 11111
-	DCHECK_EQ(0x1F, instr->Bits(14, 10)); // Ct2: 11111
-	if (instr->Bit(22) == 0) {
-	  // L: 0 STLR (capability, normal base)
-	} else {
-	  // L: 1 LDAR (capability, normal base)
-	}
-     }
-    } else {
-      // op0: 0, op1: 1 Morello load/store acquire/release via alternative base
-      DCHECK_EQ(0x1F, instr->Bits(20, 16)); // Rs: 11111
-      DCHECK_EQ(0x1F, instr->Bits(14, 10)); // Rt2: 11111
-      if (instr->Bit(22) == 0) {
-        if (instr->Bit(15) == 0) {
-	  // L: 0, op: 0 STLRB
-	} else {
-	  // L: 0, op: 1 STLR (integer)
-	}
-      } else {
-        if (instr->Bit(15) == 0) {
-	  // L: 1, op: 0 LDARB
-	} else {
-	  // L: 1, op: 1 LDAR (integer)
-	}
-      }
-    }
-  } else {
-    // op0: 1 Morello load/store pair
-    // [0 1000 0100][L][0][Rs][0][Ct2][Rn][Ct]
+void Decoder<V>::DecodeMorelloAcquireRelease(Instruction* instr) {
+  DCHECK_EQ(0x2, instr->Bits(31, 29));
+  if (instr->Bit(23) != 0) {
+    // op1: 1xx Load/store pair (offset).
     V::VisitLoadStorePairCapOffset(instr);
+    return;
+  }
+  // The capability acquire/release forms leave bits [20:10] all ones.
+  if (instr->Bits(20, 16) != 0x1F || instr->Bits(14, 10) != 0x1F) {
+    V::VisitUnallocated(instr);
+  } else {
+    V::VisitLoadStoreCapAcquireRelease(instr);
   }
 }
 
 template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreMisc3(Instruction* instr) {
-  DCHECK_EQ(0x62, instr->Bits(31, 24)); // [0 1100 0010][op0][]
-  if (instr->Bit(23) == 0) {
-    // op0: 0 Morello load/store pair non-temporal
-    if (instr->Bit(22) == 0) {
-      // L: 0 STNP
-    } else {
-      // L: 1 LDNP
-    }
-  } else {
-    // op0: 1 Morello load/store pair preindex
-    // [0 1100 00101][L][imm7][Ct2][Rn][Ct]
+void Decoder<V>::DecodeMorelloPairNonTemporal(Instruction* instr) {
+  DCHECK_EQ(0x3, instr->Bits(31, 29));
+  if (instr->Bit(23) != 0) {
     V::VisitLoadStorePairCapPreIndex(instr);
-  }
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreMisc4(Instruction* instr) {
-  DCHECK_EQ(0xA2, instr->Bits(31, 24)); // [1010 0010][][op0][][op1][]
-  if(instr->Bit(21) == 0) {
-    if (instr->Bits(11, 10) == 0x00) {
-      // op0: 0, op1: xxxx00 Morello load/store unscaled immediate
-      V::VisitLoadStoreCapUnscaledOffsetNormal(instr);
-    } else if (instr->Bits(11, 10) == 0x01) {
-      // op0: 0, op1: xxxx01 Morello load/store immediate postindex
-      V::VisitLoadStorePostCapIndex(instr);
-    } else if (instr->Bits(11, 10) == 0x02) {
-      // op0: 0, op1: xxxx20 Morello load/store unscaled translated
-      V::VisitUnimplemented(instr);
-    } else {
-      // op0: 0, op1: xxxx11 Morello load/store immediate preindex
-      V::VisitLoadStorePreCapIndex(instr);
-    }
   } else {
-    if (instr->Bit(11) == 0) {
-      if (instr->Bit(14) == 0) {
-	DCHECK_EQ(0x20, instr->Bits(15, 10));
-        // op0: 1, op1: 100000 Morello swap
-        V::VisitUnimplemented(instr);
-      } else {
-	DCHECK_EQ(0x30, instr->Bits(15, 10));
-        // op0: 1, op1: 110000 LDAPR
-        V::VisitUnimplemented(instr);
-      }
-    } else {
-      DCHECK_EQ(0x01, instr->Bit(11));
-      if (instr->Bit(10) == 1) {
-	DCHECK_EQ(0x1F, instr->Bits(14, 10));
-        // op0: 1, op1: x11111 Morello compare and swap
-        V::VisitUnimplemented(instr);
-      } else {
-	DCHECK_EQ(0x01, instr->Bit(14));
-	DCHECK_EQ(0x02, instr->Bits(11, 10));
-        // op0: 1, op1: x1xx10 Morello load/store register
-        V::VisitLoadStoreCapRegisterOffsetNormal(instr);
-      }
-    }
+    V::VisitLoadStorePairCapNonTemporal(instr);
   }
 }
 
 template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreRegisterViaAlternativeBase(Instruction* instr) {
-  DCHECK_EQ(0x105, instr->Bits(31, 23)); // [1 0000 0101][L][op][Rm][A][1][B][S][opc][Rn][Rt]
-  if (instr->Bit(22) == 0x00)  {
-    if (instr->Bit(21) == 0) {
-      V::VisitUnimplemented(instr);
+void Decoder<V>::DecodeMorelloLiteralOrAltBaseUnsigned(Instruction* instr) {
+  DCHECK_EQ(0x4, instr->Bits(31, 29));
+  if (instr->Bit(23) == 0) {
+    if (instr->Bit(22) == 0) {
+      // op1: 00x Load capability (literal).
+      V::VisitLoadLiteralCap(instr);
     } else {
-      V::VisitUnimplemented(instr);
+      // op1: 01x Load/store (unsigned offset) via an alternative base.
+      V::VisitLoadStoreCapUnsignedOffsetAltBase(instr);
     }
+  } else if (instr->Bit(14) != 0) {
+    // op1: 1xx Load/store (register offset) via an alternative base. The
+    // alternative-base register offset forms all set option bit 2.
+    V::VisitLoadStoreRegisterOffsetAltBase(instr);
   } else {
-    if (instr->Bit(21) == 0) {
-      V::VisitUnimplemented(instr);
-    } else {
-      V::VisitUnimplemented(instr);
-    }
+    V::VisitUnallocated(instr);
   }
 }
 
 template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreUnsignedOffset(Instruction* instr) {
-  DCHECK_EQ(0x184, instr->Bits(31, 23)); // [1 1000 0100][L][imm12][Rn][Ct]
-  V::VisitLoadStoreCapUnsignedOffsetCapNormal(instr);
-}
-
-template <typename V>
-void Decoder<V>::DecodeMorelloLoadStoreUnsignedOffsetViaAlternativeBase(Instruction* instr) {
-  DCHECK_EQ(0x209, instr->Bits(31, 22)); // [10 0000 1001][L][imm9][op][Rn][Rt]
+void Decoder<V>::DecodeMorelloUnscaledRegisterAtomic(Instruction* instr) {
+  DCHECK_EQ(0x5, instr->Bits(31, 29));
+  const int form = instr->Bits(11, 10);
   if (instr->Bit(21) == 0) {
-    V::VisitUnimplemented(instr);
-  } else {
-    V::VisitUnimplemented(instr);
+    if (instr->Bit(23) != 0) {
+      // op1: 1xx with the atomics bit clear is reserved.
+      V::VisitUnallocated(instr);
+      return;
+    }
+    // op1: 0xx Load/store unscaled, post-index, translated and pre-index.
+    switch (form) {
+      case 0x0:
+        V::VisitLoadStoreCapUnscaledOffsetNormal(instr);
+        break;
+      case 0x1:
+        V::VisitLoadStorePostCapIndex(instr);
+        break;
+      case 0x2:
+        V::VisitLoadStoreCapUnscaledOffsetTranslated(instr);
+        break;
+      case 0x3:
+        V::VisitLoadStorePreCapIndex(instr);
+        break;
+    }
+    return;
+  }
+  // op1: 1xx Atomic memory operations and load/store (register offset).
+  switch (form) {
+    case 0x0:
+      if (instr->Bit(15) != 0 && instr->Bits(14, 12) == 0) {
+        // SWP, SWPA, SWPL and SWPAL.
+        V::VisitAtomicMemoryCap(instr);
+      } else if (instr->Bit(23) == 0 && instr->Bit(22) == 0 &&
+                 instr->Bit(15) != 0 && instr->Bits(14, 12) == 4 &&
+                 instr->Bits(20, 16) == 0x1F) {
+        // LDAPR.
+        V::VisitAtomicMemoryCap(instr);
+      } else {
+        V::VisitUnallocated(instr);
+      }
+      break;
+    case 0x2:
+      if (instr->Bit(23) == 0 && instr->Bit(14) != 0) {
+        V::VisitLoadStoreCapRegisterOffsetNormal(instr);
+      } else {
+        V::VisitUnallocated(instr);
+      }
+      break;
+    case 0x3:
+      if (instr->Bit(23) != 0 && instr->Bits(14, 12) == 7) {
+        // CAS, CASA, CASL and CASAL.
+        V::VisitAtomicMemoryCap(instr);
+      } else {
+        V::VisitUnallocated(instr);
+      }
+      break;
+    default:
+      V::VisitUnallocated(instr);
+      break;
+  }
+}
+
+template <typename V>
+void Decoder<V>::DecodeMorelloCapDataProcessing(Instruction* instr) {
+  DCHECK_EQ(0x6, instr->Bits(31, 29));
+  DCHECK_NE(0, instr->Bit(23));
+  switch (instr->Bits(22, 21)) {
+    case 0x0:
+      // sel: 00 Capability system register access.
+      V::VisitCapSystemRegister(instr);
+      break;
+    case 0x1:
+      // sel: 01 Add/subtract (extended register). The immediate and the
+      // shift amount share bits [12:10], and only a zero shift is allocated.
+      if (instr->Bit(12) != 0 && instr->Bits(11, 10) != 0) {
+        V::VisitUnallocated(instr);
+      } else {
+        V::VisitAddSubCapExtended(instr);
+      }
+      break;
+    case 0x2:
+      // sel: 10 Capability data processing.
+      DecodeMorelloMisc(instr);
+      break;
+    default:
+      DecodeMorelloAltBaseRegisterOffset(instr);
+      break;
   }
 }
 
 template <typename V>
 void Decoder<V>::DecodeMorelloMisc(Instruction* instr) {
-  // [11 0000 1011][op0][op1][op2][][op3]
-  DCHECK_EQ(0x30B, instr->Bits(31, 22));
-  if (instr->Bit(21) == 0x00) {
-    if (instr->Bits(12, 11) == 0x03) {
-      DCHECK_EQ(0x01, instr->Bit(11));
-      if (instr->Bit(10) == 0x00) {
-        DCHECK_EQ(0x01, instr->Bit(11));
-        if (instr->Bit(13) == 0x00) {
-          // op0: 0xxxxxxx0, op1: 11, op2: 0 Morello alignment
-          V::VisitUnimplemented(instr);
-        } else {
-          DCHECK_EQ(0x01, instr->Bit(11));
-          // op0: 0xxxxxxxx, op1: 11, op2: Morello immediate bounds
-          V::VisitUnimplemented(instr);
-        }
+  DCHECK_EQ(0x2, instr->Bits(22, 21));
+  const int form = instr->Bits(12, 10);
+  const int opc = instr->Bits(15, 13);
+  const int rs = instr->Bits(20, 16);
+  switch (form) {
+    case 0x0:
+      // CAP: set field, first source is a general-purpose register.
+      V::VisitSetField1(instr);
+      break;
+    case 0x1:
+      // CAP: copy, seal and unseal, second source in a capability register.
+      // CHKSS and CHKEQ have RES0 in the Rt field, encoded as 1.
+      if (opc > 5 || (opc >= 4 && instr->Bits(4, 0) != 1)) {
+        V::VisitUnallocated(instr);
+      } else {
+        V::VisitCapabilityMisc(instr);
       }
-    } else if (instr->Bit(11) == 0x01) {
-      // op0: 0xxxxxxxx, op1: x1, op2: 1 CSEL
+      break;
+    case 0x2:
+      // CAP: seal, unseal and flag-setting arithmetic, second source in a
+      // general-purpose register.
+      if (opc == 6) {
+        V::VisitUnallocated(instr);
+      } else {
+        V::VisitCapabilityMisc(instr);
+      }
+      break;
+    case 0x3:
+    case 0x7:
       V::VisitConditionalSelectCap(instr);
-    } else if (instr->Bits(12, 11) == 0x0) {
-      if (instr->Bit(10) == 0x0) {
-        if (instr->Bits(15, 13) == 0x7) {
-          // op0: 0xxxxx111, op1: 00, op2: 0 SCFLGS
-          V::VisitUnimplemented(instr);
-        } else if (instr->Bits(15, 13) == 0x6) {
-          // op0: 0xxxxx110, op1: 00, op2: 0 CVT (to pointer)
-          V::VisitUnimplemented(instr);
-        } else if (instr->Bit(15) == 0x1) {
-          // op0: 0xxxxx110, op1: 00, op2: 0 Morello set field 2
-          V::VisitUnimplemented(instr);
+      break;
+    case 0x4: {
+      if (rs >= 16) {
+        // Rs in [16:31]: branch to a capability plus immediate.
+        if (instr->Bits(4, 0) != 1) {
+          V::VisitUnallocated(instr);
         } else {
-          DCHECK_EQ(0x00, instr->Bit(15));
-          // op0: 0xxxxx0xx, op1: 00, op2: 0 Morello set field 1
-          V::VisitSetField1(instr);
+          V::VisitBranchToRegisterCap(instr);
         }
-      } else {
-        DCHECK_EQ(0x1, instr->Bit(10));
-        if (instr->Bit(15) == 0x0) {
-          // op0: 0xxxxx0xx, op1: 00, op2: 1 Morello miscellaneous
-          // capability 1
-          V::VisitUnimplemented(instr);
-        } else {
-          DCHECK_EQ(0x01, instr->Bit(15));
-          DCHECK_EQ(0x00, instr->Bits(4, 1));
-          if (instr->Bit(0) == 0x00) {
-            // op0: 0xxxxx0xx, op1: 00, op2: 1 op3: 00000 Morello branch to
-            // sealed
-            V::VisitUnimplemented(instr);
-          } else {
-            // op0: 0xxxxx0xx, op1: 00, op2: 1 op3: 00001 Morello 2 src cap
-            V::VisitUnimplemented(instr);
-          }
-        }
+        break;
       }
-    } else if (instr->Bits(12, 11) == 0x01) {
-      DCHECK_EQ(0x01, instr->Bit(10));
-      if (instr->Bit(13) == 0x00) {
-        // op0: 0xxxxxxx0, op1: 01, op2: 0 Morello miscellaneous capability 2
-        V::VisitUnimplemented(instr);
-      } else {
-        DCHECK_EQ(0x01, instr->Bit(13));
-        // op0: 0xxxxxxx1, op1: 01, op2: 0 Morello bitwise
-        V::VisitUnimplemented(instr);
+      if (rs >= 8) {
+        V::VisitUnallocated(instr);
+        break;
       }
-    } else if (instr->Bits(12, 11) == 0x02) {
-      DCHECK_EQ(0x00, instr->Bit(10));
-      if (instr->Bit(20) == 0x0) {
-        DCHECK_EQ(0x0, instr->Bit(19));
-        if (instr->Bit(18) == 0x0) {
-          if (instr->Bit(17) == 0x0) {
-            if (instr->Bits(16, 15) == 0x02) {
-              // op0: 0000010xx, op1: 10, op2: 0 Morello get field 2
-              V::VisitUnimplemented(instr);
-            } else if (instr->Bits(16, 15) == 0x03) {
-              // op0: 0000011xx, op1: 10, op2: 0 Morello miscellaneous
-              // capability 0
-              if (instr->Bits(14, 13) == 0x00) {
-                // op2: 00 CLRTAG
-                V::VisitUnimplemented(instr);
-              } else if (instr->Bits(14, 13) == 0x02) {
-                // op2: 10 MOV/CPY
-                V::VisitCopyCapability(instr);
-              } else {
-                V::VisitUnallocated(instr);
-              }
-            } else {
-              CHECK_EQ(0x0, instr->Bit(16));
-              // op0: 000000xxx, op1: 10, op2: 0 Morello get field 1
-              switch (instr->Bits(15, 13)) {
-                case 0x00:
-                  // opc: 000 GCBASE
-                  [[fallthrough]];
-                case 0x01:
-                  // opc: 001 GCLEN
-                  [[fallthrough]];
-                case 0x02:
-                  // opc: 010 GCVALUE
-                  [[fallthrough]];
-                case 0x04:
-                  // opc: 100 GCTAG
-                  [[fallthrough]];
-                case 0x05:
-                  // opc: 101 GCSEAL
-                  [[fallthrough]];
-                case 0x06:
-                  // opc: 110 GCPERM
-                  V::VisitGetField1(instr);
-                  break;
-                default:
-                  V::VisitUnimplemented(instr);
-                  break;
-              }
-            }
-          } else {
-            DCHECK_EQ(0x1, instr->Bit(17));
-            if (instr->Bits(16, 15) == 0x02) {
-              // op0: 0000110xx, op1: 10, op2: 0 SEAL (immediate)
-            } else {
-              DCHECK_EQ(0x00, instr->Bits(16, 15));
-              if (instr->Bits(4, 0) == 0x0) {
-                // op0: 0000100xx, op1: 10, op2: 0 op3: 00000 Morello branch
-                DecodeMorelloBranch(instr);
-              } else if (instr->Bits(4, 0) == 0x1) {
-                // op0: 0000100xx, op1: 10, op2: 0 op3: 00001 Morello checks
-                V::VisitUnimplemented(instr);
-              } else if (instr->Bits(4, 0) == 0x2) {
-                // op0: 0000100xx, op1: 10, op2: 0 op3: 00010 Morello branch
-                // sealed direct
-                V::VisitUnimplemented(instr);
-              } else {
-                DCHECK_EQ(0x3, instr->Bits(4, 0));
-                // op0: 0000100xx, op1: 10, op2: 0 op3: 00011 Morello branch
-                // sealed restricted
-                V::VisitUnimplemented(instr);
-              }
-            }
-          }
-        } else {
-          DCHECK_EQ(0x1, instr->Bit(18));
-          if (instr->Bit(17) == 0x0) {
-            if (instr->Bit(16) == 0x0) {
-              if (instr->Bit(15) == 0x0) {
-                // op0: 0001000xx, op1: 10, op2: 0 Morello load pair and branch
-                V::VisitUnimplemented(instr);
-              } else {
-                DCHECK_EQ(0x01, instr->Bit(15));
-                // op0: 0001001xx, op1: 10, op2: 0 Morello load/store tags
-                V::VisitUnimplemented(instr);
-              }
-            } else {
-              DCHECK_EQ(0x1, instr->Bit(16));
-              DCHECK_EQ(0x0, instr->Bit(15));
-              // op0: 0001010xx, op1: 10, op2: 0 Morello convert to pointer
-              V::VisitUnimplemented(instr);
-            }
-          } else {
-            DCHECK_EQ(0x01, instr->Bit(17));
-            if (instr->Bit(16) == 0x0) {
-              // op0: 000110xxx, op1: 10, op2: 0 CLPERM (immediate)
-              V::VisitUnimplemented(instr);
-            } else {
-              DCHECK_EQ(0x01, instr->Bit(16));
-              DCHECK_EQ(0x00, instr->Bit(15));
-              // op0: 0001110xx, op1: 10, op2: 0 Morello 1 src 1 dest
-              V::VisitUnimplemented(instr);
-            }
-          }
-        }
-      } else {
-        DCHECK_EQ(0x0, instr->Bits(4, 1));
-        // op0: 01xxxxxxx, op1: 10, op2: 0, op3: 0000x Morello brach sealed
-        // indirect
-        V::VisitUnimplemented(instr);
+      // The remaining one- and two-source forms are keyed by Rs and opc.
+      bool allocated = true;
+      switch (rs) {
+        case 0x0:
+          break;
+        case 0x1:
+          allocated = opc == 0 || opc == 1 || opc == 2 || opc == 4 || opc == 6;
+          break;
+        case 0x2:
+          // CHKSLD and CHKTGD have RES0 in the Rt field, encoded as 1. BR,
+          // BLR and RET share the encoding with Rt as real RES0, and RET has
+          // no CHK* counterpart.
+          allocated = (instr->Bits(4, 0) == 0 && opc <= 2) ||
+                      (instr->Bits(4, 0) == 1 && opc <= 1);
+          break;
+        case 0x3:
+          allocated = opc >= 1 && opc <= 3;
+          break;
+        case 0x4:
+          allocated = opc == 0 || opc == 1 || opc == 4 || opc == 5;
+          break;
+        case 0x5:
+          allocated = opc != 2 && opc != 3;
+          break;
+        case 0x6:
+          break;
+        default:
+          allocated = opc <= 1;
+          break;
       }
+      if (allocated) {
+        V::VisitCapabilityMisc(instr);
+      } else {
+        V::VisitUnallocated(instr);
+      }
+      break;
     }
-  } else {
-    DCHECK_EQ(0x1, instr->Bit(21));
-    if (instr->Bit(10) == 0x0) {
-      if (instr->Bits(12, 11) == 0x3) {
-        if (instr->Bit(15) == 0x0) {
-          DCHECK_EQ(0x0, instr->Bit(13));
-          // op0: 1xxxxx0x0, op1: = 11 op2: 0 Morello convert capability
-          V::VisitUnimplemented(instr);
-        } else {
-          DCHECK_EQ(0x0, instr->Bits(14, 13));
-          // op0: 1xxxxx100, op1: = 11 op2: 0  SUBS
-          V::VisitCompareCapabilities(instr);
-        }
+    case 0x5:
+      V::VisitUnallocated(instr);
+      break;
+    default:
+      DCHECK_EQ(0x6, form);
+      V::VisitAlignCapability(instr);
+      break;
+  }
+}
+
+template <typename V>
+void Decoder<V>::DecodeMorelloAltBaseRegisterOffset(Instruction* instr) {
+  DCHECK_EQ(0x3, instr->Bits(22, 21));
+  const int form = instr->Bits(11, 10);
+  const int opc = instr->Bits(15, 13);
+  const int opt = instr->Bits(14, 12);
+  switch (form) {
+    case 0x0:
+      // CAP: flag manipulation with a general-purpose source.
+      V::VisitCapabilityFlags(instr);
+      break;
+    case 0x1:
+    case 0x3:
+      // Load/store (register offset) via an alternative base. The extend
+      // options 0b100 to 0b111 are the allocated ones.
+      if (opt >= 4) {
+        V::VisitLoadStoreCapRegisterOffsetAltBase(instr);
       } else {
-        DCHECK(instr->Bits(12, 11) != 0x3);
-        // op0: 1xxxxxxxx, op1: != 11 op2: 0  Morello logical immediate
-        V::VisitUnimplemented(instr);
+        V::VisitUnallocated(instr);
       }
-    } else {
-      DCHECK_EQ(0x1, instr->Bit(14));
-      // op0: 1xxxxxx1x, op2: 1  Morello load/store capability via alternative
-      // base
-      V::VisitUnimplemented(instr);
+      break;
+    case 0x2:
+      // CAP: arithmetic and conversions, plus SUBS.
+      if (opt == 0 || opt == 2 || opt == 4 || opt == 6) {
+        V::VisitCapabilityArithmetic(instr);
+      } else if (opt == 1) {
+        if (opc == 4) {
+          V::VisitCompareCapabilities(instr);
+        } else {
+          V::VisitCapabilityArithmetic(instr);
+        }
+      } else if (opt == 5 && instr->Bit(15) == 0) {
+        V::VisitCapabilityArithmetic(instr);
+      } else {
+        V::VisitUnallocated(instr);
+      }
+      break;
+    default:
+      V::VisitUnallocated(instr);
+      break;
+  }
+}
+
+template <typename V>
+void Decoder<V>::DecodeMorelloUnscaledOffsetAltBase(Instruction* instr) {
+  DCHECK_EQ(0x7, instr->Bits(31, 29));
+  const int form = instr->Bits(11, 10);
+  if (form >= 2) {
+    // Only the forms with no explicit offset register are allocated.
+    if (instr->Bit(21) != 0) {
+      if (instr->Bit(23) != 0 || instr->Bit(22) != 0) {
+        V::VisitUnallocated(instr);
+        return;
+      }
+    } else if (instr->Bit(23) != 0 && instr->Bit(22) != 0 && form == 2) {
+      V::VisitUnallocated(instr);
+      return;
     }
   }
+  V::VisitLoadStoreUnscaledOffsetAltBase(instr);
 }
 #endif
 

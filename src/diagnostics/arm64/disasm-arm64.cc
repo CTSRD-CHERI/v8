@@ -1049,7 +1049,7 @@ void DisassemblingDecoder::VisitLoadStorePairPostIndex(Instruction* instr) {
 #define LSP_POSTINDEX(A, B, C, D) \
   case A##_post:                  \
     mnemonic = B;                 \
-    form = C ", ['Yns]'ILP4";    \
+    form = C ", ['Yns]'ILP" D;    \
     break;
 #else
 #define LSP_POSTINDEX(A, B, C, D) \
@@ -1073,7 +1073,7 @@ void DisassemblingDecoder::VisitLoadStorePairPreIndex(Instruction* instr) {
 #define LSP_PREINDEX(A, B, C, D)   \
   case A##_pre:                    \
     mnemonic = B;                  \
-    form = C ", ['Yns'ILP4]!";     \
+    form = C ", ['Yns'ILP" D "]!"; \
     break;
 #else
 #define LSP_PREINDEX(A, B, C, D)   \
@@ -1097,7 +1097,7 @@ void DisassemblingDecoder::VisitLoadStorePairOffset(Instruction* instr) {
 #define LSP_OFFSET(A, B, C, D)    \
   case A##_off:                   \
     mnemonic = B;                 \
-    form = C ", ['Yns'ILP4]";     \
+    form = C ", ['Yns'ILP" D "]"; \
     break;
 #else
 #define LSP_OFFSET(A, B, C, D)    \
@@ -1115,60 +1115,131 @@ void DisassemblingDecoder::VisitLoadStorePairOffset(Instruction* instr) {
 #undef LOAD_STORE_PAIR_LIST
 
 #if defined(__CHERI_PURE_CAPABILITY__)
-#define LOAD_STORE_PAIR_CAP_LIST(V)     \
-  V(STP_c, "stp", "'Yt, 'Yt2", "4")     \
-  V(LDP_c, "ldp", "'Yt, 'Yt2", "4")
+namespace {
+
+// Indexed by the three-bit "option" field of the extended-register forms.
+const char* const kMorelloExtendNames[8] = {"uxtb", "uxth", "uxtw", "uxtx",
+                                            "sxtb", "sxth", "sxtw", "sxtx"};
+
+// The substitution mechanism cannot express the Morello register classes, so
+// these visitors build the operand text themselves; Format() copies a
+// substitution string without a "'" verbatim.
+class MorelloOperands {
+ public:
+  void Append(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int written =
+        vsnprintf(buffer_ + length_, sizeof(buffer_) - length_, format, args);
+    va_end(args);
+    DCHECK_GE(written, 0);
+    DCHECK_LT(static_cast<size_t>(written), sizeof(buffer_) - length_);
+    length_ += static_cast<size_t>(written);
+    if (length_ >= sizeof(buffer_)) length_ = sizeof(buffer_) - 1;
+  }
+
+  void Separator() { Append(", "); }
+
+  // Capability register. Code 31 is the zero register, or the stack pointer
+  // when the encoding permits it.
+  void Cap(uint32_t code, bool stack_pointer = false) {
+    if (code == kZeroRegCode) {
+      Append("%s", stack_pointer ? "csp" : "czr");
+    } else {
+      Append("c%u", code);
+    }
+  }
+
+  // Integer register, zero register at code 31.
+  void X(uint32_t code) {
+    if (code == kZeroRegCode) {
+      Append("xzr");
+    } else {
+      Append("x%u", code);
+    }
+  }
+
+  void W(uint32_t code) {
+    if (code == kZeroRegCode) {
+      Append("wzr");
+    } else {
+      Append("w%u", code);
+    }
+  }
+
+  // Integer register used as a base: code 31 is the stack pointer.
+  void XBase(uint32_t code) {
+    if (code == kZeroRegCode) {
+      Append("sp");
+    } else {
+      Append("x%u", code);
+    }
+  }
+
+  void Simd(char type, uint32_t code) { Append("%c%u", type, code); }
+
+  // Register offset operand, e.g. "x3, uxtw #2" or "x3, lsl #2".
+  void ExtendedOffset(uint32_t rm, uint32_t option, bool scaled,
+                      uint32_t scale) {
+    if (option == 3 || option == 7) {
+      X(rm);
+    } else {
+      W(rm);
+    }
+    if (option == 3) {
+      if (scaled) Append(", lsl #%u", scale);
+      return;
+    }
+    Append(", %s", kMorelloExtendNames[option]);
+    if (scaled) Append(" #%u", scale);
+  }
+
+  const char* buffer() const { return buffer_; }
+
+ private:
+  char buffer_[128] = {0};
+  size_t length_ = 0;
+};
+
+// Emits "<ct>, <ct2>, [<cn>{, #<imm7>}]{!}", where suffix carries the offset
+// and the addressing-mode punctuation.
+void MorelloPairCapOperands(Instruction* instr, MorelloOperands* ops,
+                            const char* suffix) {
+  ops->Cap(instr->Rt());
+  ops->Separator();
+  ops->Cap(instr->Ct2());
+  ops->Append(", [");
+  ops->Cap(instr->Rn(), true);
+  ops->Append(suffix, instr->SignedBits(21, 15) * 16);
+}
+
+}  // namespace
 
 void DisassemblingDecoder::VisitLoadStorePairCapPostIndex(Instruction* instr) {
-  const char* mnemonic = "unimplemented";
-  const char* form = "(LoadStorePairCapPostIndex)";
-
-  switch (instr->Mask(LoadStorePairPostIndexMask)) {
-#define LSP_POSTINDEX(A, B, C, D) \
-  case A##_post:                  \
-    mnemonic = B;                 \
-    form = C ", ['Yns]'ILP4";    \
-    break;
-    LOAD_STORE_PAIR_CAP_LIST(LSP_POSTINDEX)
-#undef LSP_POSTINDEX
-  }
-  Format(instr, mnemonic, form);
+  MorelloOperands ops;
+  MorelloPairCapOperands(instr, &ops, "], #%d");
+  Format(instr, instr->Bit(22) ? "ldp" : "stp", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitLoadStorePairCapPreIndex(Instruction* instr) {
-  const char* mnemonic = "unimplemented";
-  const char* form = "(LoadStorePairCapPreIndex)";
-
-  switch (instr->Mask(LoadStorePairPreIndexMask)) {
-#define LSP_PREINDEX(A, B, C, D)   \
-  case A##_pre:                    \
-    mnemonic = B;                  \
-    form = C ", ['Yns'ILP4 ]!";   \
-    break;
-    LOAD_STORE_PAIR_CAP_LIST(LSP_PREINDEX)
-#undef LSP_PREINDEX
-  }
-  Format(instr, mnemonic, form);
+  MorelloOperands ops;
+  MorelloPairCapOperands(instr, &ops, ", #%d]!");
+  Format(instr, instr->Bit(22) ? "ldp" : "stp", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitLoadStorePairCapOffset(Instruction* instr) {
-  const char* mnemonic = "unimplemented";
-  const char* form = "(LoadStorePairCapOffset)";
-
-  switch (instr->Mask(LoadStorePairCapOffsetMask)) {
-#define LSP_OFFSET(A, B, C, D)    \
-  case A##_off:                   \
-    mnemonic = B;                 \
-    form = C ", ['Yns'ILP4 ]";   \
-    break;
-LOAD_STORE_PAIR_CAP_LIST(LSP_OFFSET)
-#undef LSP_OFFSET
-  }
-  Format(instr, mnemonic, form);
+  MorelloOperands ops;
+  MorelloPairCapOperands(instr, &ops, ", #%d]");
+  Format(instr, instr->Bit(22) ? "ldp" : "stp", ops.buffer());
 }
 
-#undef LOAD_STORE_PAIR_CAP_LIST
-#endif // __CHERI_PURE_CAPABILITY__
+void DisassemblingDecoder::VisitLoadStorePairCapNonTemporal(
+    Instruction* instr) {
+  MorelloOperands ops;
+  MorelloPairCapOperands(instr, &ops, ", #%d]");
+  Format(instr, instr->Bit(22) ? "ldnp" : "stnp", ops.buffer());
+}
+#endif  // __CHERI_PURE_CAPABILITY__
 
 #define LOAD_STORE_ACQUIRE_RELEASE_LIST(V)      \
   V(STLXR_b, "stlxrb", "'Ws, 'Wt")              \
@@ -3927,179 +3998,780 @@ void DisassemblingDecoder::VisitUnallocated(Instruction* instr) {
 }
 
 #if defined(__CHERI_PURE_CAPABILITY__)
-void DisassemblingDecoder::VisitAddSubCapExtended(Instruction* instr) {
-  const char* form = "'Yds, 'Yns, 'Xm'Ext";
-  switch(instr->Mask(AddSubCapExtendedMask)) {
-  case ADD_c_ext:
-    Format(instr, "add", form);
-    break;
-  default:
-    UNREACHABLE();
+namespace {
+
+struct MorelloLoadStoreForm {
+  const char* mnemonic;
+  char reg_class;
+  uint32_t scale;
+};
+
+void AppendMorelloRegister(MorelloOperands* ops, char reg_class,
+                           uint32_t code) {
+  switch (reg_class) {
+    case 'w':
+      ops->W(code);
+      break;
+    case 'x':
+      ops->X(code);
+      break;
+    default:
+      ops->Simd(reg_class, code);
+      break;
   }
+}
+
+// Emits "<ct>, [<cn>{, #<offset>}]{!}", where suffix carries the offset and
+// the addressing-mode punctuation.
+void MorelloCapLoadStoreOperands(Instruction* instr, MorelloOperands* ops,
+                                 const char* suffix, int32_t offset) {
+  ops->Cap(instr->Rt());
+  ops->Append(", [");
+  ops->Cap(instr->Rn(), true);
+  ops->Append(suffix, offset);
+}
+
+// Emits ", [<rn>, <extended offset>]", where rn is a capability register when
+// cap_base is set and an integer register (code 31 = sp) otherwise.
+void MorelloRegOffsetOperands(Instruction* instr, MorelloOperands* ops,
+                              bool cap_base, uint32_t scale) {
+  ops->Append(", [");
+  if (cap_base) {
+    ops->Cap(instr->Rn(), true);
+  } else {
+    ops->XBase(instr->Rn());
+  }
+  ops->Append(", ");
+  ops->ExtendedOffset(instr->Rm(), instr->Bits(15, 13), instr->Bit(12) != 0,
+                      scale);
+  ops->Append("]");
+}
+
+// Formats the two-source capability field forms (op0=6, sel=2, form=4).
+const char* MorelloCapabilityMiscRegister(Instruction* instr,
+                                          MorelloOperands* ops) {
+  static const char* const kFieldNames[8] = {"gcbase", "gclen", "gcvalue",
+                                             "gcoff",  "gctag", "gcseal",
+                                             "gcperm", "gctype"};
+  const uint32_t opc = instr->Bits(15, 13);
+  const uint32_t rs = instr->Bits(20, 16);
+
+  switch (rs) {
+    case 0:
+      ops->X(instr->Rt());
+      ops->Separator();
+      ops->Cap(instr->Rn(), true);
+      return kFieldNames[opc];
+    case 1:
+      switch (opc) {
+        case 0:
+        case 1:
+        case 2: {
+          static const char* const kNames[3] = {"gclim", "gcflgs", "cfhi"};
+          ops->X(instr->Rt());
+          ops->Separator();
+          ops->Cap(instr->Rn(), true);
+          return kNames[opc];
+        }
+        case 4:
+        case 6:
+          // Both operands are <Cd|CSP> / <Cn|CSP> (DDI0606 sections 4.4.33
+          // and 4.4.103), so register 31 names the stack pointer.
+          ops->Cap(instr->Rt(), true);
+          ops->Separator();
+          ops->Cap(instr->Rn(), true);
+          return opc == 4 ? "clrtag" : "mov";
+        default:
+          return nullptr;
+      }
+    case 2:
+      if (instr->Bits(4, 0) == 0) {
+        // Rt is RES0: this is a branch to a capability register.
+        static const char* const kBranches[3] = {"br", "blr", "ret"};
+        if (opc > 2) return nullptr;
+        ops->Cap(instr->Rn());
+        return kBranches[opc];
+      }
+      switch (opc) {
+        case 0:
+        case 1:
+          ops->Cap(instr->Rn(), true);
+          return opc == 0 ? "chksld" : "chktgd";
+        default:
+          return nullptr;
+      }
+    case 3: {
+      const char* type = nullptr;
+      switch (opc) {
+        case 1:
+          type = "rb";
+          break;
+        case 2:
+          type = "lpb";
+          break;
+        case 3:
+          type = "lb";
+          break;
+        default:
+          return nullptr;
+      }
+      ops->Cap(instr->Rt());
+      ops->Separator();
+      ops->Cap(instr->Rn());
+      ops->Separator();
+      ops->Append("%s", type);
+      return "seal";
+    }
+    case 4:
+      switch (opc) {
+        case 0:
+        case 1:
+          ops->Cap(instr->Rt());
+          ops->Append(", [");
+          ops->Cap(instr->Rn(), true);
+          ops->Append("]");
+          return opc == 0 ? "ldpbr" : "ldpblr";
+        case 4:
+        case 5:
+          ops->X(instr->Rt());
+          ops->Append(", [");
+          ops->Cap(instr->Rn(), true);
+          ops->Append("]");
+          return opc == 4 ? "stct" : "ldct";
+        default:
+          return nullptr;
+      }
+    case 5: {
+      static const char* const kIntegerToCap[2] = {"cvtd", "cvtp"};
+      static const char* const kCapToInteger[4] = {"cvtd", "cvtp", "cvtdz",
+                                                   "cvtpz"};
+      if (opc < 2) {
+        ops->X(instr->Rt());
+        ops->Separator();
+        ops->Cap(instr->Rn(), true);
+        return kIntegerToCap[opc];
+      }
+      if (opc >= 4) {
+        ops->Cap(instr->Rt());
+        ops->Separator();
+        ops->X(instr->Rn());
+        return kCapToInteger[opc - 4];
+      }
+      return nullptr;
+    }
+    case 6:
+      ops->Cap(instr->Rt(), true);
+      ops->Separator();
+      ops->Cap(instr->Rn(), true);
+      ops->Separator();
+      if (opc == 0) {
+        ops->Append("#0");
+      } else {
+        if (opc & 4) ops->Append("r");
+        if (opc & 2) ops->Append("w");
+        if (opc & 1) ops->Append("x");
+      }
+      return "clrperm";
+    case 7:
+      switch (opc) {
+        case 0:
+        case 1:
+          ops->X(instr->Rt());
+          ops->Separator();
+          ops->X(instr->Rn());
+          return opc == 0 ? "rrlen" : "rrmask";
+        default:
+          return nullptr;
+      }
+    default:
+      return nullptr;
+  }
+}
+
+}  // namespace
+
+void DisassemblingDecoder::VisitAddSubCapExtended(Instruction* instr) {
+  const uint32_t option = instr->Bits(15, 13);
+  const uint32_t amount = instr->Bits(12, 10);
+  MorelloOperands ops;
+  ops.Cap(instr->Rt(), true);
+  ops.Separator();
+  ops.Cap(instr->Rn(), true);
+  ops.Separator();
+  if (option == 3 || option == 7) {
+    ops.X(instr->Rm());
+  } else {
+    ops.W(instr->Rm());
+  }
+  ops.Append(", %s", kMorelloExtendNames[option]);
+  if (amount != 0) ops.Append(" #%u", amount);
+  Format(instr, "add", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitAddSubCapImmediate(Instruction* instr) {
-  const char* form = "'Yds, 'Yns, 'IAddSubC";
-  switch(instr->Mask(AddSubCapImmediateMask)) {
-  case ADD_c_imm:
-    Format(instr, "add", form);
-    break;
-  case SUB_c_imm:
-    Format(instr, "sub", form);
-    break;
-  default:
-    UNREACHABLE();
-  }
+  MorelloOperands ops;
+  ops.Cap(instr->Rt(), true);
+  ops.Separator();
+  ops.Cap(instr->Rn(), true);
+  ops.Append(", #%u", instr->Bits(21, 10));
+  if (instr->Bit(22)) ops.Append(", lsl #12");
+  Format(instr, instr->Bit(23) ? "sub" : "add", ops.buffer());
 }
 
-void DisassemblingDecoder::VisitCopyCapability(Instruction* instr) {
-  const char* form = "'Yds, 'Yns";
-  const char *mnemonic = "mov";
-  // MOV <Cd|CSP>, <Cn|CSP> is equivalent to CPY <Cd|CSP>, <Cn|CSP>
-  // and is always preferred disassembly.
-  switch(instr->Mask(CopyCapabilityMask)) {
-    case CPY:
-      Format(instr, mnemonic, form);
-      break;
-    default:
-      UNREACHABLE();
+void DisassemblingDecoder::VisitLoadStoreCapExclusive(Instruction* instr) {
+  const bool load = instr->Bit(22);
+  const bool pair = instr->Bit(21);
+  const bool acquire_release = instr->Bit(15);
+  MorelloOperands ops;
+  const char* mnemonic;
+  if (load) {
+    if (pair) {
+      mnemonic = acquire_release ? "ldaxp" : "ldxp";
+    } else {
+      mnemonic = acquire_release ? "ldaxr" : "ldxr";
+    }
+  } else {
+    if (pair) {
+      mnemonic = acquire_release ? "stlxp" : "stxp";
+    } else {
+      mnemonic = acquire_release ? "stlxr" : "stxr";
+    }
+    ops.W(instr->Rs());
+    ops.Separator();
   }
+  ops.Cap(instr->Rt());
+  if (pair) {
+    ops.Separator();
+    ops.Cap(instr->Ct2());
+  }
+  ops.Append(", [");
+  ops.Cap(instr->Rn(), true);
+  ops.Append("]");
+  Format(instr, mnemonic, ops.buffer());
 }
 
-void DisassemblingDecoder::VisitConditionalSelectCap(Instruction* instr) {
-  const char *mnemonic = "csel";
-  const char* form = "'Yd, 'Yn, 'Ym, 'Cond";
-  switch (instr->Mask(ConditionalSelectCapMask)) {
-    case CSEL_c:
-      Format(instr, mnemonic, form);
-      break;
-    default:
-      UNREACHABLE();
+void DisassemblingDecoder::VisitLoadStoreCapAcquireRelease(Instruction* instr) {
+  const bool load = instr->Bit(22);
+  const bool capability = instr->Bit(21) == 0;
+  const bool register_offset = instr->Bit(15);
+  MorelloOperands ops;
+  const char* mnemonic;
+  if (capability) {
+    mnemonic = load ? "ldar" : "stlr";
+    ops.Cap(instr->Rt());
+    ops.Append(", [");
+    ops.Cap(instr->Rn(), register_offset);
+  } else {
+    if (register_offset) {
+      mnemonic = load ? "ldar" : "stlr";
+    } else {
+      mnemonic = load ? "ldarb" : "stlrb";
+    }
+    ops.W(instr->Rt());
+    ops.Append(", [");
+    ops.XBase(instr->Rn());
   }
+  ops.Append("]");
+  Format(instr, mnemonic, ops.buffer());
 }
 
-void DisassemblingDecoder::VisitGetField1(Instruction* instr) {
-  const char* form = "'Xd, 'Yns";
-  // The Rd field is inside GetField1Mask, so match on the opc field instead.
-  switch (instr->Bits(15, 13)) {
-    case 0x0:
-      Format(instr, "gcbase", form);
-      break;
-    case 0x1:
-      Format(instr, "gclen", form);
-      break;
-    case 0x2:
-      Format(instr, "gcvalue", form);
-      break;
-    case 0x4:
-      Format(instr, "gctag", form);
-      break;
-    case 0x5:
-      Format(instr, "gcseal", form);
-      break;
-    case 0x6:
-      Format(instr, "gcperm", form);
-      break;
-    default:
-      UNREACHABLE();
-  }
+void DisassemblingDecoder::VisitLoadLiteralCap(Instruction* instr) {
+  MorelloOperands ops;
+  ops.Cap(instr->Rt());
+  ops.Append(", #%d", instr->SignedBits(21, 5) * 16);
+  Format(instr, "ldr", ops.buffer());
 }
 
-void DisassemblingDecoder::VisitLoadStoreCapUnscaledOffsetNormal(
+void DisassemblingDecoder::VisitLoadStoreCapUnsignedOffsetAltBase(
     Instruction* instr) {
-  const char* form = "'Yt, ['Yns'ILSC]";
-  switch(instr->Mask(LoadStoreCapUnscaledOffsetNormalMask)) {
-    case LDUR_c_normal:
-      Format(instr, "ldur", form);
+  const bool load = instr->Bit(21);
+  const uint32_t opc = instr->Bits(11, 10);
+  uint32_t scale;
+  MorelloOperands ops;
+  const char* mnemonic;
+  switch (opc) {
+    case 0:
+      mnemonic = load ? "ldr" : "str";
+      ops.Cap(instr->Rt());
+      scale = 16;
       break;
-    case STUR_c_normal:
-      Format(instr, "stur", form);
+    case 1:
+      mnemonic = load ? "ldrb" : "strb";
+      ops.W(instr->Rt());
+      scale = 1;
+      break;
+    case 2:
+      mnemonic = load ? "ldr" : "str";
+      ops.W(instr->Rt());
+      scale = 4;
       break;
     default:
-      UNREACHABLE();
+      mnemonic = load ? "ldr" : "str";
+      ops.X(instr->Rt());
+      scale = 8;
+      break;
   }
+  ops.Append(", [");
+  ops.XBase(instr->Rn());
+  ops.Append(", #%u]", instr->Bits(20, 12) * scale);
+  Format(instr, mnemonic, ops.buffer());
 }
 
-void DisassemblingDecoder::VisitLoadStoreCapUnsignedOffsetCapNormal(
+void DisassemblingDecoder::VisitLoadStoreCapRegisterOffsetAltBase(
     Instruction* instr) {
-  const char* form = "'Yt, ['Yns'ILUC]";
-  switch(instr->Mask(LoadStoreCapUnsignedOffsetCapNormalMask)) {
-    case LDR_c_unsigned_cap_normal:
-      Format(instr, "ldr", form);
-      break;
-    case STR_c_unsigned_cap_normal:
-      Format(instr, "str", form);
-      break;
-    default:
-      UNREACHABLE();
+  MorelloOperands ops;
+  ops.Cap(instr->Rt());
+  MorelloRegOffsetOperands(instr, &ops, false, 4);
+  Format(instr, instr->Bits(11, 10) == 1 ? "str" : "ldr", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitLoadStoreRegisterOffsetAltBase(
+    Instruction* instr) {
+  static const MorelloLoadStoreForm kWideForms[4] = {
+      {"ldr", 'w', 2}, {"ldr", 'x', 3}, {"ldr", 'd', 3}, {"ldr", 's', 2}};
+  static const MorelloLoadStoreForm kNarrowForms[2][4] = {
+      {{"strb", 'w', 0},
+       {"ldrsb", 'x', 0},
+       {"ldrsh", 'x', 1},
+       {"strh", 'w', 1}},
+      {{"ldrb", 'w', 0},
+       {"ldrsb", 'w', 0},
+       {"ldrsh", 'w', 1},
+       {"ldrh", 'w', 1}},
+  };
+  const bool load = instr->Bit(22);
+  const bool wide = instr->Bit(21);
+  const uint32_t size = instr->Bits(11, 10);
+  MorelloLoadStoreForm form;
+  if (wide) {
+    form = kWideForms[size];
+    form.mnemonic = load ? form.mnemonic : "str";
+  } else {
+    form = kNarrowForms[load ? 1 : 0][size];
   }
+  MorelloOperands ops;
+  AppendMorelloRegister(&ops, form.reg_class, instr->Rt());
+  MorelloRegOffsetOperands(instr, &ops, false, form.scale);
+  Format(instr, form.mnemonic, ops.buffer());
 }
 
 void DisassemblingDecoder::VisitLoadStoreCapRegisterOffsetNormal(
     Instruction* instr) {
-  const char* form = "'Yt, ['Yns 'Xm'Ext]";
-  switch(instr->Mask(LoadStoreCapRegisterOffsetNormalMask)) {
-    case LDR_c_reg_normal:
-      Format(instr, "ldr", form);
-      break;
-    case STR_c_reg_normal:
-      Format(instr, "str", form);
-      break;
-    default:
-      UNREACHABLE();
-  }
+  MorelloOperands ops;
+  ops.Cap(instr->Rt());
+  MorelloRegOffsetOperands(instr, &ops, true, 4);
+  Format(instr, instr->Bit(22) ? "ldr" : "str", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapUnscaledOffsetNormal(
+    Instruction* instr) {
+  MorelloOperands ops;
+  MorelloCapLoadStoreOperands(instr, &ops, ", #%d]", instr->SignedBits(20, 12));
+  Format(instr, instr->Bit(22) ? "ldur" : "stur", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitLoadStorePostCapIndex(Instruction* instr) {
-  const char* form = "'Yt, ['Yns] 'ILUC]!";
-  switch(instr->Mask(LoadStorePostCapIndexMask)) {
-    case LDR_c_post:
-      Format(instr, "ldr", form);
-      break;
-    case STR_c_post:
-      Format(instr, "str", form);
-      break;
-    default:
-      UNREACHABLE();
-  }
+  MorelloOperands ops;
+  MorelloCapLoadStoreOperands(instr, &ops, "], #%d",
+                              instr->SignedBits(20, 12) * 16);
+  Format(instr, instr->Bit(22) ? "ldr" : "str", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapUnscaledOffsetTranslated(
+    Instruction* instr) {
+  MorelloOperands ops;
+  MorelloCapLoadStoreOperands(instr, &ops, ", #%d]",
+                              instr->SignedBits(20, 12) * 16);
+  Format(instr, instr->Bit(22) ? "ldtr" : "sttr", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitLoadStorePreCapIndex(Instruction* instr) {
-  const char* form = "'Yt, ['Yns 'ILUC]!";
-  switch(instr->Mask(LoadStorePreCapIndexMask)) {
-    case LDR_c_pre:
-      Format(instr, "ldr", form);
-      break;
-    case STR_c_pre:
-      Format(instr, "str", form);
-      break;
-    default:
-      UNREACHABLE();
+  MorelloOperands ops;
+  MorelloCapLoadStoreOperands(instr, &ops, ", #%d]!",
+                              instr->SignedBits(20, 12) * 16);
+  Format(instr, instr->Bit(22) ? "ldr" : "str", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitAtomicMemoryCap(Instruction* instr) {
+  const uint32_t form = instr->Bits(11, 10);
+  MorelloOperands ops;
+  const char* mnemonic;
+  if (form == 3) {
+    if (instr->Bit(22)) {
+      mnemonic = instr->Bit(15) ? "casal" : "casa";
+    } else {
+      mnemonic = instr->Bit(15) ? "casl" : "cas";
+    }
+    ops.Cap(instr->Rs());
+    ops.Separator();
+    ops.Cap(instr->Rt());
+  } else if (!instr->Bit(23) && !instr->Bit(22) && instr->Bit(15) &&
+             instr->Bits(14, 12) == 4 && instr->Rs() == kZeroRegCode) {
+    mnemonic = "ldapr";
+    ops.Cap(instr->Rt());
+  } else {
+    switch (instr->Bits(23, 22)) {
+      case 0:
+        mnemonic = "swp";
+        break;
+      case 1:
+        mnemonic = "swpl";
+        break;
+      case 2:
+        mnemonic = "swpa";
+        break;
+      default:
+        mnemonic = "swpal";
+        break;
+    }
+    ops.Cap(instr->Rs());
+    ops.Separator();
+    ops.Cap(instr->Rt());
   }
+  ops.Append(", [");
+  ops.Cap(instr->Rn(), true);
+  ops.Append("]");
+  Format(instr, mnemonic, ops.buffer());
+}
+
+void DisassemblingDecoder::VisitLoadStoreCapUnsignedOffsetCapNormal(
+    Instruction* instr) {
+  MorelloOperands ops;
+  MorelloCapLoadStoreOperands(instr, &ops, ", #%d]",
+                              static_cast<int32_t>(instr->Bits(21, 10) * 16));
+  Format(instr, instr->Bit(22) ? "ldr" : "str", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitCapSystemRegister(Instruction* instr) {
+  struct NamedRegister {
+    uint32_t o1;
+    uint32_t o2;
+    const char* name;
+  };
+  static const NamedRegister kNames[] = {{0, 4, "CTPIDR_EL1"},
+                                         {3, 2, "CTPIDR_EL0"},
+                                         {4, 2, "CTPIDR_EL2"},
+                                         {6, 2, "CTPIDR_EL3"}};
+  const uint32_t o0 = 2 + instr->Bit(19);
+  const uint32_t o1 = instr->Bits(18, 16);
+  const uint32_t crn = instr->Bits(15, 12);
+  const uint32_t crm = instr->Bits(11, 8);
+  const uint32_t o2 = instr->Bits(7, 5);
+  const char* name = nullptr;
+  if (o0 == 3 && crn == 13 && crm == 0) {
+    for (const NamedRegister& reg : kNames) {
+      if (reg.o1 == o1 && reg.o2 == o2) {
+        name = reg.name;
+        break;
+      }
+    }
+  }
+
+  MorelloOperands ops;
+  const bool read = instr->Bit(20);
+  if (read) {
+    ops.Cap(instr->Rt());
+    ops.Append(", ");
+  }
+  if (name != nullptr) {
+    ops.Append("%s", name);
+  } else {
+    ops.Append("#%u, #%u, #%u, #%u, #%u", o0, o1, crn, crm, o2);
+  }
+  if (!read) {
+    ops.Append(", ");
+    ops.Cap(instr->Rt());
+  }
+  Format(instr, read ? "mrs" : "msr", ops.buffer());
 }
 
 void DisassemblingDecoder::VisitSetField1(Instruction* instr) {
-  const char* form = "'Yds, 'Yns, 'Xm";
-  const char *mnemonic = "scvalue";
-  switch(instr->Mask(SetField1Mask)) {
-    case SCVALUE:
-      Format(instr, mnemonic, form);
+  MorelloOperands ops;
+  const char* mnemonic;
+  switch (instr->Bits(15, 13)) {
+    case 0:
+      mnemonic = "scbnds";
+      break;
+    case 1:
+      mnemonic = "scbndse";
+      break;
+    case 2:
+      mnemonic = "scvalue";
+      break;
+    case 3:
+      mnemonic = "scoff";
+      break;
+    case 4:
+      mnemonic = "sctag";
+      break;
+    case 5:
+      mnemonic = "clrperm";
+      break;
+    case 6:
+      ops.X(instr->Rt());
+      ops.Separator();
+      ops.Cap(instr->Rn(), true);
+      ops.Separator();
+      ops.Cap(instr->Rs());
+      Format(instr, "cvt", ops.buffer());
+      return;
+    default:
+      mnemonic = "scflgs";
+      break;
+  }
+  ops.Cap(instr->Rt(), true);
+  ops.Separator();
+  ops.Cap(instr->Rn(), true);
+  ops.Separator();
+  ops.X(instr->Rs());
+  Format(instr, mnemonic, ops.buffer());
+}
+
+void DisassemblingDecoder::VisitCapabilityMisc(Instruction* instr) {
+  const uint32_t form = instr->Bits(12, 10);
+  const uint32_t opc = instr->Bits(15, 13);
+  MorelloOperands ops;
+  const char* mnemonic = nullptr;
+
+  auto three_caps = [&](bool stack_pointer) {
+    ops.Cap(instr->Rt(), stack_pointer);
+    ops.Separator();
+    ops.Cap(instr->Rn(), stack_pointer);
+    ops.Separator();
+    ops.Cap(instr->Rs(), stack_pointer);
+  };
+  auto cap_cap_x = [&](bool stack_pointer) {
+    ops.Cap(instr->Rt(), stack_pointer);
+    ops.Separator();
+    ops.Cap(instr->Rn(), stack_pointer);
+    ops.Separator();
+    ops.X(instr->Rs());
+  };
+
+  if (form == 1) {
+    switch (opc) {
+      case 0:
+        mnemonic = "build";
+        three_caps(true);
+        break;
+      case 1:
+        mnemonic = "cpytype";
+        three_caps(false);
+        break;
+      case 2:
+        mnemonic = "cseal";
+        three_caps(true);
+        break;
+      case 3:
+        mnemonic = "cpyvalue";
+        three_caps(false);
+        break;
+      case 4:
+      case 5:
+        mnemonic = opc == 4 ? "chkss" : "chkeq";
+        ops.Cap(instr->Rn(), true);
+        ops.Separator();
+        ops.Cap(instr->Rs(), opc == 4);
+        break;
+      default:
+        break;
+    }
+  } else if (form == 2) {
+    switch (opc) {
+      case 0:
+        mnemonic = "seal";
+        three_caps(false);
+        break;
+      case 1:
+        mnemonic = "bicflgs";
+        cap_cap_x(true);
+        break;
+      case 2:
+        mnemonic = "unseal";
+        three_caps(false);
+        break;
+      case 3:
+        mnemonic = "orrflgs";
+        cap_cap_x(true);
+        break;
+      case 4:
+        mnemonic = "chkssu";
+        ops.Cap(instr->Rt());
+        ops.Separator();
+        ops.Cap(instr->Rn(), true);
+        ops.Separator();
+        ops.Cap(instr->Rs(), true);
+        break;
+      case 5:
+        mnemonic = "eorflgs";
+        cap_cap_x(true);
+        break;
+      case 7:
+        mnemonic = "cthi";
+        ops.Cap(instr->Rt(), true);
+        ops.Separator();
+        ops.Cap(instr->Rn());
+        ops.Separator();
+        ops.X(instr->Rs());
+        break;
+      default:
+        break;
+    }
+  } else if (form == 4) {
+    mnemonic = MorelloCapabilityMiscRegister(instr, &ops);
+  }
+
+  if (mnemonic == nullptr) {
+    VisitUnimplemented(instr);
+    return;
+  }
+  Format(instr, mnemonic, ops.buffer());
+}
+
+void DisassemblingDecoder::VisitBranchToRegisterCap(Instruction* instr) {
+  int32_t offset = static_cast<int32_t>(((instr->Bits(20, 16) - 16) << 3) |
+                                        instr->Bits(15, 13));
+  if (offset & 0x40) offset -= 0x80;
+  MorelloOperands ops;
+  ops.Append("[");
+  ops.Cap(instr->Rn(), true);
+  ops.Append(", #%d]", offset * 16);
+  Format(instr, "blr", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitConditionalSelectCap(Instruction* instr) {
+  static const char* const kConditions[16] = {
+      "eq", "ne", "hs", "lo", "mi", "pl", "vs", "vc",
+      "hi", "ls", "ge", "lt", "gt", "le", "al", "nv"};
+  const uint32_t index =
+      (instr->Bits(15, 13) << 1) | (instr->Bits(12, 10) == 7 ? 1 : 0);
+  MorelloOperands ops;
+  ops.Cap(instr->Rt());
+  ops.Separator();
+  ops.Cap(instr->Rn());
+  ops.Separator();
+  ops.Cap(instr->Rm());
+  ops.Append(", %s", kConditions[index]);
+  Format(instr, "csel", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitAlignCapability(Instruction* instr) {
+  const uint32_t opc = instr->Bits(15, 13);
+  const uint32_t immediate = 2 * instr->Bits(20, 16) + ((opc >> 2) & 1);
+  MorelloOperands ops;
+  ops.Cap(instr->Rt());
+  ops.Separator();
+  ops.Cap(instr->Rn());
+  ops.Append(", #%u", immediate);
+  switch (opc & 3) {
+    case 0:
+      Format(instr, "alignd", ops.buffer());
+      break;
+    case 2:
+      Format(instr, "alignu", ops.buffer());
+      break;
+    case 1:
+      Format(instr, "scbnds", ops.buffer());
       break;
     default:
-      UNREACHABLE();
+      ops.Append(", lsl #4");
+      Format(instr, "scbnds", ops.buffer());
+      break;
+  }
+}
+
+void DisassemblingDecoder::VisitCapabilityFlags(Instruction* instr) {
+  MorelloOperands ops;
+  ops.Cap(instr->Rt(), true);
+  ops.Separator();
+  ops.Cap(instr->Rn(), true);
+  ops.Append(", #%u", (instr->Bits(20, 16) << 3) | instr->Bits(15, 13));
+  Format(instr, instr->Bit(12) ? "eorflgs" : "bicflgs", ops.buffer());
+}
+
+void DisassemblingDecoder::VisitCapabilityArithmetic(Instruction* instr) {
+  const uint32_t opc = instr->Bits(15, 13);
+  MorelloOperands ops;
+  if (!instr->Bit(12)) {
+    ops.Cap(instr->Rt(), true);
+    ops.Separator();
+    ops.Cap(instr->Rn(), true);
+    ops.Append(", #%u", (instr->Bits(20, 16) << 3) | opc);
+    Format(instr, "orrflgs", ops.buffer());
+    return;
+  }
+  switch (opc) {
+    case 0:
+    case 2:
+      ops.Cap(instr->Rt());
+      ops.Separator();
+      ops.Cap(instr->Rn(), true);
+      ops.Separator();
+      ops.X(instr->Rs());
+      Format(instr, opc == 0 ? "cvt" : "cvtz", ops.buffer());
+      return;
+    case 4:
+      if (instr->Rt() == kZeroRegCode) {
+        ops.Cap(instr->Rn());
+        ops.Separator();
+        ops.Cap(instr->Rs());
+        Format(instr, "cmp", ops.buffer());
+      } else {
+        ops.X(instr->Rt());
+        ops.Separator();
+        ops.Cap(instr->Rn());
+        ops.Separator();
+        ops.Cap(instr->Rs());
+        Format(instr, "subs", ops.buffer());
+      }
+      return;
+    default:
+      VisitUnimplemented(instr);
+      return;
   }
 }
 
 void DisassemblingDecoder::VisitCompareCapabilities(Instruction* instr) {
-  const char* form = "'Yn, 'Ym";
-  const char *mnemonic = "cmp";
-  switch(instr->Mask(CompareCapabilitiesMask)) {
-    case SUBS_c:
-      Format(instr, mnemonic, form);
-      break;
-    default:
-      UNREACHABLE();
+  VisitCapabilityArithmetic(instr);
+}
+
+void DisassemblingDecoder::VisitLoadStoreUnscaledOffsetAltBase(
+    Instruction* instr) {
+  static const MorelloLoadStoreForm kSimdForms[4][4] = {
+      {{"stur", 'b', 0}, {"ldur", 'b', 0}, {"stur", 'q', 0}, {"ldur", 'q', 0}},
+      {{"stur", 'h', 0}, {"ldur", 'h', 0}, {nullptr, 0, 0}, {nullptr, 0, 0}},
+      {{"stur", 's', 0}, {"ldur", 's', 0}, {nullptr, 0, 0}, {nullptr, 0, 0}},
+      {{"stur", 'd', 0}, {"ldur", 'd', 0}, {nullptr, 0, 0}, {nullptr, 0, 0}},
+  };
+  static const MorelloLoadStoreForm kIntegerForms[4][4] = {
+      {{"sturb", 'w', 0},
+       {"ldurb", 'w', 0},
+       {"ldursb", 'x', 0},
+       {"ldursb", 'w', 0}},
+      {{"sturh", 'w', 0},
+       {"ldurh", 'w', 0},
+       {"ldursh", 'x', 0},
+       {"ldursh", 'w', 0}},
+      {{"stur", 'w', 0},
+       {"ldur", 'w', 0},
+       {"ldursw", 'x', 0},
+       {"stur", 'c', 0}},
+      {{"stur", 'x', 0}, {"ldur", 'x', 0}, {nullptr, 0, 0}, {"ldur", 'c', 0}},
+  };
+  const uint32_t size = (instr->Bit(23) << 1) | instr->Bit(22);
+  const uint32_t opc = instr->Bits(11, 10);
+  const MorelloLoadStoreForm& form =
+      instr->Bit(21) ? kSimdForms[size][opc] : kIntegerForms[size][opc];
+  if (form.mnemonic == nullptr) {
+    VisitUnimplemented(instr);
+    return;
   }
+  MorelloOperands ops;
+  AppendMorelloRegister(&ops, form.reg_class, instr->Rt());
+  ops.Append(", [");
+  ops.XBase(instr->Rn());
+  ops.Append(", #%d]", instr->SignedBits(20, 12));
+  Format(instr, form.mnemonic, ops.buffer());
 }
 #endif // __CHERI_PURE_CAPABILITY__
 
@@ -4138,12 +4810,9 @@ void DisassemblingDecoder::AppendRegisterNameToOutput(const CPURegister& reg) {
     }
   }
 
-#if defined(__CHERI_PURE_CAPABILITY__)
-  if (reg.IsVRegister() || !(reg.Aliases(sp) || reg.Aliases(csp)) ||
-      reg.Aliases(xzr) || reg.Aliases(czr)) {
-#else
+  // CPURegister::Aliases ignores the register size, so these match the 64-bit
+  // and the 128-bit view of the same code alike.
   if (reg.IsVRegister() || !(reg.Aliases(sp) || reg.Aliases(xzr))) {
-#endif // _CHERI_PRE_CAPABILITY__
     // Filter special registers
 #if defined(__CHERI_PURE_CAPABILITY__)
     if (reg.IsC() && (reg.code() == 27)) {
