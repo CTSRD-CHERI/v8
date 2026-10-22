@@ -2888,7 +2888,7 @@ Handle<FixedDoubleArray> Factory::CopyFixedDoubleArray(
                 offsetof(FixedDoubleArray, length_),
             bytes_to_copy);
   CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
-                IsAligned(bytes_to_copy, kSystemPointerAddrSize));
+                IsAligned(bytes_to_copy, kSystemPointerSize));
   if (COMPRESS_POINTERS_BOOL) {
     Heap::CopyBlock(result->address() + offsetof(FixedDoubleArray, length_),
                     array->address() + offsetof(FixedDoubleArray, length_),
@@ -2896,7 +2896,7 @@ Handle<FixedDoubleArray> Factory::CopyFixedDoubleArray(
   } else {
     CopyWords(result->address() + offsetof(FixedDoubleArray, length_),
               array->address() + offsetof(FixedDoubleArray, length_),
-              bytes_to_copy / kSystemPointerAddrSize);
+              bytes_to_copy / kSystemPointerSize);
   }
 #else
   Heap::CopyBlock(result->address() + offsetof(FixedDoubleArray, length_),
