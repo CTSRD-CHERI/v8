@@ -14832,9 +14832,10 @@ TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(
   TNode<RawPtrT> reservation =
       Load<RawPtrT>(IsolateField(IsolateFieldId::kHeapReservationCap));
   TNode<IntPtrT> chunk = SetAddress(reservation, address);
-  return WordAnd(chunk,
-                 IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
-      .MarkAsCapability();
+  chunk = WordAnd(chunk,
+                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
+              .MarkAsCapability();
+  return SetBounds(chunk, IntPtrConstant(sizeof(MemoryChunk)));
 #else
   return WordAnd(address,
                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
