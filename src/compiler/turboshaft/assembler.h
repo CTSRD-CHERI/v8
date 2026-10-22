@@ -2941,9 +2941,14 @@ class AssemblerOpInterface : public Next {
              MemoryRepresentation::UintPtr(),
              IsolateData::heap_reservation_cap_offset());
     address = SetAddress(reservation, V<Word64>::Cast(address));
-#endif
+    return SetBounds(
+        WordPtrBitwiseAnd(address,
+                          ~MemoryChunk::GetAlignmentMaskForAssembler()),
+        Word64Constant(uint64_t{sizeof(MemoryChunk)}));
+#else
     return WordPtrBitwiseAnd(address,
                              ~MemoryChunk::GetAlignmentMaskForAssembler());
+#endif
   }
 
   OpIndex AtomicRMW(V<Any> base, V<WordPtr> index, OpIndex value,
