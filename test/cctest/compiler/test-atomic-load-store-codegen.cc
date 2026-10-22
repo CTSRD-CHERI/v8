@@ -150,11 +150,19 @@ void AtomicLoadTagged(MachineType type, AtomicMemoryOrder order) {
     Node* index = m.IntPtrConstant(i * sizeof(buffer[0]));
     AtomicLoadParameters params(type, order);
     Node* load;
+#if V8_TARGET_CHERI
+    if (std::is_same_v<T, Smi>) {
+      load = m.AtomicLoad64(params, base, index);
+    } else {
+      load = m.AtomicLoadCapability(params, base, index);
+    }
+#else
     if (kTaggedSize == 8) {
       load = m.AtomicLoad64(params, base, index);
     } else {
       load = m.ChangeInt32ToIntPtr(m.AtomicLoad(params, base, index));
     }
+#endif
     m.Return(load);
     CheckEq<Tagged<T>>(buffer[i], m.Call());
   }
@@ -287,7 +295,7 @@ void AtomicStoreTagged(MachineType type, AtomicMemoryOrder order) {
     } else {
       DCHECK(m.machine()->Is64());
 #if V8_TARGET_CHERI
-      if (std::is_same_v<TaggedT, Smi>) {
+      if (std::is_same_v<T, Smi>) {
         load = m.AtomicLoad64(load_params, in_base, in_index);
         m.AtomicStore64(store_params, out_base, out_index, load, nullptr);
       } else {
