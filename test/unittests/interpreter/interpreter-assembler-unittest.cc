@@ -458,11 +458,17 @@ TARGET_TEST_F(InterpreterAssemblerTest, CallRuntime) {
         Matcher<c::Node*> function_table = c::IsExternalConstant(
             ExternalReference::runtime_function_table_address_for_unittests(
                 isolate()));
+        Matcher<c::Node*> function_size =
+            c::IsChangeUint32ToWord(c::IsInt32Mul(
+                Eq(function_id),
+                c::IsInt32Constant(sizeof(Runtime::Function))));
+#if V8_TARGET_CHERI
         Matcher<c::Node*> function =
-            c::IsIntPtrAdd(function_table,
-                           c::IsChangeUint32ToWord(c::IsInt32Mul(
-                               Eq(function_id),
-                               c::IsInt32Constant(sizeof(Runtime::Function)))));
+            c::IsCapAdd(function_table, function_size);
+#else
+        Matcher<c::Node*> function =
+            c::IsIntPtrAdd(function_table, function_size);
+#endif
         Matcher<c::Node*> function_entry =
             m.IsLoad(MachineType::Pointer(), function,
                      c::IsIntPtrConstant(offsetof(Runtime::Function, entry)));
