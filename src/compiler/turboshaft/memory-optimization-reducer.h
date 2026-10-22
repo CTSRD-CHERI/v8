@@ -280,10 +280,19 @@ class MemoryOptimizationReducer : public Next {
         type == AllocationType::kYoung ? IsolateFieldId::kNewAllocationInfoTop
                                        : IsolateFieldId::kOldAllocationInfoTop);
 
+    // AllocateFastPath rounds the new top up, so the tracked top advances by
+    // the aligned size.
+    uint64_t constant_size{};
+    const bool matched_static =
+        __ matcher().MatchWordPtrConstant(size, &constant_size);
+    const uint64_t bump_size = OBJECT_POINTER_ALIGN(constant_size);
+
     if (analyzer_->IsFoldedAllocation(__ current_operation_origin())) {
       DCHECK_NE(__ GetVariable(top(type)), V<WordPtr>::Invalid());
+      DCHECK(matched_static);
       V<WordPtr> obj_addr = __ GetVariable(top(type));
-      __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)), size));
+      __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)),
+                                              __ WordPtrConstant(bump_size)));
       __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                       MemoryRepresentation::UintPtr());
       return __ BitcastWordPtrToHeapObject(
@@ -340,10 +349,7 @@ class MemoryOptimizationReducer : public Next {
     // than kMaxRegularHeapObjectSize, do not update {top(type)} in case of a
     // runtime call. This is needed because we cannot allocation-fold large and
     // normal-sized objects.
-    uint64_t constant_size{};
-    if (!__ matcher().MatchIntegralWordConstant(
-            size, WordRepresentation::WordPtr(), &constant_size) ||
-        constant_size > kMaxRegularHeapObjectSize) {
+    if (!matched_static || constant_size > kMaxRegularHeapObjectSize) {
       Variable result =
           __ NewLoopInvariantVariable(RegisterRepresentation::Tagged());
       if (!constant_size) {
@@ -393,7 +399,7 @@ class MemoryOptimizationReducer : public Next {
     if (auto c = analyzer_->ReservedSize(__ current_operation_origin())) {
       reservation_size = __ UintPtrConstant(*c);
     } else {
-      reservation_size = size;
+      reservation_size = __ WordPtrConstant(bump_size);
     }
     // Check if we can do bump pointer allocation here.
     bool reachable =
@@ -428,7 +434,8 @@ class MemoryOptimizationReducer : public Next {
       SetLastYoungAllocation(type, obj_addr);
     }
 
-    __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)), size));
+    __ SetVariable(top(type), __ WordPtrAdd(__ GetVariable(top(type)),
+                                            __ WordPtrConstant(bump_size)));
     __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                     MemoryRepresentation::UintPtr());
     return __ BitcastWordPtrToHeapObject(

@@ -117,15 +117,10 @@ void MemoryAnalyzer::ProcessBlockTerminator(const Operation& terminator) {
 void MemoryAnalyzer::ProcessAllocation(const AllocateOp& alloc) {
   if (ShouldSkipOptimizationStep()) return;
   std::optional<uint64_t> new_size;
-  if (auto* size =
-          input_graph.Get(alloc.size()).template TryCast<ConstantOp>()) {
-#if V8_TARGET_CHERI
-    new_size = (size->kind == ConstantOp::Kind::kCapability64)
-                   ? static_cast<uint64_t>(size->capability64())
-                   : size->integral();
-#else
-    new_size = size->integral();
-#endif
+  // Match the reducer's aligned bump-pointer write-back.
+  if (uint64_t size_value{}; OperationMatcher(input_graph).MatchWordPtrConstant(
+                                 alloc.size(), &size_value)) {
+    new_size = OBJECT_POINTER_ALIGN(size_value);
   }
   // If the new allocation has a static size and is of the same type, then we
   // can fold it into the previous allocation unless the folded allocation would

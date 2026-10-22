@@ -288,6 +288,23 @@ class OperationMatcher {
   }
 #endif
 
+  // A pointer-width constant: either a Capability64 or a plain word.
+  bool MatchWordPtrConstant(V<Any> matched, uint64_t* constant) const {
+    if (MatchIntegralWordConstant(matched, WordRepresentation::MachineWord(),
+                                  constant)) {
+      return true;
+    }
+#if V8_TARGET_CHERI
+    if (uintptr_t value{}; MatchCapability64Constant(matched, &value)) {
+      if (constant) {
+        *constant = static_cast<uint64_t>(value);
+      }
+      return true;
+    }
+#endif
+    return false;
+  }
+
   bool MatchIntegralWord32Constant(V<Any> matched, uint32_t constant) const {
     if (uint64_t value; MatchIntegralWordConstant(
             matched, WordRepresentation::Word32(), &value)) {
