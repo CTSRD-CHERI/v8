@@ -188,11 +188,14 @@ TEST(MaxUsableCapacity) {
 }
 
 TEST(SizeFor) {
-  int baseline = HeapObject::kHeaderSize +
-                 // prefix:
-                 4 +
-                 // capacity:
-                 4 +
+  // Both the meta table pointer and the overall size are aligned up to a
+  // capability; AlignToCapSize is a no-op where pointers are not capabilities.
+  int meta_table_offset = AlignToCapSize(HeapObject::kHeaderSize +
+                                         // prefix:
+                                         4 +
+                                         // capacity:
+                                         4);
+  int baseline = meta_table_offset +
                  // meta table:
                  kTaggedSize;
 
@@ -216,9 +219,9 @@ TEST(SizeFor) {
                // property details table:
                8;
 
-  CHECK_EQ(SwissNameDictionary::SizeFor(0), size_0);
-  CHECK_EQ(SwissNameDictionary::SizeFor(4), size_4);
-  CHECK_EQ(SwissNameDictionary::SizeFor(8), size_8);
+  CHECK_EQ(SwissNameDictionary::SizeFor(0), AlignToCapSize(size_0));
+  CHECK_EQ(SwissNameDictionary::SizeFor(4), AlignToCapSize(size_4));
+  CHECK_EQ(SwissNameDictionary::SizeFor(8), AlignToCapSize(size_8));
 }
 
 // Executes the tests defined in test-swiss-name-dictionary-shared-tests.h as if
