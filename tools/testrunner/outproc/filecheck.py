@@ -25,23 +25,27 @@ class FileCheckOutProc(base.OutProc):
     # > input=output.stdout, encoding="utf-8", text=True
     # creates some issues with the filecheck CHECK-NEXT directive (maybe
     # something goes wrong in terms of new lines)...
+    input = output.stdout.encode("utf-8") + output.stderr.encode("utf-8")
     try:
-      res = subprocess.run(
-          cmd,
-          input=output.stdout.encode("utf-8") + output.stderr.encode("utf-8"),
-          capture_output=True,
-          shell=platform.system() == 'Windows')
-    except OSError as e:
-      # The FileCheck runner is unavailable (no vpython3 on PATH, or
-      # third_party/filecheck not checked out). Do not let this escape: an
-      # exception here kills the worker pool, which aborts the whole batch and
-      # silently drops every test that had not run yet. Report the test as
-      # failed with a diagnosable message instead.
-      output.stderr += (
-          "\nCould not run FileCheck (%s: %s).\n"
-          "vpython3 and third_party/filecheck are required for these tests.\n"
-          % (cmd[0], e))
-      return True
+      res = subprocess.run(cmd, input=input, capture_output=True,
+                           shell=platform.system() == 'Windows')
+    except OSError:
+      # vpython3 needs a CPython new enough for the filecheck module, which
+      # the CheriBSD test machines don't have. LLVM's FileCheck implements the
+      # same directives, so fall back to it when it is on PATH.
+      cmd = ["FileCheck", str(self._js_file)]
+      try:
+        res = subprocess.run(cmd, input=input, capture_output=True)
+      except OSError as e:
+        # Neither runner is available. Do not let this escape: an exception
+        # here kills the worker pool, which aborts the whole batch and
+        # silently drops every test that had not run yet. Report the test as
+        # failed with a diagnosable message instead.
+        output.stderr += (
+            "\nCould not run FileCheck (%s: %s).\n"
+            "Neither vpython3 nor LLVM FileCheck are available.\n"
+            % (cmd[0], e))
+        return True
     if res.returncode != 0 and "FileCheck failed" not in output.stderr:
       # FileCheck failed, add error to stderr (even though technically not
       # correct) to report it back in the various UIs of testrunners.
