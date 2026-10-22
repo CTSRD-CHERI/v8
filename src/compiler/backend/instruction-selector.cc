@@ -4058,7 +4058,7 @@ void InstructionSelector::VisitNode(OpIndex node) {
       UNREACHABLE_CASE(PendingLoopPhi)
       UNREACHABLE_CASE(MakeTuple)
       UNREACHABLE_CASE(Dead)
-      UNREACHABLE();
+      FATAL("unreachable operation %s", OpcodeName(op.opcode));
 #undef UNREACHABLE_CASE
   }
 }
