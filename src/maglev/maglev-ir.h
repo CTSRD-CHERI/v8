@@ -5934,9 +5934,10 @@ class VirtualObject : public FixedInputValueNodeT<0, VirtualObject> {
   uint32_t id() const { return id_; }
 
   size_t size() const {
-    if (!has_body_fields()) return header_size();
+    if (!has_body_fields()) return OBJECT_POINTER_ALIGN(header_size());
     int body_fields = slot_count() - header_slot_count();
-    return header_size() + body_fields * body_field_size();
+    return OBJECT_POINTER_ALIGN(header_size() +
+                                body_fields * body_field_size());
   }
 
   ValueNode* get(uint32_t offset) const {
