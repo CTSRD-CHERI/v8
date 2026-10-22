@@ -35,6 +35,7 @@
 #include "include/v8-isolate.h"
 #include "include/v8-local-handle.h"
 #include "include/v8-locker.h"
+#include "src/base/debug/stack_trace.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/logging.h"
 #include "src/base/platform/condition-variable.h"
@@ -357,6 +358,10 @@ int main(int argc, char* argv[]) {
   _set_error_mode(_OUT_TO_STDERR);
 #endif  // V8_CC_MSVC
 #endif  // V8_OS_WIN
+
+  // NewDefaultPlatform() leaves stack dumping disabled, so crashes would be
+  // silent here.
+  v8::base::debug::EnableInProcessStackDumping();
 
   std::string usage = "Usage: " + std::string(argv[0]) + " [--list]" +
                       " [[V8_FLAGS] CCTEST]\n\n" + "Options:\n" +

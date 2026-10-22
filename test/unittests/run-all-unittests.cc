@@ -8,6 +8,7 @@
 #include "include/libplatform/libplatform.h"
 #include "include/v8-initialization.h"
 #include "src/base/compiler-specific.h"
+#include "src/base/debug/stack_trace.h"
 #include "src/base/page-allocator.h"
 #include "testing/gmock/include/gmock/gmock.h"
 
@@ -44,6 +45,10 @@ class CppGCEnvironment final : public ::testing::Environment {
 
 
 int main(int argc, char** argv) {
+  // Nothing here creates a v8::Platform, so signal handlers are not installed
+  // by default and crashes would be silent.
+  v8::base::debug::EnableInProcessStackDumping();
+
   // Don't catch SEH exceptions and continue as the following tests might hang
   // in an broken environment on windows.
   GTEST_FLAG_SET(catch_exceptions, false);
