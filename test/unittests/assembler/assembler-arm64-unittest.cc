@@ -3019,8 +3019,8 @@ TEST_F(AssemblerArm64Test, load_store_regoffset) {
   __ Mov(x28, 0xFFFFFFFE);  // 32-bit -2.
   __ Mov(x29, 0xFFFFFFFF);  // 32-bit -1.
 
-  __ Ldr(w0, MemOperand(c17, x24));
-  __ Ldr(x1, MemOperand(c17, x25));
+  __ Ldr(w0, MemOperand(c16, x24));
+  __ Ldr(x1, MemOperand(c16, x25));
   __ Ldr(w2, MemOperand(c21, x26));
   __ Ldr(w3, MemOperand(c21, x27, SXTW));
   __ Ldr(w4, MemOperand(c21, x28, SXTW, 2));
