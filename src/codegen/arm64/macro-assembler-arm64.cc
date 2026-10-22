@@ -4206,6 +4206,7 @@ void MacroAssembler::MemoryChunkHeaderFromObject(const Register& header,
   static_assert(MemoryChunk::GetAlignmentMaskForAssembler() ==
                 (ScaledInt{1} << kPageSizeBits) - 1);
   AlignD(header, header, kPageSizeBits);
+  Scbnds(header, header, Operand(static_cast<int64_t>(sizeof(MemoryChunk))));
 #else
   And(header, object, ~MemoryChunk::GetAlignmentMaskForAssembler());
 #endif
