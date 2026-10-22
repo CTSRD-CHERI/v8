@@ -51,19 +51,25 @@ namespace {
 // FIXME(cheri): When we have sentries from many sources, this won't be
 // reliable.
 intptr_t DeoptPc(Address start, int64_t offset) {
-  intptr_t pc = static_cast<intptr_t>(start + offset);
+  // The result is a branch or return target, so it must request C64 state: bit
+  // 0 of the value. ORing it in keeps the tag only while the capability is
+  // unsealed, so the sealed case sets it on the address before sealing.
+  Address pc = start + offset;
   if (V8_CHERI_SEALED(start)) {
     DCHECK(V8_CHERI_TAG_GET(start));
+    ptraddr_t addr = static_cast<ptraddr_t>(pc) | 1;
 #ifdef __CHERI_PURE_CAPABILITY__
     // This assumes the code point is inside PCC's bounds, which is not
     // established for JIT code; see the FIXME in Code::instruction_end().
-    DCHECK(V8_CHERI_INBOUNDS(V8_CHERI_PCC, static_cast<ptraddr_t>(pc)));
+    DCHECK(V8_CHERI_INBOUNDS(V8_CHERI_PCC, addr));
 #endif
-    pc = reinterpret_cast<intptr_t>(V8_CHERI_TO_SENTRY(V8_CHERI_ADDR_SET(
-        V8_CHERI_PCC, static_cast<ptraddr_t>(pc))));
+    pc = reinterpret_cast<Address>(
+        V8_CHERI_TO_SENTRY(V8_CHERI_ADDR_SET(V8_CHERI_PCC, addr)));
+  } else {
+    pc |= 1;
   }
   DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc));
-  return pc;
+  return static_cast<intptr_t>(pc);
 }
 
 class DeoptimizableCodeIterator {
