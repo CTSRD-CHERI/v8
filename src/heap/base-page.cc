@@ -23,7 +23,13 @@ BasePage::BasePage(Heap* heap, BaseSpace* space, size_t chunk_size,
       size_(chunk_size),
       area_end_(area_end),
       heap_(heap),
+#if V8_CHERI_TIGHT_BOUNDS
+      area_start_(executability == Executability::EXECUTABLE
+                      ? area_start
+                      : V8_CHERI_DATA_ONLY(area_start)),
+#else
       area_start_(area_start),
+#endif  // V8_CHERI_TIGHT_BOUNDS
       owner_(space) {
   flags_ = IsExecutableField::update(
       flags_, executability == Executability::EXECUTABLE);
