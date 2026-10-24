@@ -147,14 +147,14 @@ void VerifyPointersVisitor::VerifyHeapObjectImpl(
     Tagged<HeapObject> heap_object) {
   CHECK(IsValidHeapObject(heap_, heap_object));
   CHECK(IsMap(heap_object->map(cage_base())));
-#if V8_CHERI_BOUND_OBJECTS_BOOL
+#if V8_CHERI_TIGHT_BOUNDS
   // Make sure the object pointer is strictly bounded in CHERI.
   const ptraddr_t address = static_cast<ptraddr_t>(heap_object.address());
   const size_t size = heap_object->Size(cage_base());
   CHECK(V8_CHERI_TAG_GET(heap_object.ptr()));
   CHECK_LE(V8_CHERI_BASE_GET(heap_object.ptr()), address);
   CHECK_GE(V8_CHERI_TOP_GET(heap_object.ptr()), address + size);
-#endif  // V8_CHERI_BOUND_OBJECTS_BOOL
+#endif  // V8_CHERI_TIGHT_BOUNDS
   // Heap::InToPage() is not available with sticky mark-bits.
   CHECK_IMPLIES(
       !v8_flags.sticky_mark_bits && HeapLayout::InYoungGeneration(heap_object),
