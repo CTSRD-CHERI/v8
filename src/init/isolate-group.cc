@@ -294,6 +294,9 @@ void IsolateGroup::Initialize(bool process_wide) {
         "CHERI heap reservation");
   }
   page_allocator_ = reservation_.page_allocator();
+  // MemoryChunk header lookups only load and store, so the authority capability
+  // to derive from needs neither SW_VMEM nor execute permissions.
+  heap_reservation_cap_ = V8_CHERI_DATA_ONLY(reservation_.base());
 #else
   page_allocator_ = GetPlatformPageAllocator();
 #endif  // V8_CHERI_TIGHT_BOUNDS

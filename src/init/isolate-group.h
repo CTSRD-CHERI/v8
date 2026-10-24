@@ -246,7 +246,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 #if V8_CHERI_TIGHT_BOUNDS
   Address heap_reservation_cap() const {
     DCHECK(reservation_.IsReserved());
-    return reservation_.base();
+    return heap_reservation_cap_;
   }
 #endif  // V8_CHERI_TIGHT_BOUNDS
 
@@ -406,6 +406,11 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   // This is either a pointer compression cage or the CHERI heap reservation
   VirtualMemoryCage reservation_;
 #endif
+#if V8_CHERI_TIGHT_BOUNDS
+  // CHERI heap reservation capability. It is used as an authority to derive a pointer to
+  // MemoryChunk header from a heap object address.
+  Address heap_reservation_cap_ = kNullAddress;
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 #ifdef V8_COMPRESS_POINTERS_IN_MULTIPLE_CAGES
   thread_local static IsolateGroup* current_;
