@@ -1500,9 +1500,6 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                                                  AllocationFlags flags,
                                                  TNode<RawPtrT> top_address,
                                                  TNode<RawPtrT> limit_address) {
-  // TODO(cheri): Add proper bounds here. We can't be too strict yet because we
-  // don't know what we are allocating, but we can certainly bound to
-  // size_in_bytes as we currently have holes.
   Label if_out_of_memory(this, Label::kDeferred);
 
   // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
@@ -1656,14 +1653,6 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
           IntPtrSub(rounded_top, UncheckedCast<IntPtrT>(top)).MarkAsInteger();
       DCHECK(!padding_needed.IsCapability());
       address = RawPtrAdd(top, padding_needed);
-#if V8_CHERI_TIGHT_BOUNDS
-      // Narrowing the bounds here breaks the page-header accesses that
-      // MemoryChunkFromAddress performs by masking off the low address bits, so
-      // it is off by default; see V8_CHERI_TIGHT_BOUNDS in src/base/macros.h.
-      address = UncheckedCast<RawPtrT>(
-          SetBounds(address.value(), adjusted_size.value()));
-      DCHECK(address.IsCapability());
-#endif
 #else
       // Store a filler and increase the address by 4.
       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
@@ -1675,6 +1664,16 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
 
       BIND(&next);
     }
+
+#if V8_CHERI_TIGHT_BOUNDS
+    // Bounds are rounded up to the allocation alignment because that's the allocated size.
+    constexpr intptr_t kMask = static_cast<intptr_t>(kPointerAlignmentMask);
+    TNode<IntPtrT> bounds_size = WordAnd(
+        IntPtrAdd(size_in_bytes, IntPtrConstant(kMask)), IntPtrConstant(~kMask));
+    address =
+        UncheckedCast<RawPtrT>(SetBounds(address.value(), bounds_size));
+    DCHECK(address.IsCapability());
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
     result = BitcastWordToTagged(
         RawPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
@@ -5342,16 +5341,31 @@ TNode<JSArray> CodeStubAssembler::AllocateJSArray(
   return result;
 }
 
+TNode<HeapObject> CodeStubAssembler::BoundHeapObject(TNode<HeapObject> object,
+                                                     TNode<IntPtrT> size) {
+#if V8_CHERI_TIGHT_BOUNDS
+  TNode<IntPtrT> address =
+      IntPtrSub(BitcastTaggedToWord(object), IntPtrConstant(kHeapObjectTag));
+  address = SetBounds(address, size);
+  return UncheckedCast<HeapObject>(BitcastWordToTagged(
+      IntPtrAdd(address, IntPtrConstant(kHeapObjectTag))));
+#else
+  return object;
+#endif  // V8_CHERI_TIGHT_BOUNDS
+}
+
 namespace {
 
 // To prevent GC between the array and elements allocation, the elements
 // object allocation is folded together with the js-array allocation.
 TNode<FixedArrayBase> InnerAllocateElements(CodeStubAssembler* csa,
                                             TNode<JSArray> js_array,
-                                            int offset) {
-  return csa->UncheckedCast<FixedArrayBase>(
+                                            int offset, TNode<IntPtrT> size) {
+  TNode<HeapObject> elements = csa->UncheckedCast<HeapObject>(
       csa->BitcastWordToTagged(csa->IntPtrAdd(
           csa->BitcastTaggedToWord(js_array), csa->IntPtrConstant(offset))));
+  return csa->UncheckedCast<FixedArrayBase>(
+      csa->BoundHeapObject(elements, size));
 }
 
 }  // namespace
@@ -5467,7 +5481,15 @@ CodeStubAssembler::AllocateUninitializedJSArrayWithElements(
     // Fold all objects into a single new space allocation.
     array =
         AllocateUninitializedJSArray(array_map, length, allocation_site, size);
-    elements = InnerAllocateElements(this, array.value(), elements_offset);
+    constexpr intptr_t kMask = static_cast<intptr_t>(kObjectAlignmentMask);
+    TNode<IntPtrT> elements_size = WordAnd(
+        IntPtrAdd(IntPtrSub(size, IntPtrConstant(elements_offset)),
+                  IntPtrConstant(kMask)),
+        IntPtrConstant(~kMask));
+    elements = InnerAllocateElements(this, array.value(), elements_offset,
+                                     elements_size);
+    array = UncheckedCast<JSArray>(
+        BoundHeapObject(array.value(), IntPtrConstant(array_header_size)));
 
     StoreObjectFieldNoWriteBarrier(array.value(), JSObject::kElementsOffset,
                                    elements.value());
@@ -14757,16 +14779,15 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   TNode<IntPtrT> new_space_top_page_header =
       MemoryChunkFromAddress(new_space_top);
 
+  // Bail out if the object sits on the page boundary as no memento can follow.
+  // On CHERI, touching the memory outside the page boundary will crash.
+  GotoIf(WordNotEqual(object_page_header, memento_last_word_page_header),
+         &no_memento_found);
+
   // If the object is in new space, we need to check whether respective
   // potential memento object is on the same page as the current top.
-  GotoIf(WordEqual(memento_last_word_page_header, new_space_top_page_header),
-         &top_check);
-
-  // The object is on a different page than allocation top. Bail out if the
-  // object sits on the page boundary as no memento can follow and we cannot
-  // touch the memory following it.
-  Branch(WordEqual(object_page_header, memento_last_word_page_header),
-         &map_check, &no_memento_found);
+  Branch(WordEqual(memento_last_word_page_header, new_space_top_page_header),
+         &top_check, &map_check);
 
   // If top is on the same page as the current object, we need to check whether
   // we are below top.
@@ -14779,8 +14800,11 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   // Memento map check.
   BIND(&map_check);
   {
-    TNode<AnyTaggedT> maybe_mapword =
-        LoadObjectField(object, kMementoMapOffset);
+    TNode<IntPtrT> memento_map_address = AddressWithPageBounds(
+        object_page_header,
+        IntPtrAdd(object_word,
+                  IntPtrConstant(kMementoMapOffset - kHeapObjectTag)));
+    TNode<AnyTaggedT> maybe_mapword = Load<AnyTaggedT>(memento_map_address);
     TNode<AnyTaggedT> memento_mapword =
         LoadRootMapWord(RootIndex::kAllocationMementoMap);
     Branch(TaggedEqual(maybe_mapword, memento_mapword), memento_found,
@@ -14790,12 +14814,33 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
   Comment("] TrapAllocationMemento");
 }
 
+TNode<IntPtrT> CodeStubAssembler::AddressWithPageBounds(
+    TNode<IntPtrT> memory_chunk, TNode<IntPtrT> address) {
+#if V8_CHERI_TIGHT_BOUNDS
+  TNode<IntPtrT> page = BasePageFromMemoryChunk(memory_chunk);
+  TNode<RawPtrT> area_start =
+      Load<RawPtrT>(page, IntPtrConstant(BasePage::AreaStartOffset()));
+  return SetAddress(area_start, address);
+#else
+  return address;
+#endif  // V8_CHERI_TIGHT_BOUNDS
+}
+
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(
     TNode<IntPtrT> address) {
-  // FIXME(cheri): Not going to work with spatial safety.
+#if V8_CHERI_TIGHT_BOUNDS
+  TNode<RawPtrT> reservation =
+      Load<RawPtrT>(IsolateField(IsolateFieldId::kHeapReservationCap));
+  TNode<IntPtrT> chunk = SetAddress(reservation, address);
+  chunk = WordAnd(chunk,
+                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
+              .MarkAsCapability();
+  return SetBounds(chunk, IntPtrConstant(sizeof(MemoryChunk)));
+#else
   return WordAnd(address,
                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()))
       .MarkAsCapability();
+#endif
 }
 
 TNode<IntPtrT> CodeStubAssembler::BasePageFromMemoryChunk(

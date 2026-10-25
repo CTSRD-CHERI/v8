@@ -1315,10 +1315,17 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       break;
 #if V8_TARGET_CHERI
     case kArchSetBounds:
-      // Scbnds takes an Operand and picks unscaled, scaled or a scratch
-      // register itself, so both input forms lower identically.
-      __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
-                Operand(i.InputInt64(1)));
+      if (instr->InputAt(1)->IsImmediate()) {
+        __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                  i.InputInt64(1));
+      } else {
+        __ Scbnds(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                  i.InputRegister64(1));
+      }
+      break;
+    case kArchSetAddress:
+      __ Scvalue(i.OutputCapabilityRegister(), i.InputCapabilityRegister(0),
+                 i.InputRegister64(1));
       break;
     case kArchSealWithType:
       if (instr->InputAt(1)->IsImmediate()) {

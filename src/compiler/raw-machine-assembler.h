@@ -717,6 +717,13 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
     return pointer;
   }
 
+  Node* SetAddress(Node* pointer, Node* address) {
+    if (V8_TARGET_CHERI_BOOL) {
+      return AddNode(machine()->SetAddress(), pointer, address);
+    }
+    return address;
+  }
+
   Node* SealWithType(Node* pointer, Node* type) {
     if (V8_TARGET_CHERI_BOOL) {
       return AddNode(machine()->SealWithType(), pointer, type);

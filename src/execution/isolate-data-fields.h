@@ -77,6 +77,7 @@ static constexpr int kFastCCallAlignmentPaddingCount = 1;
   V(RegexpExecVectorArgument, kSystemPointerSize, regexp_exec_vector_argument) \
   V(ContinuationPreservedEmbedderData, kSystemPointerSize,                     \
     continuation_preserved_embedder_data)                                      \
+  ISOLATE_DATA_FIELDS_CHERI(V)                                                 \
   /* Full tables (arbitrary size, potentially slower access). */               \
   V(RootsTable, RootsTable::kEntriesCount* kSystemPointerSize, roots_table)    \
   V(ExternalReferenceTable, ExternalReferenceTable::kSizeInBytes,              \
@@ -94,6 +95,13 @@ static constexpr int kFastCCallAlignmentPaddingCount = 1;
   V(RawArguments, 2 * kSystemPointerSize, raw_arguments)                       \
   V(StressDeoptCount, kUInt64Size, stress_deopt_count)                         \
   ISOLATE_DATA_FIELDS_TIERING(V)
+
+#ifdef V8_CHERI_TIGHT_BOUNDS
+#define ISOLATE_DATA_FIELDS_CHERI(V) \
+  V(HeapReservationCap, kSystemPointerSize, heap_reservation_cap)
+#else
+#define ISOLATE_DATA_FIELDS_CHERI(V)
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
 #ifdef V8_COMPRESS_POINTERS
 #define ISOLATE_DATA_FIELDS_POINTER_COMPRESSION(V)      \

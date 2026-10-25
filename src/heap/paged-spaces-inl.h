@@ -89,6 +89,8 @@ bool PagedSpaceBase::Contains(Tagged<Object> o) const {
 template <bool during_sweep>
 size_t PagedSpaceBase::FreeInternal(Address start, size_t size_in_bytes) {
   if (size_in_bytes == 0) return 0;
+  start = NormalPage::FromAddress(heap()->isolate(), start)
+              ->AddressWithPageBounds(start);
   size_t wasted;
   if (executable_) {
     WritableJitPage jit_page(start, size_in_bytes);

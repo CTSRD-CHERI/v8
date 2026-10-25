@@ -126,6 +126,9 @@ void MemoryAnalyzer::ProcessAllocation(const AllocateOp& alloc) {
 #else
     new_size = size->integral();
 #endif
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+    new_size = ALIGN_TO_ALLOCATION_ALIGNMENT(*new_size);
+#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
   }
   // If the new allocation has a static size and is of the same type, then we
   // can fold it into the previous allocation unless the folded allocation would

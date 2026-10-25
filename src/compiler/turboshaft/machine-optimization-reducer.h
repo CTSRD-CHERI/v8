@@ -2665,8 +2665,8 @@ class MachineOptimizationReducer : public Next {
             maybe_constant, WordRepresentation::WordPtr(), &diff)) {
       return false;
     }
-    DCHECK_LT(*element_scale, WordRepresentation::WordPtr().bit_width());
-    if (diff < (WordRepresentation::WordPtr().bit_width() -
+    DCHECK_LT(*element_scale, WordRepresentation::MachineWord().bit_width());
+    if (diff < (WordRepresentation::MachineWord().bit_width() -
                 uint64_t{*element_scale})) {
       *element_scale += diff;
       return true;

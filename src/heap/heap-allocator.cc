@@ -228,6 +228,11 @@ Tagged<HeapObject> HeapAllocator::AllocateRawSlowPath(
 bool HeapAllocator::TryResizeLargeObject(Tagged<HeapObject> object,
                                          size_t old_object_size,
                                          size_t new_object_size) {
+#if V8_CHERI_TIGHT_BOUNDS
+  // Growing an object in place is incompatible with pointers that are
+  // bounded to the object's allocated size.
+  return false;
+#else
   if (V8_UNLIKELY(!v8_flags.resize_large_object)) {
     return false;
   }
@@ -253,6 +258,7 @@ bool HeapAllocator::TryResizeLargeObject(Tagged<HeapObject> object,
   large_space->UpdateAccountingAfterResizingObject(old_object_size,
                                                    new_object_size);
   return true;
+#endif  // V8_CHERI_TIGHT_BOUNDS
 }
 
 void HeapAllocator::MakeLinearAllocationAreasIterable() {

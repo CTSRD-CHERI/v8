@@ -55,7 +55,7 @@ class ReadOnlyPage final : public BasePage {
       DCHECK_GE(address_in_page, area_start());
       DCHECK_LT(address_in_page, area_end());
     }
-    return address_in_page;
+    return AddressWithPageBounds(address_in_page);
   }
 
   // Returns the start area of the page without using area_start() which cannot

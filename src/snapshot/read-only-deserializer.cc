@@ -56,6 +56,9 @@ class ReadOnlyHeapImageDeserializer final {
           DeserializeReadOnlyRootsTable();
           break;
         case Bytecode::kFinalizeReadOnlySpace:
+#if V8_CHERI_TIGHT_BOUNDS
+          BoundReferences();
+#endif  // V8_CHERI_TIGHT_BOUNDS
           ro_space()->FinalizeSpaceForDeserialization(source_->GetUint30());
           return;
       }
@@ -102,6 +105,10 @@ class ReadOnlyHeapImageDeserializer final {
           const_cast<uint8_t*>(source_->data() + source_->position());
       ro::BitSet tagged_slots(data, tagged_slots_size_in_bits);
       DecodeTaggedSlots(start, tagged_slots);
+#if V8_CHERI_TIGHT_BOUNDS
+      relocated_segments_.push_back(
+          {start, data, tagged_slots.size_in_bits()});
+#endif  // V8_CHERI_TIGHT_BOUNDS
       source_->Advance(static_cast<int>(tagged_slots.size_in_bytes()));
     }
   }
@@ -151,8 +158,46 @@ class ReadOnlyHeapImageDeserializer final {
     return isolate_->read_only_heap()->read_only_space();
   }
 
+#if V8_CHERI_TIGHT_BOUNDS
+  static_assert(!V8_STATIC_ROOTS_BOOL,
+                "CHERI object bounding does not support static roots");
+  
+  struct RelocatedSegment {
+    Address start;
+    const uint8_t* tagged_slots;
+    size_t size_in_bits;
+  };
+
+  void BoundReferences() {
+    // Bound tagged relocation slots.
+    for (const RelocatedSegment& segment : relocated_segments_) {
+      ro::BitSet tagged_slots(const_cast<uint8_t*>(segment.tagged_slots),
+                              segment.size_in_bits);
+      for (size_t i = 0; i < tagged_slots.size_in_bits(); i++) {
+        if (!tagged_slots.contains(static_cast<int>(i))) continue;
+        Address* slot =
+            reinterpret_cast<Address*>(segment.start + i * kTaggedSize);
+        *slot = Bounded(*slot);
+      }
+    }
+    // Bound RO roots.
+    ReadOnlyRoots roots(isolate_);
+    for (size_t i = 0; i < ReadOnlyRoots::kEntriesCount; i++) {
+      roots.read_only_roots_[i] = Bounded(roots.read_only_roots_[i]);
+    }
+  }
+
+  static Address Bounded(Address ptr) {
+    Tagged<HeapObject> object = Cast<HeapObject>(Tagged<Object>(ptr));
+    return HeapObject::FromAddress(object.address(), object->Size()).ptr();
+  }
+#endif  // V8_CHERI_TIGHT_BOUNDS
+
   SnapshotByteSource* const source_;
   Isolate* const isolate_;
+#if V8_CHERI_TIGHT_BOUNDS
+  std::vector<RelocatedSegment> relocated_segments_;
+#endif  // V8_CHERI_TIGHT_BOUNDS
 };
 
 ReadOnlyDeserializer::ReadOnlyDeserializer(Isolate* isolate,

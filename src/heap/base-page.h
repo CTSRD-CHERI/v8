@@ -117,9 +117,26 @@ class BasePage {
     allocated_bytes_ -= bytes;
   }
 
-  MemoryChunk* Chunk() { return MemoryChunk::FromAddress(area_start()); }
+  MemoryChunk* Chunk() {
+    return reinterpret_cast<MemoryChunk*>(
+        MemoryChunk::BaseAddress(area_start()));
+  }
   const MemoryChunk* Chunk() const {
-    return MemoryChunk::FromAddress(area_start());
+    return reinterpret_cast<const MemoryChunk*>(
+        MemoryChunk::BaseAddress(area_start()));
+  }
+
+  // On CHERI, widen an object-bounded pointer.
+  Address AddressWithPageBounds(Address address) const {
+#if V8_CHERI_TIGHT_BOUNDS
+    DCHECK_LE(static_cast<ptraddr_t>(area_start_),
+              static_cast<ptraddr_t>(address));
+    DCHECK_LE(static_cast<ptraddr_t>(address),
+              static_cast<ptraddr_t>(area_end_));
+    return V8_CHERI_ADDR_SET(area_start_, static_cast<ptraddr_t>(address));
+#else
+    return address;
+#endif  // V8_CHERI_TIGHT_BOUNDS
   }
 
   bool is_pinned_for_testing() const {
