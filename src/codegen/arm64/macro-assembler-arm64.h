@@ -2716,11 +2716,8 @@ class V8_NODISCARD UseScratchRegisterScope {
   V8_EXPORT_PRIVATE ~UseScratchRegisterScope() {
     available_->set_bits(old_available_);
     availablefp_->set_bits(old_availablefp_);
-    // TODO(cheri): Be smarter about this, this is a nasty workaround.
-    CPURegister reg = NoCPUReg;
-    while ((reg = pushed_.PopLowestIndex()) != NoCPUReg) {
-      masm_->Pop(reg);
-    }
+    // TODO(zyj20): HACK
+    if (V8_UNLIKELY(!pushed_.IsEmpty())) PopPushedRegisters();
   }
 
   // Take a register from the appropriate temps list. It will be returned
@@ -2800,6 +2797,9 @@ class V8_NODISCARD UseScratchRegisterScope {
   }
 
  private:
+  // TODO(zyj20): HACK
+  V8_EXPORT_PRIVATE void PopPushedRegisters();
+
   V8_EXPORT_PRIVATE static CPURegister AcquireNextAvailable(
       CPURegList* available) {
     CHECK(!available->IsEmpty());

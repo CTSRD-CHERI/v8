@@ -5731,6 +5731,15 @@ void CallApiFunctionAndReturn(MacroAssembler* masm, bool with_profiling,
   }
 }
 
+// TODO(zyj20): HACK
+void UseScratchRegisterScope::PopPushedRegisters() {
+  // TODO(cheri): Be smarter about this, this is a nasty workaround.
+  CPURegister reg = NoCPUReg;
+  while ((reg = pushed_.PopLowestIndex()) != NoCPUReg) {
+    masm_->Pop(reg);
+  }
+}
+
 }  // namespace internal
 }  // namespace v8
 
