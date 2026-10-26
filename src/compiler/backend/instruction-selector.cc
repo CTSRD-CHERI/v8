@@ -628,6 +628,9 @@ InstructionOperand OperandForDeopt(Isolate* isolate, OperandGenerator* g,
     switch (constant->kind) {
       case Kind::kWord32:
       case Kind::kWord64:
+#if V8_TARGET_CHERI
+      case Kind::kCapability64:
+#endif
       case Kind::kSmi:
       case Kind::kFloat32:
       case Kind::kFloat64:
