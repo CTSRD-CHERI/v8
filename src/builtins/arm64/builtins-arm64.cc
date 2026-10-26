@@ -4229,7 +4229,7 @@ void JSToWasmWrapperHelper(MacroAssembler* masm, wasm::Promise mode) {
     if (stack_switch) {
       __ Str(implicit_arg,
              MemOperand(fp, WasmJspiFrameConstants::kImplicitArgOffset));
-      DEFINE_SCOPED(scratch)
+      DEFINE_SCOPED_C(scratch)
       __ Ldr(
           scratch,
           MemOperand(original_fp,
