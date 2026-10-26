@@ -8112,6 +8112,16 @@ TEST_F(TurboshaftInstructionSelectorTest, ExternalReferenceLoad2) {
 }
 
 namespace {
+// kArm64PokePair writes its two values back to back, so a parameter is only
+// paired when its store register fills a stack slot (see EmitPrepareArguments).
+bool PairsParam(MachineType type) {
+#if V8_TARGET_CHERI
+  return IsCapability(type.representation());
+#else
+  return type != MachineType::Simd128();
+#endif
+}
+
 // Builds a call with the specified signature and nodes as arguments.
 // Then checks that the correct number of kArm64Poke and kArm64PokePair were
 // generated.
@@ -8158,10 +8168,11 @@ TEST_F(TurboshaftInstructionSelectorTest, PokePairPrepareArgumentsInt32) {
         m.Int32Constant(0),
     };
 
-    const int expected_poke_pair = 1;
+    const bool pairs = PairsParam(MachineType::Int32());
+    const int expected_poke_pair = pairs ? 1 : 0;
     // Note: The `+ 1` here comes from the padding Poke in
     // EmitPrepareArguments.
-    const int expected_poke = 1 + 1;
+    const int expected_poke = pairs ? 1 + 1 : 3 + 1;
 
     TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                  expected_poke_pair, expected_poke);
@@ -8182,8 +8193,9 @@ TEST_F(TurboshaftInstructionSelectorTest, PokePairPrepareArgumentsInt32) {
         m.Int32Constant(0),
     };
 
-    const int expected_poke_pair = 2;
-    const int expected_poke = 0;
+    const bool pairs = PairsParam(MachineType::Int32());
+    const int expected_poke_pair = pairs ? 2 : 0;
+    const int expected_poke = pairs ? 0 : 4;
 
     TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                  expected_poke_pair, expected_poke);
@@ -8205,8 +8217,9 @@ TEST_F(TurboshaftInstructionSelectorTest, PokePairPrepareArgumentsInt64) {
       m.Int64Constant(0),
   };
 
-  const int expected_poke_pair = 2;
-  const int expected_poke = 0;
+  const bool pairs = PairsParam(MachineType::Int64());
+  const int expected_poke_pair = pairs ? 2 : 0;
+  const int expected_poke = pairs ? 0 : 4;
 
   TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                expected_poke_pair, expected_poke);
@@ -8227,8 +8240,9 @@ TEST_F(TurboshaftInstructionSelectorTest, PokePairPrepareArgumentsFloat32) {
       m.Float32Constant(0.0f),
   };
 
-  const int expected_poke_pair = 2;
-  const int expected_poke = 0;
+  const bool pairs = PairsParam(MachineType::Float32());
+  const int expected_poke_pair = pairs ? 2 : 0;
+  const int expected_poke = pairs ? 0 : 4;
 
   TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                expected_poke_pair, expected_poke);
@@ -8249,8 +8263,9 @@ TEST_F(TurboshaftInstructionSelectorTest, PokePairPrepareArgumentsFloat64) {
       m.Float64Constant(0.0f),
   };
 
-  const int expected_poke_pair = 2;
-  const int expected_poke = 0;
+  const bool pairs = PairsParam(MachineType::Float64());
+  const int expected_poke_pair = pairs ? 2 : 0;
+  const int expected_poke = pairs ? 0 : 4;
 
   TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                expected_poke_pair, expected_poke);
@@ -8296,11 +8311,13 @@ TEST_F(TurboshaftInstructionSelectorTest,
                        m.Int64Constant(0),      m.Float64Constant(0.0f),
                        m.Float64Constant(0.0f)};
 
-    const int expected_poke_pair = 2;
+    const bool pairs =
+        PairsParam(MachineType::Int32()) && PairsParam(MachineType::Float64());
+    const int expected_poke_pair = pairs ? 2 : 0;
 
     // Note: The `+ 1` here comes from the padding Poke in
     // EmitPrepareArguments.
-    const int expected_poke = 3 + 1;
+    const int expected_poke = pairs ? 3 + 1 : 7 + 1;
 
     TestPokePair(&m, zone(), &builder, base::VectorOf(nodes, arraysize(nodes)),
                  expected_poke_pair, expected_poke);

@@ -3205,9 +3205,18 @@ void InstructionSelector::EmitPrepareArguments(
     }
     PushParameter input1 = slot > 0 ? (*arguments)[slot - 1] : PushParameter();
     // Emit a poke-pair if consecutive parameters have the same type.
+    // kArm64PokePair writes back to back, so each value must fill a stack slot,
+    // so on CHERI we cannot do that for X and V registers.
     // TODO(arm): Support consecutive Simd128 parameters.
+#if V8_TARGET_CHERI
+    bool slot_wide_store =
+        IsCapability(input0.location.GetType().representation());
+#else
+    bool slot_wide_store = true;
+#endif
     if (input1.node.valid() &&
-        input0.location.GetType() == input1.location.GetType()) {
+        input0.location.GetType() == input1.location.GetType() &&
+        slot_wide_store) {
       Emit(kArm64PokePair, g.NoOutput(), g.UseRegister(input0.node),
            g.UseRegister(input1.node), g.TempImmediate(slot));
       slot -= 2;
