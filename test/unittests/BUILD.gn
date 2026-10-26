@@ -697,6 +697,7 @@ v8_source_set("v8_unittests_sources") {
       "assembler/assembler-arm64-unittest.cc",
       "assembler/cheri-assembler-arm64-unittest.cc",
       "assembler/disasm-arm64-unittest.cc",
+      "assembler/disasm-cheri-arm64-unittest.cc",
       "assembler/macro-assembler-arm64-unittest.cc",
       "assembler/test-utils-arm64.cc",
       "assembler/test-utils-arm64.h",
