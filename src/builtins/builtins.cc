@@ -453,7 +453,19 @@ DirectHandle<Code> Builtins::CreateInterpreterEntryTrampolineForProfiling(
       Builtin::kInterpreterEntryTrampolineForProfiling);
 
   CodeDesc desc;
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
+  if (!code->has_instruction_stream()) {
+    Address entry = code->instruction_start();
+    desc.buffer = reinterpret_cast<uint8_t*>(V8_CHERI_ADDR_SET(
+        V8_CHERI_PCC, V8_CHERI_ADDR_GET(entry) & ~static_cast<uint64_t>(1)));
+    DCHECK(V8_CHERI_TAG_GET(desc.buffer));
+    DCHECK(V8_CHERI_INBOUNDS(V8_CHERI_PCC, V8_CHERI_ADDR_GET(desc.buffer)));
+  } else {
+    desc.buffer = reinterpret_cast<uint8_t*>(code->instruction_start());
+  }
+#else
   desc.buffer = reinterpret_cast<uint8_t*>(code->instruction_start());
+#endif
 
   int instruction_size = code->instruction_size();
   desc.buffer_size = instruction_size;
