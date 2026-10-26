@@ -4877,7 +4877,18 @@ void CodeGenerator::AssembleReturn(InstructionOperand* additional_pop_count) {
     int additional_count = g.ToConstant(additional_pop_count).ToInt32();
     __ DropArguments(parameter_slots + additional_count);
   } else if (parameter_slots == 0) {
-    __ DropArguments(g.ToRegister(additional_pop_count));
+    Register pop_count = g.ToRegister(additional_pop_count);
+#if V8_TARGET_CHERI && V8_ENABLE_WEBASSEMBLY
+    // In the wasm-to-JS wrapper additional_pop_count counts wasm ABI slots,
+    // which are not the padded pairs DropArguments expects.
+    if (info()->builtin() == Builtin::kWasmToJsWrapperCSA) {
+      __ Drop(pop_count, kCRegSize);
+    } else {
+      __ DropArguments(pop_count);
+    }
+#else
+    __ DropArguments(pop_count);
+#endif
   } else {
     // {additional_pop_count} is guaranteed to be zero if {parameter_slots !=
     // 0}. Check RawMachineAssembler::PopAndReturn.
