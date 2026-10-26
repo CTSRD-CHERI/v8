@@ -1632,6 +1632,9 @@ void InstructionSelector::VisitLoadFramePointer(OpIndex node) {
 #if V8_ENABLE_WEBASSEMBLY
 void InstructionSelector::VisitLoadStackPointer(OpIndex node) {
   OperandGenerator g(this);
+#if V8_TARGET_CHERI
+  MarkAsCapability(node);
+#endif
   Emit(kArchStackPointer, g.DefineAsRegister(node));
 }
 

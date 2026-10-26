@@ -6489,6 +6489,9 @@ void InstructionSelector::VisitI8x16Shuffle(OpIndex node) {
 void InstructionSelector::VisitSetStackPointer(OpIndex node) {
   OperandGenerator g(this);
   const SetStackPointerOp& op = Cast<SetStackPointerOp>(node);
+#if V8_TARGET_CHERI
+  MarkAsCapability(op.value());
+#endif
   auto input = g.UseRegister(op.value());
   Emit(kArchSetStackPointer, 0, nullptr, 1, &input);
 }

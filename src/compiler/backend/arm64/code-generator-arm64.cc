@@ -1393,10 +1393,19 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kArchStackPointer:
       // The register allocator expects an allocatable register for the output,
       // we cannot use sp directly.
+#if V8_TARGET_CHERI
+      DCHECK(instr->OutputAt(0)->IsCapabilityRegister());
+      __ Mov(i.OutputCapabilityRegister(), csp);
+#else
       __ mov(i.OutputRegister(), sp);
+#endif
       break;
     case kArchSetStackPointer: {
+#if V8_TARGET_CHERI
+      DCHECK(instr->InputAt(0)->IsCapabilityRegister());
+#else
       DCHECK(instr->InputAt(0)->IsRegister());
+#endif
       if (masm()->options().enable_simulator_code) {
         __ RecordComment("-- Set simulator stack limit --");
         DCHECK(__ TmpList()->IncludesAliasOf(kSimulatorHltArgument));
@@ -1404,7 +1413,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
                           StackLimitKind::kRealStackLimit);
         __ hlt(kImmExceptionIsSwitchStackLimit);
       }
+#if V8_TARGET_CHERI
+      __ Mov(csp, i.InputCapabilityRegister(0));
+#else
       __ Mov(sp, i.InputRegister(0));
+#endif
       break;
     }
 #endif  // V8_ENABLE_WEBASSEMBLY
