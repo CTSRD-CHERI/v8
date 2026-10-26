@@ -461,7 +461,9 @@ class ImmediateOperand : public InstructionOperand {
 #endif  // __CHERI_PURE_CAPABILITY__
       : InstructionOperand(IMMEDIATE) {
 #ifdef __CHERI_PURE_CAPABILITY__
-    if (V8_CHERI_TAG_GET(value)) {
+    // INLINE_INTPTR readers only look at value_intptr_, so an untagged value
+    // requested that way needs the same storage a tagged capability uses.
+    if (V8_CHERI_TAG_GET(value) || type == INLINE_INTPTR) {
       value_intptr_ = value;
       value_ |= TypeField::encode(INLINE_INTPTR);
     } else {
