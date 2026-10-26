@@ -16,10 +16,9 @@ void Instruction::SetInstructionBits(Instr new_instr,
                                      WritableJitAllocation* jit_allocation) {
   // Usually this is aligned, but when de/serializing that's not guaranteed.
   if (jit_allocation) {
-    jit_allocation->WriteUnalignedValue(reinterpret_cast<Address>(this),
-                                        new_instr);
+    jit_allocation->WriteUnalignedValue(InstructionWordAddress(), new_instr);
   } else {
-    base::WriteUnalignedValue(reinterpret_cast<Address>(this), new_instr);
+    base::WriteUnalignedValue(InstructionWordAddress(), new_instr);
   }
 }
 
@@ -289,6 +288,13 @@ int64_t Instruction::ImmPCOffset(Address pc) {
 }
 
 Instruction* Instruction::ImmPCOffsetTarget(Address pc) {
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  if (IsCapLdrLiteral()) {
+    // ImmPCOffset() measures from the 16-byte-aligned pc, so the result is not
+    // a multiple of kInstrSize when that pc carries the C64 bit.
+    return InstructionAtOffset(ImmPCOffset(pc), Instruction::NO_CHECK);
+  }
+#endif
   return InstructionAtOffset(ImmPCOffset(pc));
 }
 

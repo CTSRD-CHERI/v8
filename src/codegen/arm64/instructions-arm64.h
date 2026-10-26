@@ -88,9 +88,18 @@ enum Reg31Mode { Reg31IsStackPointer, Reg31IsZeroRegister };
 
 class Instruction {
  public:
+  V8_INLINE Address InstructionWordAddress() const {
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    // A code address derived from an entry point carries the C64 in bit 0.
+    return reinterpret_cast<Address>(this) & ~uint64_t{1};
+#else
+    return reinterpret_cast<Address>(this);
+#endif
+  }
+
   V8_INLINE Instr InstructionBits() const {
     // Usually this is aligned, but when de/serializing that's not guaranteed.
-    return base::ReadUnalignedValue<Instr>(reinterpret_cast<Address>(this));
+    return base::ReadUnalignedValue<Instr>(InstructionWordAddress());
   }
 
   V8_EXPORT_PRIVATE void SetInstructionBits(
@@ -104,8 +113,7 @@ class Instruction {
 
   int32_t SignedBits(int msb, int lsb) const {
     // Usually this is aligned, but when de/serializing that's not guaranteed.
-    int32_t bits =
-        base::ReadUnalignedValue<int32_t>(reinterpret_cast<Address>(this));
+    int32_t bits = base::ReadUnalignedValue<int32_t>(InstructionWordAddress());
     return signed_bitextract_32(msb, lsb, bits);
   }
 

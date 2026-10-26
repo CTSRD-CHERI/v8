@@ -335,11 +335,16 @@ static int DecodeIt(Isolate* isolate, ExternalReferenceEncoder* ref_encoder,
 #endif
     // First decode instruction so that we know its length.
     uint8_t* prev_pc = pc;
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    // {pc} carries the C64 bit, read the word from the aligned address.
+    const Address data_pc = reinterpret_cast<Address>(pc) & ~uint64_t{1};
+#else
+    const Address data_pc = reinterpret_cast<Address>(pc);
+#endif
     bool decoding_constant_pool = constants > 0;
     if (decoding_constant_pool) {
-      SNPrintF(
-          decode_buffer, "%08x       constant",
-          base::ReadUnalignedValue<int32_t>(reinterpret_cast<Address>(pc)));
+      SNPrintF(decode_buffer, "%08x       constant",
+               base::ReadUnalignedValue<int32_t>(data_pc));
       constants--;
       pc += 4;
     } else {
@@ -347,16 +352,14 @@ static int DecodeIt(Isolate* isolate, ExternalReferenceEncoder* ref_encoder,
       if (num_const >= 0) {
         SNPrintF(
             decode_buffer, "%08x       constant pool begin (num_const = %d)",
-            base::ReadUnalignedValue<int32_t>(reinterpret_cast<Address>(pc)),
-            num_const);
+            base::ReadUnalignedValue<int32_t>(data_pc), num_const);
         constants = num_const;
         pc += 4;
       } else if (!rit.done() &&
                  rit.rinfo()->pc() == reinterpret_cast<Address>(pc) &&
                  rit.rinfo()->rmode() == RelocInfo::INTERNAL_REFERENCE) {
         // A raw pointer embedded in code stream.
-        uint8_t* ptr =
-            base::ReadUnalignedValue<uint8_t*>(reinterpret_cast<Address>(pc));
+        uint8_t* ptr = base::ReadUnalignedValue<uint8_t*>(data_pc);
         SNPrintF(decode_buffer, "%08" V8PRIxPTR "       jump table entry %4zu",
                  reinterpret_cast<intptr_t>(ptr),
                  static_cast<size_t>(ptr - begin));
