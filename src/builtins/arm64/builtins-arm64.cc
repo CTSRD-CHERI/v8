@@ -3499,6 +3499,7 @@ void LoadJumpBuffer(MacroAssembler* masm, Register stack, bool load_pc,
   __ Ldr(fp, MemOperand(stack, wasm::kStackFpOffset));
   if (load_pc) {
     __ Ldr(tmp, MemOperand(stack, wasm::kStackPcOffset));
+    __ PrepareC64Jump(tmp);
     __ Br(tmp);
   }
   // The stack limit in StackGuard is set separately under the ExecutionAccess
