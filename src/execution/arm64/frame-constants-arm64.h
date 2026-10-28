@@ -134,10 +134,10 @@ class WasmDebugBreakFrameConstants : public TypedFrameConstants {
 
   static constexpr int kNumPushedFpRegisters = kPushedFpRegs.Count();
 
+  // EnterFrame pushes the frame type marker and a pad below fp: two slots.
+  static constexpr int kFrameHeaderSizeBelowFp = 2 * kSystemPointerSize;
   static constexpr int kLastPushedGpRegisterOffset =
-      // Header is padded to 16 byte (see {MacroAssembler::EnterFrame}).
-      -RoundUp<16>(TypedFrameConstants::kFixedFrameSizeFromFp) -
-      kSystemPointerSize * kNumPushedGpRegisters;
+      -kFrameHeaderSizeBelowFp - kSystemPointerSize * kNumPushedGpRegisters;
   static constexpr int kLastPushedFpRegisterOffset =
       kLastPushedGpRegisterOffset - kSimd128Size * kNumPushedFpRegisters;
 
