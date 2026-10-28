@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <optional>
+#include <string_view>
 
 #include "src/flags/flags.h"
 #include "src/torque/implementation-visitor.h"
@@ -23,6 +24,14 @@ enum TypeStorage {
   kAsStoredInHeap,
   kUncompressed,
 };
+
+// Alignment filler that the CHERI backend inserts into the computed heap
+// layout. It is not part of the declared class and not an object property.
+constexpr std::string_view kCheriPaddingPrefix = "__cheri_padding_";
+
+bool IsCheriPaddingField(std::string_view name) {
+  return name.compare(0, kCheriPaddingPrefix.size(), kCheriPaddingPrefix) == 0;
+}
 
 // An iterator for use in ValueTypeFieldsRange.
 class ValueTypeFieldIterator {
@@ -362,6 +371,7 @@ void GenerateGetPropsChunkForField(const Field& field,
                  << struct_field_list << ";\n";
   for (const auto& struct_field :
        ValueTypeFieldsRange(field.name_and_type.type)) {
+    if (IsCheriPaddingField(struct_field.name_and_type.name)) continue;
     DebugFieldType struct_field_type(struct_field.name_and_type,
                                      struct_field.pos);
     get_props_impl << "  " << struct_field_list
@@ -499,6 +509,7 @@ void GenerateClassDebugReader(const ClassType& type, std::ostream& h_contents,
 
   for (const Field& field : type.fields()) {
     if (field.name_and_type.type == TypeOracle::GetVoidType()) continue;
+    if (IsCheriPaddingField(field.name_and_type.name)) continue;
     if (field.offset.has_value()) {
       GenerateFieldAddressAccessor(field, name, h_contents, cc_contents);
       GenerateFieldValueAccessor(field, name, h_contents, cc_contents);
