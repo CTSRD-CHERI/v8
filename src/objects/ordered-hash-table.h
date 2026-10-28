@@ -610,6 +610,9 @@ class SmallOrderedHashTable : public HeapObject {
     return NumberOfDeletedElementsOffset() + kOneByteSize;
   }
 
+  // Public so the allocation test can skip the alignment filler between the
+  // declared padding and the data table.
+ public:
   static constexpr Offset PaddingOffset() {
     return NumberOfBucketsOffset() + kOneByteSize;
   }
@@ -622,6 +625,7 @@ class SmallOrderedHashTable : public HeapObject {
     return PaddingOffset() + PaddingSize();
   }
 
+ protected:
   static constexpr int DataTableSizeFor(int capacity) {
     return capacity * Derived::kEntrySize * kTaggedSize;
   }
