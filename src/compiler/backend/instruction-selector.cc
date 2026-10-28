@@ -2770,8 +2770,6 @@ void InstructionSelector::VisitControl(const Block* block) {
     }
     case Opcode::kUnreachable:
       return VisitUnreachable(node);
-    case Opcode::kStaticAssert:
-      return VisitStaticAssert(node);
     default: {
       const std::string op_string = op.ToString();
       PrintF("\033[31mNo ISEL support for: %s\033[m\n", op_string.c_str());
@@ -2791,6 +2789,9 @@ void InstructionSelector::VisitNode(OpIndex node) {
   const Operation& op = this->Get(node);
   using Opcode = Opcode;
   using Rep = RegisterRepresentation;
+  // StaticAssertOp is not a block terminator and has no lowering, so report
+  // it here instead of hitting the generic unreachable-operation abort.
+  if (op.Is<StaticAssertOp>()) return VisitStaticAssert(node);
   switch (op.opcode) {
     case Opcode::kBranch:
     case Opcode::kGoto:
@@ -3520,6 +3521,12 @@ void InstructionSelector::VisitNode(OpIndex node) {
         } else if (load.result_rep == Rep::Word64()) {
           return VisitWord64AtomicLoad(node);
         } else if (load.result_rep == Rep::Tagged()) {
+#if V8_TARGET_CHERI
+          // With compression, tagged objects are 32-bit integers.
+          if (load.loaded_rep.SizeInBytes() == kSystemPointerSize) {
+            return VisitCapabilityAtomicLoad(node);
+          }
+#endif
           return kTaggedSize == 4 ? VisitWord32AtomicLoad(node)
                                   : VisitWord64AtomicLoad(node);
         }
@@ -3546,6 +3553,12 @@ void InstructionSelector::VisitNode(OpIndex node) {
           return VisitUnalignedStore(node);
         }
       } else if (store.kind.is_atomic) {
+#if V8_TARGET_CHERI
+        // With compression, tagged objects are 32-bit integers.
+        if (store.stored_rep.SizeInBytes() == kSystemPointerSize) {
+          return VisitCapabilityAtomicStore(node);
+        }
+#endif
         if (store.stored_rep.SizeInBytes() == 8) {
           return VisitWord64AtomicStore(node);
         } else {

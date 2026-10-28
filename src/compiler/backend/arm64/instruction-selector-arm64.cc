@@ -3882,7 +3882,9 @@ void VisitAtomicLoad(InstructionSelector* selector, OpIndex node,
       code = kAtomicLoadWord32;
       break;
 #ifndef V8_COMPRESS_POINTERS
+#if !V8_TARGET_CHERI
     case MachineRepresentation::kTaggedSigned:  // Fall through.
+#endif
 #endif
     case MachineRepresentation::kWord64:
       code = kArm64Word64AtomicLoadUint64;
@@ -3898,12 +3900,12 @@ void VisitAtomicLoad(InstructionSelector* selector, OpIndex node,
       code = kArm64LdarDecompressTagged;
       break;
 #else
+#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+    case MachineRepresentation::kTaggedSigned:  // Fall through.
+#endif
     case MachineRepresentation::kTaggedPointer:  // Fall through.
     case MachineRepresentation::kTagged:
 #if V8_TARGET_CHERI
-    case MachineRepresentation::kCapability64:
-#endif
-#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
       code = kArm64CapabilityAtomicLoad;
 #else
       if (kTaggedSize == 8) {
@@ -3912,6 +3914,11 @@ void VisitAtomicLoad(InstructionSelector* selector, OpIndex node,
         code = kAtomicLoadWord32;
       }
 #endif
+      break;
+#endif
+#if V8_TARGET_CHERI
+    case MachineRepresentation::kCapability64:
+      code = kArm64CapabilityAtomicLoad;
       break;
 #endif
     case MachineRepresentation::kCompressedPointer:  // Fall through.
@@ -4001,17 +4008,24 @@ void VisitAtomicStore(InstructionSelector* selector, OpIndex node,
         code = kAtomicStoreWord32;
         break;
 #ifndef V8_COMPRESS_POINTERS
+#if !V8_TARGET_CHERI
       case MachineRepresentation::kTaggedSigned:  // Fall through.
+#endif
 #endif
       case MachineRepresentation::kWord64:
         DCHECK_EQ(width, AtomicWidth::kWord64);
         code = kArm64Word64AtomicStoreWord64;
         break;
-      case MachineRepresentation::kTaggedPointer:  // Fall through.
-      case MachineRepresentation::kTagged:
 #if V8_TARGET_CHERI
       case MachineRepresentation::kCapability64:
+        DCHECK_EQ(width, AtomicWidth::kCapability64);
+        code = kArm64CapabilityAtomicStore;
+        break;
+      // Purecap Smis are pointer-width and take the capability store.
+      case MachineRepresentation::kTaggedSigned:  // Fall through.
 #endif
+      case MachineRepresentation::kTaggedPointer:  // Fall through.
+      case MachineRepresentation::kTagged:
         DCHECK_EQ(AtomicWidthSize(width), kTaggedSize);
 #if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
         code = kArm64CapabilityAtomicStore;

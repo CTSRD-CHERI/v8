@@ -2589,6 +2589,40 @@ OpIndex GraphBuilder::Process(
       return OpIndex::Invalid();
     }
 
+#if V8_TARGET_CHERI
+    case IrOpcode::kCapabilityAtomicLoad: {
+      OpIndex base = Map(node->InputAt(0));
+      OpIndex offset = Map(node->InputAt(1));
+      DCHECK_EQ(__ output_graph().Get(base).outputs_rep()[0],
+                RegisterRepresentation::WordPtr());
+      const AtomicLoadParameters& p = AtomicLoadParametersOf(node->op());
+      LoadOp::Kind kind = p.kind() == MemoryAccessKind::kProtectedByTrapHandler
+                              ? LoadOp::Kind::RawAligned().Atomic().Protected()
+                              : LoadOp::Kind::RawAligned().Atomic();
+      DCHECK_NE(p.kind(), MemoryAccessKind::kUnaligned);
+      return __ Load(base, offset, kind,
+                     MemoryRepresentation::FromMachineType(p.representation()),
+                     RegisterRepresentation::Tagged(), 0, 0);
+    }
+    case IrOpcode::kCapabilityAtomicStore: {
+      OpIndex base = Map(node->InputAt(0));
+      OpIndex offset = Map(node->InputAt(1));
+      DCHECK_EQ(__ output_graph().Get(base).outputs_rep()[0],
+                RegisterRepresentation::WordPtr());
+      const AtomicStoreParameters& p = AtomicStoreParametersOf(node->op());
+      StoreOp::Kind kind =
+          p.kind() == MemoryAccessKind::kProtectedByTrapHandler
+              ? StoreOp::Kind::RawAligned().Atomic().Protected()
+              : StoreOp::Kind::RawAligned().Atomic();
+      DCHECK_NE(p.kind(), MemoryAccessKind::kUnaligned);
+      __ Store(
+          base, offset, Map(node->InputAt(2)), kind,
+          MemoryRepresentation::FromMachineRepresentation(p.representation()),
+          p.write_barrier_kind(), 0, 0, true);
+      return OpIndex::Invalid();
+    }
+#endif  // V8_TARGET_CHERI
+
     case IrOpcode::kWord32AtomicAdd:
     case IrOpcode::kWord32AtomicSub:
     case IrOpcode::kWord32AtomicAnd:
