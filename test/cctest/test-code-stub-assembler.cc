@@ -3973,6 +3973,41 @@ TEST(SingleInputPhiElimination) {
   // single-input phi is properly eliminated.
 }
 
+namespace {
+
+// The size of the |padding| array declared in ordered-hash-table.tq.
+constexpr int kDeclaredSmallOrderedTablePadding = TAGGED_SIZE_8_BYTES ? 5 : 1;
+
+// Compares two objects byte by byte and dumps the first differing slot.
+// [filler_begin, filler_end) is skipped because it is CHERI alignment filler
+// that only the C++ factory initializes.
+void CheckSameObjectBytes(const char* type_name, Address expected,
+                          Address actual, int size, int filler_begin,
+                          int filler_end) {
+  const uint8_t* lhs = reinterpret_cast<const uint8_t*>(expected);
+  const uint8_t* rhs = reinterpret_cast<const uint8_t*>(actual);
+  auto compare = [&](int begin, int end) {
+    for (int offset = begin; offset < end; offset++) {
+      if (lhs[offset] == rhs[offset]) continue;
+      int slot = offset / kTaggedSize * kTaggedSize;
+      auto dump = [](const char* label, const uint8_t* base, int slot) {
+        PrintF("  %s:", label);
+        for (int i = 0; i < kTaggedSize; i++) PrintF(" %02x", base[slot + i]);
+        PrintF("\n");
+      };
+      PrintF("%s: first difference at byte %d, in the slot at %d\n", type_name,
+             offset, slot);
+      dump("expected", lhs, slot);
+      dump("actual", rhs, slot);
+      FATAL("%s bytes differ", type_name);
+    }
+  };
+  compare(0, filler_begin);
+  compare(filler_end, size);
+}
+
+}  // namespace
+
 TEST(SmallOrderedHashMapAllocate) {
   Isolate* isolate(CcTest::InitIsolateOnce());
   const int kNumParams = 1;
@@ -3999,9 +4034,12 @@ TEST(SmallOrderedHashMapAllocate) {
     CHECK_EQ(0, actual->NumberOfDeletedElements());
     CHECK_EQ(capacity / SmallOrderedHashMap::kLoadFactor,
              actual->NumberOfBuckets());
-    CHECK_EQ(0, memcmp(reinterpret_cast<void*>(expected->address()),
-                       reinterpret_cast<void*>(actual->address()),
-                       SmallOrderedHashMap::SizeFor(capacity)));
+    CheckSameObjectBytes(
+        "SmallOrderedHashMap", expected->address(), actual->address(),
+        SmallOrderedHashMap::SizeFor(capacity),
+        SmallOrderedHashMap::PaddingOffset() +
+            kDeclaredSmallOrderedTablePadding,
+        SmallOrderedHashMap::DataTableStartOffset());
 #ifdef VERIFY_HEAP
     actual->SmallOrderedHashMapVerify(isolate);
 #endif
@@ -4037,9 +4075,11 @@ TEST(SmallOrderedHashSetAllocate) {
     CHECK_EQ(0, actual->NumberOfDeletedElements());
     CHECK_EQ(capacity / SmallOrderedHashSet::kLoadFactor,
              actual->NumberOfBuckets());
-    CHECK_EQ(0, memcmp(reinterpret_cast<void*>(expected->address()),
-                       reinterpret_cast<void*>(actual->address()),
-                       SmallOrderedHashSet::SizeFor(capacity)));
+    CheckSameObjectBytes(
+        "SmallOrderedHashSet", expected->address(), actual->address(),
+        SmallOrderedHashSet::SizeFor(capacity),
+        SmallOrderedHashSet::PaddingOffset() + kDeclaredSmallOrderedTablePadding,
+        SmallOrderedHashSet::DataTableStartOffset());
 #ifdef VERIFY_HEAP
     actual->SmallOrderedHashSetVerify(isolate);
 #endif
