@@ -144,6 +144,8 @@ struct Float64T : UntaggedT {
 
 #ifdef V8_COMPRESS_POINTERS
 using TaggedT = Int32T;
+#elif V8_TARGET_CHERI
+using TaggedT = RawPtrT;
 #else
 using TaggedT = IntPtrT;
 #endif
