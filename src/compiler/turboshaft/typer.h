@@ -1189,6 +1189,13 @@ class Typer {
         return Word32Type::Constant(static_cast<uint32_t>(value.integral));
       case ConstantOp::Kind::kWord64:
         return Word64Type::Constant(static_cast<uint64_t>(value.integral));
+#if V8_TARGET_CHERI
+      case ConstantOp::Kind::kCapability64:
+        // Pointer-width constants are capabilities. The typer has no
+        // capability type and a comparison reads only the address, so type the
+        // constant as the word64 that holds it.
+        return Word64Type::Constant(static_cast<uint64_t>(value.intptr));
+#endif
       default:
         // TODO(nicohartmann@): Support remaining {kind}s.
         return Type::Any();
