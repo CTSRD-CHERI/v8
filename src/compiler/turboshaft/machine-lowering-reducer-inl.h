@@ -2709,7 +2709,8 @@ class MachineLoweringReducer : public Next {
       // TODO(marja): Loop 4 bytes at once.
       WHILE(__ MachineUintPtrLessThan(index, length_ptr)) {
         V<Word32> char_code = __ template LoadNonArrayBufferElement<Word32>(
-            string, AccessBuilder::ForSeqOneByteStringCharacter(), index);
+            string, AccessBuilder::ForSeqOneByteStringCharacter(),
+            __ MachineWordAdd(index, start_ptr));
         __ InitializeElement(new_string, access, index, char_code);
         index = __ MachineWordAdd(index, 1);
       }
