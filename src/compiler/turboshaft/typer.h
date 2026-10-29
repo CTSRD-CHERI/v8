@@ -1459,6 +1459,11 @@ class Typer {
   static Type TypeWord64Comparison(const Type& lhs, const Type& rhs,
                                    ComparisonOp::Kind kind, Zone* zone) {
     if (lhs.IsNone() || rhs.IsNone()) return Type::None();
+    // Capability operands also reach here and are not Word64 types.
+    if (!InputIs(lhs, Type::Kind::kWord64) ||
+        !InputIs(rhs, Type::Kind::kWord64)) {
+      return Word32Type::Set({0, 1}, zone);
+    }
     switch (kind) {
       case ComparisonOp::Kind::kEqual:
       case ComparisonOp::Kind::kSignedLessThan:

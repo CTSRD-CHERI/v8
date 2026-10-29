@@ -135,6 +135,9 @@ class MaybeRegisterRepresentation {
         return true;
       case Enum::kWord32:
       case Enum::kWord64:
+#if V8_TARGET_CHERI
+      case Enum::kCapability64:
+#endif
       case Enum::kTagged:
       case Enum::kCompressed:
       case Enum::kSimd128:
@@ -151,6 +154,9 @@ class MaybeRegisterRepresentation {
         return true;
       case Enum::kWord32:
       case Enum::kWord64:
+#if V8_TARGET_CHERI
+      case Enum::kCapability64:
+#endif
       case Enum::kFloat32:
       case Enum::kFloat64:
       case Enum::kSimd128:
@@ -1069,6 +1075,7 @@ class MemoryRepresentation {
         return 3;
 #if V8_TARGET_CHERI
       case Capability64():
+        return kSystemPointerSizeLog2;
 #endif
       case AnyTagged():
       case TaggedPointer():
