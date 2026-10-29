@@ -80,7 +80,12 @@ class SemiSpace final : public Space {
   size_t current_capacity() const { return current_capacity_; }
   // Returns the current capacity of the semispace using an atomic load.
   size_t current_capacity_safe() const {
+#ifdef __CHERI_PURE_CAPABILITY__
+    // The member is size_t wide, while AsAtomicWord reads a whole capability.
+    return base::AsAtomic64::Relaxed_Load(&current_capacity_);
+#else   // !__CHERI_PURE_CAPABILITY__
     return base::AsAtomicWord::Relaxed_Load(&current_capacity_);
+#endif  // !__CHERI_PURE_CAPABILITY__
   }
 
   SemiSpaceId id() const { return id_; }

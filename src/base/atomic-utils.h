@@ -254,6 +254,14 @@ using AsAtomic32 = AsAtomicImpl<base::Atomic32>;
 using AsAtomic64 = AsAtomicImpl<base::Atomic64>;
 using AsAtomicWord = AsAtomicImpl<base::AtomicWord>;
 
+// Word-sized integer storage. On CHERI, AsAtomicWord is capability-sized, so
+// this is the helper for values only as wide as a general-purpose register.
+#if V8_HOST_ARCH_64_BIT
+using AsAtomicMachineWord = AsAtomicImpl<base::Atomic64>;
+#else   // !V8_HOST_ARCH_64_BIT
+using AsAtomicMachineWord = AsAtomicImpl<base::Atomic32>;
+#endif  // V8_HOST_ARCH_64_BIT
+
 template <int Width>
 struct AtomicTypeFromByteWidth {};
 template <>
