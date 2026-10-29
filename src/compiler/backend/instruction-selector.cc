@@ -2669,12 +2669,14 @@ void InstructionSelector::VisitStaticAssert(OpIndex node) {
   OpIndex asserted = op.condition();
   UnparkedScopeIfNeeded scope(broker_);
   AllowHandleDereference allow_handle_dereference;
-    StdoutStream os;
-    os << Get(asserted);
-    FATAL(
-        "Expected Turbofan static assert to hold, but got non-true input:\n  "
-        "%s",
-        op.source);
+  StdoutStream os;
+  os << Get(asserted) << "\n";
+  for (OpIndex input : Get(asserted).inputs()) {
+    os << "  operand: " << Get(input) << "\n";
+  }
+  FATAL(
+      "Expected Turbofan static assert to hold, but got non-true input:\n  %s",
+      op.source);
 }
 
 void InstructionSelector::VisitComment(OpIndex node) {
