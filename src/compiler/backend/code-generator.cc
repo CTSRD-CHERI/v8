@@ -1615,10 +1615,8 @@ void CodeGenerator::AddTranslationForOperand(Instruction* instr,
 #if V8_TARGET_CHERI
       case Constant::kIntPtr:
         DCHECK(16 == kSystemPointerSize);
-        DCHECK(type.representation() == MachineRepresentation::kCapability64);
-        CHECK_EQ(
-            constant.ToIntPtr(),
-            static_cast<intptr_t>(static_cast<intptr_t>(constant.ToIntPtr())));
+        DCHECK(type.representation() == MachineRepresentation::kCapability64 ||
+               type.representation() == MachineRepresentation::kWord64);
         literal =
             DeoptimizationLiteral(static_cast<intptr_t>(constant.ToIntPtr()));
         break;

@@ -31,6 +31,14 @@ DirectHandle<Object> DeoptimizationLiteral::Reify(Isolate* isolate) const {
       return BigInt::FromInt64(isolate, int64_);
     case DeoptimizationLiteralKind::kUnsignedBigInt64:
       return BigInt::FromUint64(isolate, uint64_);
+#if V8_TARGET_CHERI
+    case DeoptimizationLiteralKind::kSignedIntPtr:
+      return isolate->factory()->NewNumberFromInt64(
+          static_cast<int64_t>(signed_intptr_));
+    case DeoptimizationLiteralKind::kUnsignedIntPtr:
+      return isolate->factory()->NewNumberFromSize(
+          static_cast<size_t>(unsigned_intptr_));
+#endif
     case DeoptimizationLiteralKind::kHoleNaN:
       // Hole NaNs that made it to here represent the undefined value.
       return isolate->factory()->undefined_value();
@@ -56,6 +64,12 @@ size_t DeoptimizationLiteral::SerializationSize() const {
       return kSizeOfKind + sizeof(int64_);
     case DeoptimizationLiteralKind::kUnsignedBigInt64:
       return kSizeOfKind + sizeof(uint64_);
+#if V8_TARGET_CHERI
+    case DeoptimizationLiteralKind::kSignedIntPtr:
+      return kSizeOfKind + sizeof(signed_intptr_);
+    case DeoptimizationLiteralKind::kUnsignedIntPtr:
+      return kSizeOfKind + sizeof(unsigned_intptr_);
+#endif
     case DeoptimizationLiteralKind::kWasmI31Ref:
     case DeoptimizationLiteralKind::kWasmInt32:
       return kSizeOfKind + sizeof(int32_t);
@@ -91,6 +105,12 @@ size_t DeoptimizationLiteral::Write(base::Vector<uint8_t> buffer) const {
       return WriteValue(int64_);
     case DeoptimizationLiteralKind::kUnsignedBigInt64:
       return WriteValue(uint64_);
+#if V8_TARGET_CHERI
+    case DeoptimizationLiteralKind::kSignedIntPtr:
+      return WriteValue(signed_intptr_);
+    case DeoptimizationLiteralKind::kUnsignedIntPtr:
+      return WriteValue(unsigned_intptr_);
+#endif
     case DeoptimizationLiteralKind::kWasmI31Ref:
     case DeoptimizationLiteralKind::kWasmInt32:
       return WriteValue(int32_);
@@ -140,6 +160,12 @@ size_t DeoptimizationLiteral::Read(base::Vector<const uint8_t> buffer,
       return Read.operator()<int64_t>(buffer, out);
     case DeoptimizationLiteralKind::kUnsignedBigInt64:
       return Read.operator()<uint64_t>(buffer, out);
+#if V8_TARGET_CHERI
+    case DeoptimizationLiteralKind::kSignedIntPtr:
+      return Read.operator()<intptr_t>(buffer, out);
+    case DeoptimizationLiteralKind::kUnsignedIntPtr:
+      return Read.operator()<uintptr_t>(buffer, out);
+#endif
     case DeoptimizationLiteralKind::kWasmI31Ref:
       return Read.operator()<int32_t, Tagged<Smi>>(
           buffer, out, [](int32_t value) { return Smi::FromInt(value); });
