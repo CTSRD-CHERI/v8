@@ -833,7 +833,7 @@ bool InstructionOperand::IsSimd256StackSlot() const {
 }
 #if V8_TARGET_CHERI
 bool InstructionOperand::IsCapabilityStackSlot() const {
-  return IsAnyLocationOperand() &&
+  return IsAnyStackSlot() &&
          IsCapability(LocationOperand::cast(this)->representation());
 }
 #else
