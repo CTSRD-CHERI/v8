@@ -2878,31 +2878,10 @@ Handle<FixedDoubleArray> Factory::CopyFixedDoubleArray(
   if (len == 0) return array;
   Handle<FixedDoubleArray> result =
       Cast<FixedDoubleArray>(NewFixedDoubleArray(len));
-  uint32_t bytes_to_copy =
-      FixedDoubleArray::SizeFor(len) - offsetof(FixedDoubleArray, length_);
-#ifdef __CHERI_PURE_CAPABILITY__
-  DCHECK_GE(V8_CHERI_LENGTH_GET(result->address()) -
-                offsetof(FixedDoubleArray, length_),
-            bytes_to_copy);
-  DCHECK_GE(V8_CHERI_LENGTH_GET(array->address()) -
-                offsetof(FixedDoubleArray, length_),
-            bytes_to_copy);
-  CHECK_IMPLIES(V8_CHERI_PURECAP_BOOL,
-                IsAligned(bytes_to_copy, kSystemPointerAddrSize));
-  if (COMPRESS_POINTERS_BOOL) {
-    Heap::CopyBlock(result->address() + offsetof(FixedDoubleArray, length_),
-                    array->address() + offsetof(FixedDoubleArray, length_),
-                    bytes_to_copy);
-  } else {
-    CopyWords(result->address() + offsetof(FixedDoubleArray, length_),
-              array->address() + offsetof(FixedDoubleArray, length_),
-              bytes_to_copy / kSystemPointerAddrSize);
-  }
-#else
   Heap::CopyBlock(result->address() + offsetof(FixedDoubleArray, length_),
                   array->address() + offsetof(FixedDoubleArray, length_),
-                  bytes_to_copy);
-#endif  // __CHERI_PURE_CAPABILITY__
+                  static_cast<uint32_t>(FixedDoubleArray::SizeFor(len) -
+                                        offsetof(FixedDoubleArray, length_)));
   return result;
 }
 
