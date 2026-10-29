@@ -2811,18 +2811,33 @@ struct ConstantOp : FixedArityOperationT<0, ConstantOp> {
   }
 
   uint64_t integral() const {
+#if V8_TARGET_CHERI
+    DCHECK(IsIntegral() || kind == Kind::kCapability64);
+    if (kind == Kind::kCapability64) {
+      return static_cast<uint64_t>(capability64());
+    }
+#else   // !V8_TARGET_CHERI
     DCHECK(IsIntegral());
+#endif  // !V8_TARGET_CHERI
     return storage.integral;
   }
 
   int64_t signed_integral() const {
+#if V8_TARGET_CHERI
+    DCHECK(IsIntegral() || kind == Kind::kCapability64);
+#else   // !V8_TARGET_CHERI
     DCHECK(IsIntegral());
+#endif  // !V8_TARGET_CHERI
     switch (kind) {
       case Kind::kWord32:
       case Kind::kRelocatableWasmCanonicalSignatureId:
         return static_cast<int32_t>(storage.integral);
       case Kind::kWord64:
         return static_cast<int64_t>(storage.integral);
+#if V8_TARGET_CHERI
+      case Kind::kCapability64:
+        return static_cast<int64_t>(capability64());
+#endif
       default:
         UNREACHABLE();
     }

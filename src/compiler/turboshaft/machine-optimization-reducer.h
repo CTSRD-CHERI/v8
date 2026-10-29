@@ -1735,7 +1735,10 @@ class MachineOptimizationReducer : public Next {
     using Kind = ShiftOp::Kind;
 #if V8_TARGET_CHERI
     if (rep == WordRepresentation::Capability64()) {
-      if (auto* l = matcher_.TryCast<ConstantOp>(left)) {
+      // An out-of-domain constant (a heap object, say) has no address to shift.
+      if (auto* l = matcher_.TryCast<ConstantOp>(left);
+          l &&
+          (l->IsIntegral() || l->kind == ConstantOp::Kind::kCapability64)) {
         if (uint32_t amount;
             matcher_.MatchIntegralWord32Constant(right, &amount)) {
           amount = amount & (rep.bit_width() - 1);

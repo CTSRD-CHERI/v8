@@ -363,6 +363,21 @@ class OperationMatcher {
     return false;
   }
 
+  // Also matches the capability constants built by pointer-domain ops such as
+  // IsSmi. We keep this separate so reducing never moves them out of their
+  // domain.
+  bool MatchIntegralOrCapabilityConstant(V<Any> matched,
+                                         int64_t* constant) const {
+#if V8_TARGET_CHERI
+    const ConstantOp* c = TryCast<ConstantOp>(matched);
+    if (c && c->kind == ConstantOp::Kind::kCapability64) {
+      *constant = static_cast<int64_t>(c->capability64());
+      return true;
+    }
+#endif
+    return MatchSignedIntegralConstant(matched, constant);
+  }
+
   bool MatchUnsignedIntegralConstant(V<Any> matched, uint64_t* constant) const {
     if (const ConstantOp* c = TryCast<ConstantOp>(matched)) {
       if (c->kind == ConstantOp::Kind::kWord32 ||

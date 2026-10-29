@@ -566,7 +566,8 @@ void LateLoadEliminationAnalyzer::DcheckWordBinop(OpIndex op_idx,
         key.has_value() && non_aliasing_objects_.Get(*key)) {
       int64_t cst;
       DCHECK_EQ(binop.kind, WordBinopOp::Kind::kBitwiseAnd);
-      DCHECK(OperationMatcher(graph_).MatchSignedIntegralConstant(right, &cst));
+      DCHECK(OperationMatcher(graph_).MatchIntegralOrCapabilityConstant(right,
+                                                                        &cst));
       DCHECK_EQ(cst, kSmiTagMask);
     }
   };
