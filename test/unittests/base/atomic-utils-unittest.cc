@@ -121,7 +121,7 @@ TEST(AsAtomic8, CompareAndSwap_Concurrent) {
   }
 }
 
-TEST(AsAtomicWord, Relaxed_SetBits_Sequential) {
+TEST(AsAtomicMachineWord, Relaxed_SetBits_Sequential) {
   i::ScaledUint word = 0;
   // Fill the word with a repeated 0xF0 pattern.
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -135,7 +135,7 @@ TEST(AsAtomicWord, Relaxed_SetBits_Sequential) {
   i::ScaledUint mask = 0xFF;
   for (unsigned i = 0; i < sizeof(word); i++) {
     i::ScaledUint byte = static_cast<i::ScaledUint>(i) << (i * 8);
-    AsAtomicWord::Relaxed_SetBits(&word, byte, mask);
+    AsAtomicMachineWord::Relaxed_SetBits(&word, byte, mask);
     mask <<= 8;
   }
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -143,7 +143,7 @@ TEST(AsAtomicWord, Relaxed_SetBits_Sequential) {
   }
 }
 
-TEST(AsAtomicWord, Relaxed_SetBitsByMask_Sequential) {
+TEST(AsAtomicMachineWord, Relaxed_SetBitsByMask_Sequential) {
   i::ScaledUint word = 0;
   // Fill the word with a repeated 0xF0 pattern.
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -156,7 +156,7 @@ TEST(AsAtomicWord, Relaxed_SetBitsByMask_Sequential) {
   // Set the i-th byte value to 0XF1.
   i::ScaledUint mask = 0x01;
   for (unsigned i = 0; i < sizeof(word); i++) {
-    AsAtomicWord::Relaxed_SetBits(&word, mask);
+    AsAtomicMachineWord::Relaxed_SetBits(&word, mask);
     mask <<= 8;
   }
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -164,7 +164,7 @@ TEST(AsAtomicWord, Relaxed_SetBitsByMask_Sequential) {
   }
 }
 
-TEST(AsAtomicWord, Release_SetBits_Sequential) {
+TEST(AsAtomicMachineWord, Release_SetBits_Sequential) {
   i::ScaledUint word = 0;
   // Fill the word with a repeated 0xF0 pattern.
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -178,7 +178,7 @@ TEST(AsAtomicWord, Release_SetBits_Sequential) {
   i::ScaledUint mask = 0xFF;
   for (unsigned i = 0; i < sizeof(word); i++) {
     i::ScaledUint byte = static_cast<i::ScaledUint>(i) << (i * 8);
-    AsAtomicWord::Release_SetBits(&word, byte, mask);
+    AsAtomicMachineWord::Release_SetBits(&word, byte, mask);
     mask <<= 8;
   }
   for (unsigned i = 0; i < sizeof(word); i++) {
@@ -203,7 +203,7 @@ class BitSettingThread final : public Thread {
   void Run() override {
     i::ScaledUint bit = 1;
     bit = bit << bit_index_;
-    AsAtomicWord::Relaxed_SetBits(word_addr_, bit, bit);
+    AsAtomicMachineWord::Relaxed_SetBits(word_addr_, bit, bit);
   }
 
  private:
@@ -213,13 +213,13 @@ class BitSettingThread final : public Thread {
 
 }  // namespace.
 
-TEST(AsAtomicWord, SetBits_Concurrent) {
+TEST(AsAtomicMachineWord, SetBits_Concurrent) {
   const int kBitCount = sizeof(i::ScaledUint) * 8;
   const int kThreadCount = kBitCount / 2;
   BitSettingThread threads[kThreadCount];
 
   i::ScaledUint word;
-  AsAtomicWord::Relaxed_Store(&word, 0);
+  AsAtomicMachineWord::Relaxed_Store(&word, 0);
   for (int i = 0; i < kThreadCount; i++) {
     // Thread i sets bit number i * 2.
     threads[i].Initialize(&word, i * 2);
@@ -230,7 +230,7 @@ TEST(AsAtomicWord, SetBits_Concurrent) {
   for (int i = 0; i < kThreadCount; i++) {
     threads[i].Join();
   }
-  i::ScaledUint actual_word = AsAtomicWord::Relaxed_Load(&word);
+  i::ScaledUint actual_word = AsAtomicMachineWord::Relaxed_Load(&word);
   for (int i = 0; i < kBitCount; i++) {
     // Every second bit must be set.
     i::ScaledUint expected = (i % 2 == 0);
