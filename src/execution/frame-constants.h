@@ -344,8 +344,9 @@ class JSToWasmWrapperFrameConstants : public TypedFrameConstants {
       2 * kSystemPointerSize;
   static constexpr size_t kWrapperBufferFPReturnRegister1 =
       3 * kSystemPointerSize;
+  // The Torque reader walks these two slots with float64s.
   static constexpr size_t kWrapperBufferFPReturnRegister2 =
-      4 * kSystemPointerSize;
+      kWrapperBufferFPReturnRegister1 + kDoubleSize;
   static constexpr size_t kWrapperBufferGPReturnRegister1 =
       5 * kSystemPointerSize;
   static constexpr size_t kWrapperBufferGPReturnRegister2 =
