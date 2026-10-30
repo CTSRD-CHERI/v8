@@ -39,9 +39,9 @@ void TestSourceLocationCurrent() {
 TEST(SourceLocationTest, Current) { TestSourceLocationCurrent(); }
 
 void TestToString() {
-  static const std::string kDescriptor =
-      "void cppgc::internal::TestToString()@" __FILE__ ":" +
-      std::to_string(__LINE__ + 1);
+  static const std::string kDescriptor = std::string(__func__) + "@" +
+                                         __FILE__ + ":" +
+                                         std::to_string(__LINE__ + 1);
   constexpr auto loc = SourceLocation::Current();
   const auto string = loc.ToString();
   EXPECT_EQ(kDescriptor, string);
