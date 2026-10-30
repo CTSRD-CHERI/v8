@@ -507,7 +507,12 @@ class TestEnvironment : public HandleAndZoneScope {
         // Keep a map of (MachineRepresentation . std::vector<int>) with
         // allocated slots to pick from for each representation.
         int slot = slot_parameter_n;
-        slot_parameter_n -= (GetSlotSizeInBytes(rep) / kSystemPointerSize);
+        // Slot indices count system pointers, so a sub-slot value still
+        // occupies a whole one. Truncating instead of rounding up gave 0 for a
+        // float64 on CHERI (8/16), aliasing every double parameter onto its
+        // predecessor.
+        slot_parameter_n -= (GetSlotSizeInBytes(rep) + kSystemPointerSize - 1) /
+                            kSystemPointerSize;
         AddStackSlot(layout, slots, sig, rep, slot);
         entry->second--;
       }
