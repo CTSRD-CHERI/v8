@@ -2,12 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-Realm.createAllowCrossRealmAccess();
+// Temporal is not enabled in every build.
+if (this.Temporal) {
+  Realm.createAllowCrossRealmAccess();
 
-function f() {
-  Temporal.Instant;
+  function f() {
+    Temporal.Instant;
+  }
+  let f_1 = Realm.eval(1, f + " f");
+  Realm.navigateSameOrigin(1);
+  Realm.eval(1, f + " f()");
+  f_1();
 }
-let f_1 = Realm.eval(1, f + " f");
-Realm.navigateSameOrigin(1);
-Realm.eval(1, f + " f()");
-f_1();
