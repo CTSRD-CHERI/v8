@@ -378,15 +378,14 @@ void float64_pow_wrapper(Address data) {
 template <typename T, T (*float_round_op)(T)>
 void simd_float_round_wrapper(Address data) {
   constexpr int n = kSimd128Size / sizeof(T);
-  constexpr size_t to_increment =
-      V8_CHERI_PURECAP_BOOL ? kSystemPointerSize : sizeof(T);
+  // Lanes are packed inside one v128 buffer slot, not spread over arguments.
   for (int i = 0; i < n; i++) {
-    T input = ReadUnalignedValue<T>(data + (i * to_increment));
+    T input = ReadUnalignedValue<T>(data + (i * sizeof(T)));
     T value = float_round_op(input);
 #if V8_OS_AIX
     value = FpOpWorkaround<T>(input, value);
 #endif
-    WriteUnalignedValue<T>(data + (i * to_increment), value);
+    WriteUnalignedValue<T>(data + (i * sizeof(T)), value);
   }
 }
 
