@@ -135,8 +135,7 @@ int SwissNameDictionary::CapacityFor(int at_least_space_for) {
   }
 
   int non_normalized = at_least_space_for + at_least_space_for / 7;
-  int rounded = base::bits::RoundUpToPowerOfTwo32(non_normalized);
-  return V8_TARGET_CHERI_BOOL ? RoundUp(rounded, kSystemPointerSize) : rounded;
+  return base::bits::RoundUpToPowerOfTwo32(non_normalized);
 }
 
 int SwissNameDictionary::EntryForEnumerationIndex(int enumeration_index) {
