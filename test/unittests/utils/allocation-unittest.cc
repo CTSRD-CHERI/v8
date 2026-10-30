@@ -48,6 +48,10 @@ class MemoryAllocationPermissionsTest : public TestWithPlatform {
 #if V8_OS_DARWIN
   struct sigaction old_bus_action_;
 #endif
+#ifdef SIGPROT
+  // Morello reports capability permission violations as SIGPROT.
+  struct sigaction old_prot_action_;
+#endif
 
  protected:
   void SetUp() override {
@@ -59,6 +63,9 @@ class MemoryAllocationPermissionsTest : public TestWithPlatform {
 #if V8_OS_DARWIN
     sigaction(SIGBUS, &action, &old_bus_action_);
 #endif
+#ifdef SIGPROT
+    sigaction(SIGPROT, &action, &old_prot_action_);
+#endif
   }
 
   void TearDown() override {
@@ -66,6 +73,9 @@ class MemoryAllocationPermissionsTest : public TestWithPlatform {
     sigaction(SIGSEGV, &old_action_, nullptr);
 #if V8_OS_DARWIN
     sigaction(SIGBUS, &old_bus_action_, nullptr);
+#endif
+#ifdef SIGPROT
+    sigaction(SIGPROT, &old_prot_action_, nullptr);
 #endif
   }
 
