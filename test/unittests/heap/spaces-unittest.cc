@@ -47,9 +47,11 @@ static Tagged<HeapObject> AllocateUnaligned(OldLargeObjectSpace* allocator,
 
 using SpacesTest = TestWithIsolate;
 
-#if !defined(__CHERI_PURE_CAPABILITY__) || defined(V8_COMPRESS_POINTERS)
 // FIXME(ds815): Test is broken because it uses AllocateRawUnaligned.
 TEST_F(SpacesTest, CompactionSpaceMerge) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  GTEST_SKIP();
+#endif
   Heap* heap = i_isolate()->heap();
   OldSpace* old_space = heap->old_space();
   EXPECT_TRUE(old_space != nullptr);
@@ -96,7 +98,6 @@ TEST_F(SpacesTest, CompactionSpaceMerge) {
 
   heap->SetGCState(Heap::NOT_IN_GC);
 }
-#endif
 
 TEST_F(SpacesTest, WriteBarriers) {
   // Test allocates a real page in OLD_SPACE to check various flag combinaton.
@@ -371,6 +372,11 @@ void testAllocationObserver(Isolate* i_isolate, T* space, A* allocator) {
 }
 
 TEST_F(SpacesTest, AllocationObserver) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // AllocateUnaligned places fillers whose sizes are not multiples of a
+  // purecap tagged slot.
+  GTEST_SKIP();
+#endif
   if (v8_flags.single_generation) return;
   v8::Isolate::Scope isolate_scope(v8_isolate());
   v8::HandleScope handle_scope(v8_isolate());

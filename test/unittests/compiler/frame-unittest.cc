@@ -90,6 +90,10 @@ TEST_F(FrameTest, AllocateSavedCalleeRegisterSlots) {
 }
 
 TEST_F(FrameTest, AlignSavedCalleeRegisterSlots) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Two slots are 32 bytes, more than the 16-byte maximum Frame alignment.
+  GTEST_SKIP();
+#endif
   Frame frame(kFixed3, nullptr);
   constexpr int kSlots = 2;  // An even number leaves the slots misaligned.
 

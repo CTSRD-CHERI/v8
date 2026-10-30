@@ -89,7 +89,8 @@ TEST_F(StructTypesTest, SharedStruct) {
   builder.AddField(kWasmI16, true);
   builder.AddField(kWasmF64, true);
   StructType* type = builder.Build();
-  EXPECT_EQ(24u, type->total_fields_size());
+  // The field area is padded up to a tagged slot to keep the object aligned.
+  EXPECT_EQ(uint32_t{RoundUp(24, kTaggedSize)}, type->total_fields_size());
   EXPECT_EQ(0u, type->field_offset(0));
   // i64 is 8-Byte-aligned in shared structs.
   EXPECT_EQ(8u, type->field_offset(1));

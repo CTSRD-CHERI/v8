@@ -258,6 +258,10 @@ TEST(StackTest, StackVariableInBounds) {
 using SetDataReadOnlyTest = ::testing::Test;
 
 TEST_F(SetDataReadOnlyTest, SetDataReadOnly) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // mprotect needs CHERI_PERM_SW_VMEM, which static data does not carry here.
+  GTEST_SKIP();
+#endif
   static struct alignas(kMaxPageSize) TestData {
     int x;
     int y;

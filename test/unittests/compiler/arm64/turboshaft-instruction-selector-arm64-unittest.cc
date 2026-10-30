@@ -8072,7 +8072,12 @@ TEST_F(TurboshaftInstructionSelectorTest,
   EXPECT_EQ(63, s.ToInt32(s[1]->InputAt(1)));
 }
 
+// These references point outside the bounds of IsolateData, so they cannot be
+// tagged.
 TEST_F(TurboshaftInstructionSelectorTest, ExternalReferenceLoad1) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  GTEST_SKIP();
+#endif
   // Test offsets we can use kMode_Root for.
   const int64_t kOffsets[] = {0, 1, 4, INT32_MIN, INT32_MAX};
   TRACED_FOREACH(int64_t, offset, kOffsets) {
@@ -8095,6 +8100,10 @@ TEST_F(TurboshaftInstructionSelectorTest, ExternalReferenceLoad1) {
 }
 
 TEST_F(TurboshaftInstructionSelectorTest, ExternalReferenceLoad2) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // The reference cannot be tagged, as in ExternalReferenceLoad1.
+  GTEST_SKIP();
+#endif
   // Offset too large, we cannot use kMode_Root.
   StreamBuilder m(this, MachineType::Int64());
   int64_t offset = 0x100000000;

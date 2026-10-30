@@ -187,6 +187,19 @@ TEST_F(InstructionTest, PrepareInsertAfter) {
   }
 }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+// Pointer-sized offsets reach the backend as untagged intptr_t immediates, and
+// INLINE_INTPTR readers only look at value_intptr_.
+TEST_F(InstructionTest, UntaggedIntPtrImmediateRoundTrip) {
+  for (int64_t offset : {-224, -1, 800, 0x10000}) {
+    ImmediateOperand imm(ImmediateOperand::INLINE_INTPTR,
+                         static_cast<intptr_t>(offset));
+    ASSERT_EQ(ImmediateOperand::INLINE_INTPTR, imm.type());
+    EXPECT_EQ(offset, static_cast<int64_t>(imm.inline_intptr_value()));
+  }
+}
+#endif  // __CHERI_PURE_CAPABILITY__
+
 }  // namespace instruction_unittest
 }  // namespace compiler
 }  // namespace internal

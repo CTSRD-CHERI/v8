@@ -273,7 +273,13 @@ TEST(VirtualAddressSpaceTest, TestEmulatedSubspace) {
       reservation = kNullAddress;
     }
   }
+#ifdef __CHERI_PURE_CAPABILITY__
+  if (reservation == kNullAddress) {
+    GTEST_SKIP() << "Allocation hints are not honoured on this platform.";
+  }
+#else
   ASSERT_NE(kNullAddress, reservation);
+#endif  // __CHERI_PURE_CAPABILITY__
 
   EmulatedVirtualAddressSubspace subspace(&rootspace, reservation,
                                           kSubspaceMappedSize, kSubspaceSize);

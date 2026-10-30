@@ -236,8 +236,12 @@ TEST_F(FlagDefinitionsTest, FreezeFlags) {
   // Accessing via the API fails with a CHECK.
   ASSERT_DEATH_IF_SUPPORTED(v8_flags.testing_int_flag = 41,
                             "Check failed: !IsFrozen\\(\\)");
-  // Writing to the memory directly results in a segfault.
+  // Writing to the memory directly results in a segfault, except on CHERI,
+  // where FreezeFlags skips SetDataReadOnly because static data lacks
+  // CHERI_PERM_SW_VMEM.
+#ifndef __CHERI_PURE_CAPABILITY__
   ASSERT_DEATH_IF_SUPPORTED(*direct_testing_int_ptr = 41, "");
+#endif  // __CHERI_PURE_CAPABILITY__
   // We can still read the old value.
   CHECK_EQ(42, v8_flags.testing_int_flag);
   CHECK_EQ(42, *direct_testing_int_ptr);
