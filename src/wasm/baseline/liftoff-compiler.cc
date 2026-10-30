@@ -6492,8 +6492,8 @@ class LiftoffCompiler {
       // operations.
       LiftoffRegister result_reg =
           pinned.set(__ GetUnusedRegister(reg_class_for(field_kind), pinned));
-      LoadObjectField(decoder, result_reg, obj.gp(), no_reg, offset, field_kind,
-                      false, implicit_check, pinned);
+      LoadObjectField(decoder, result_reg, obj.gp().C(), no_reg, offset,
+                      field_kind, false, implicit_check, pinned);
       LiftoffRegister new_value = opcode == kExprStructAtomicExchange
                                       ? value
                                       : pinned.set(__ GetUnusedRegister(
@@ -6521,7 +6521,7 @@ class LiftoffCompiler {
           UNREACHABLE();
       }
       __ PushRegister(field_kind, result_reg);
-      StoreObjectField(decoder, obj.gp(), no_reg, offset, new_value, false,
+      StoreObjectField(decoder, obj.gp().C(), no_reg, offset, new_value, false,
                        pinned, field_kind);
       return;
     }
@@ -6554,38 +6554,38 @@ class LiftoffCompiler {
     uint32_t protected_load_pc = 0;
     switch (opcode) {
       case kExprStructAtomicAdd:
-        __ AtomicAdd(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicAdd(obj.gp().C(), no_reg, offset, value, result_reg,
                      StoreType::ForValueKind(field_kind), &protected_load_pc,
                      false, LiftoffAssembler::kNative);
         break;
       case kExprStructAtomicSub:
-        __ AtomicSub(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicSub(obj.gp().C(), no_reg, offset, value, result_reg,
                      StoreType::ForValueKind(field_kind), &protected_load_pc,
                      false, LiftoffAssembler::kNative);
         break;
       case kExprStructAtomicAnd:
-        __ AtomicAnd(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicAnd(obj.gp().C(), no_reg, offset, value, result_reg,
                      StoreType::ForValueKind(field_kind), &protected_load_pc,
                      false, LiftoffAssembler::kNative);
         break;
       case kExprStructAtomicOr:
-        __ AtomicOr(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicOr(obj.gp().C(), no_reg, offset, value, result_reg,
                     StoreType::ForValueKind(field_kind), &protected_load_pc,
                     false, LiftoffAssembler::kNative);
         break;
       case kExprStructAtomicXor:
-        __ AtomicXor(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicXor(obj.gp().C(), no_reg, offset, value, result_reg,
                      StoreType::ForValueKind(field_kind), &protected_load_pc,
                      false, LiftoffAssembler::kNative);
         break;
       case kExprStructAtomicExchange:
         if (is_reference(field_kind)) {
-          __ AtomicExchangeTaggedPointer(obj.gp(), no_reg, offset, value,
+          __ AtomicExchangeTaggedPointer(obj.gp().C(), no_reg, offset, value,
                                          result_reg, &protected_load_pc,
                                          pinned);
           break;
         }
-        __ AtomicExchange(obj.gp(), no_reg, offset, value, result_reg,
+        __ AtomicExchange(obj.gp().C(), no_reg, offset, value, result_reg,
                           StoreType::ForValueKind(field_kind),
                           &protected_load_pc, false, LiftoffAssembler::kNative);
         break;
@@ -6647,8 +6647,8 @@ class LiftoffCompiler {
     if (!field.struct_imm.shared && field_kind == ValueKind::kI64) {
       LiftoffRegister result_reg =
           pinned.set(__ GetUnusedRegister(reg_class_for(field_kind), pinned));
-      LoadObjectField(decoder, result_reg, obj.gp(), no_reg, offset, field_kind,
-                      false, implicit_check, pinned);
+      LoadObjectField(decoder, result_reg, obj.gp().C(), no_reg, offset,
+                      field_kind, false, implicit_check, pinned);
       {
         Label end;
         FREEZE_STATE(frozen);
@@ -6663,8 +6663,8 @@ class LiftoffCompiler {
           __ emit_cond_jump(kNotEqual, &end, kI32, result_reg.low_gp(),
                             expected_value.low_gp(), frozen);
         }
-        StoreObjectField(decoder, obj.gp(), no_reg, offset, new_value, false,
-                         pinned, field_kind);
+        StoreObjectField(decoder, obj.gp().C(), no_reg, offset, new_value,
+                         false, pinned, field_kind);
         __ bind(&end);
       }
       __ PushRegister(field_kind, result_reg);
@@ -6678,11 +6678,11 @@ class LiftoffCompiler {
     uint32_t protected_load_pc = 0;
     if (is_reference(field_kind)) {
       __ AtomicCompareExchangeTaggedPointer(
-          obj.gp(), no_reg, offset, expected_value, new_value, result_reg,
+          obj.gp().C(), no_reg, offset, expected_value, new_value, result_reg,
           &protected_load_pc, pinned);
     } else {
       __ AtomicCompareExchange(
-          obj.gp(), no_reg, offset, expected_value, new_value, result_reg,
+          obj.gp().C(), no_reg, offset, expected_value, new_value, result_reg,
           StoreType::ForValueKind(field_kind), &protected_load_pc, false,
           LiftoffAssembler::kNative);
     }
@@ -6728,7 +6728,7 @@ class LiftoffCompiler {
       // operations.
       LiftoffRegister result_reg =
           pinned.set(__ GetUnusedRegister(reg_class_for(elem_kind), pinned));
-      LoadObjectField(decoder, result_reg, array.gp(), index.gp(),
+      LoadObjectField(decoder, result_reg, array.gp().C(), index.gp(),
                       wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                       elem_kind, true, false, pinned);
       LiftoffRegister new_value = opcode == kExprArrayAtomicExchange
@@ -6757,7 +6757,7 @@ class LiftoffCompiler {
           UNREACHABLE();
       }
       __ PushRegister(elem_kind, result_reg);
-      StoreObjectField(decoder, array.gp(), index.gp(),
+      StoreObjectField(decoder, array.gp().C(), index.gp(),
                        wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                        new_value, false, pinned, elem_kind);
       return;
@@ -6780,37 +6780,37 @@ class LiftoffCompiler {
     const int offset = wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize);
     switch (opcode) {
       case kExprArrayAtomicAdd:
-        __ AtomicAdd(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicAdd(array.gp().C(), index.gp(), offset, value, result_reg,
                      StoreType::ForValueKind(elem_kind), nullptr, false,
                      LiftoffAssembler::kNative);
         break;
       case kExprArrayAtomicSub:
-        __ AtomicSub(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicSub(array.gp().C(), index.gp(), offset, value, result_reg,
                      StoreType::ForValueKind(elem_kind), nullptr, false,
                      LiftoffAssembler::kNative);
         break;
       case kExprArrayAtomicAnd:
-        __ AtomicAnd(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicAnd(array.gp().C(), index.gp(), offset, value, result_reg,
                      StoreType::ForValueKind(elem_kind), nullptr, false,
                      LiftoffAssembler::kNative);
         break;
       case kExprArrayAtomicOr:
-        __ AtomicOr(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicOr(array.gp().C(), index.gp(), offset, value, result_reg,
                     StoreType::ForValueKind(elem_kind), nullptr, false,
                     LiftoffAssembler::kNative);
         break;
       case kExprArrayAtomicXor:
-        __ AtomicXor(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicXor(array.gp().C(), index.gp(), offset, value, result_reg,
                      StoreType::ForValueKind(elem_kind), nullptr, false,
                      LiftoffAssembler::kNative);
         break;
       case kExprArrayAtomicExchange:
         if (is_reference(elem_kind)) {
-          __ AtomicExchangeTaggedPointer(array.gp(), index.gp(), offset, value,
-                                         result_reg, nullptr, pinned);
+          __ AtomicExchangeTaggedPointer(array.gp().C(), index.gp(), offset,
+                                         value, result_reg, nullptr, pinned);
           break;
         }
-        __ AtomicExchange(array.gp(), index.gp(), offset, value, result_reg,
+        __ AtomicExchange(array.gp().C(), index.gp(), offset, value, result_reg,
                           StoreType::ForValueKind(elem_kind), nullptr, false,
                           LiftoffAssembler::kNative);
         break;
@@ -6905,7 +6905,7 @@ class LiftoffCompiler {
     if (!array_obj.type.is_shared() && elem_kind == ValueKind::kI64) {
       LiftoffRegister result_reg =
           pinned.set(__ GetUnusedRegister(reg_class_for(elem_kind), pinned));
-      LoadObjectField(decoder, result_reg, array.gp(), index.gp(),
+      LoadObjectField(decoder, result_reg, array.gp().C(), index.gp(),
                       wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                       elem_kind, true, false, pinned);
       {
@@ -6922,7 +6922,7 @@ class LiftoffCompiler {
           __ emit_cond_jump(kNotEqual, &end, kI32, result_reg.low_gp(),
                             expected_value.low_gp(), frozen);
         }
-        StoreObjectField(decoder, array.gp(), index.gp(),
+        StoreObjectField(decoder, array.gp().C(), index.gp(),
                          wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                          new_value, false, pinned, elem_kind);
         __ bind(&end);
@@ -6936,12 +6936,12 @@ class LiftoffCompiler {
     const int offset = wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize);
     Register offset_reg = index.gp();
     if (is_reference(elem_kind)) {
-      __ AtomicCompareExchangeTaggedPointer(array.gp(), offset_reg, offset,
+      __ AtomicCompareExchangeTaggedPointer(array.gp().C(), offset_reg, offset,
                                             expected_value, new_value,
                                             result_reg, nullptr, pinned);
     } else {
-      __ AtomicCompareExchange(array.gp(), offset_reg, offset, expected_value,
-                               new_value, result_reg,
+      __ AtomicCompareExchange(array.gp().C(), offset_reg, offset,
+                               expected_value, new_value, result_reg,
                                StoreType::ForValueKind(elem_kind), nullptr,
                                false, LiftoffAssembler::kNative);
     }
@@ -7899,7 +7899,7 @@ class LiftoffCompiler {
     if (elem_size_shift != 0) {
       __ emit_i32_shli(index.gp(), index.gp(), elem_size_shift);
     }
-    StoreAtomicObjectField(decoder, array.gp(), index.gp(),
+    StoreAtomicObjectField(decoder, array.gp().C(), index.gp(),
                            wasm::ObjectAccess::ToTagged(WasmArray::kHeaderSize),
                            value, false, pinned, elem_kind, order);
   }
