@@ -1056,10 +1056,13 @@ Address suspend_wasmfx_stack(Isolate* isolate, Address sp, Address fp,
         it.frame()->fp() + WasmFrameConstants::kWasmInstanceDataOffset));
     auto trusted_instance_data =
         TrustedCast<WasmTrustedInstanceData>(trusted_instance_data_obj);
+    Address frame_pc = it.frame()->pc();
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
+    frame_pc &= ~1;
+#endif
     for (const auto& handler : effect_handlers) {
       auto tag = trusted_instance_data->tags_table()->get(handler.tag_index);
-      if (wasm_code->instruction_start() + handler.call_offset ==
-              it.frame()->pc() &&
+      if (wasm_code->instruction_start() + handler.call_offset == frame_pc &&
           tag == wanted_tag) {
         found = true;
         to->jmpbuf()->pc =
