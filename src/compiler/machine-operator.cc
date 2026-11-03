@@ -1129,6 +1129,9 @@ std::ostream& operator<<(std::ostream& os, TruncateKind kind) {
 #else
 
 #ifdef V8_COMPRESS_POINTERS
+// Compressed tagged values use 32-bit atomic loads.
+#define ATOMIC64_TAGGED_TYPE_LIST(V)
+
 #define ATOMIC_TAGGED_TYPE_LIST(V) \
   V(TaggedSigned)                  \
   V(TaggedPointer)                 \
