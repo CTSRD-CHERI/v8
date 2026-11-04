@@ -4247,10 +4247,10 @@ void MacroAssembler::PreCheckSkippedWriteBarrier(Register object,
   {
     UseScratchRegisterScope temps(this);
     Register scratch1 = temps.AcquireX();
-    sub(scratch, object, kHeapObjectTag);
+    sub(scratch.X(), object.X(), kHeapObjectTag);
     Ldr(scratch1,
         MemOperand(kRootRegister, IsolateData::last_young_allocation_offset()));
-    cmp(scratch, scratch1);
+    cmp(scratch.X(), scratch1);
     B(Condition::kEqual, ok);
   }
 
@@ -4272,21 +4272,22 @@ void MacroAssembler::PreCheckSkippedWriteBarrier(Register object,
     Register scratch1 = temps.AcquireX();
 
     // Check LAB start <= last_young_allocation_.
-    ldr(scratch, MemOperand(kRootRegister,
-                            IsolateData::new_allocation_info_start_offset()));
+    ldr(scratch.X(),
+        MemOperand(kRootRegister,
+                   IsolateData::new_allocation_info_start_offset()));
     ldr(scratch1,
         MemOperand(kRootRegister, IsolateData::last_young_allocation_offset()));
-    cmp(scratch, scratch1);
+    cmp(scratch.X(), scratch1);
     B(Condition::kUnsignedGreaterThan, &not_ok);
 
     // Check last_young_allocation_ < (object address+1).
-    cmp(scratch1, object);
+    cmp(scratch1, object.X());
     B(Condition::kUnsignedGreaterThanEqual, &not_ok);
 
     // Check (object address+1) < LAB top.
-    ldr(scratch, MemOperand(kRootRegister,
-                            IsolateData::new_allocation_info_top_offset()));
-    cmp(object, scratch);
+    ldr(scratch.X(), MemOperand(kRootRegister,
+                                IsolateData::new_allocation_info_top_offset()));
+    cmp(object.X(), scratch.X());
     B(Condition::kUnsignedLessThan, ok);
   }
 
