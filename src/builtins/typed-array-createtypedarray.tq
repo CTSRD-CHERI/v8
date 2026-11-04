@@ -76,7 +76,8 @@ transitioning macro AllocateTypedArray(
   } else {
     typed_array::SetJSTypedArrayOffHeapDataPtr(
         typedArray, buffer.backing_store_ptr, byteOffset);
-    dcheck(CapabilityIsTagged(typedArray.data_ptr) ||
+    dcheck(IsMockArrayBufferAllocatorFlag() ||
+           CapabilityIsTagged(typedArray.data_ptr) ||
            Convert<uintptr>(typedArray.data_ptr) == 0);
     dcheck(
         typedArray.data_ptr ==
