@@ -102,7 +102,7 @@ void MacroAssembler::PushAll(RegList reglist) {
     reglist.set(xzr);
   }
 
-  CPURegList registers(kXRegSizeInBits, reglist);
+  CPURegList registers(kCRegSizeInBits, reglist);
   int size = registers.RegisterSizeInBytes();
   DCHECK_EQ(0, (size * registers.Count()) % 16);
 
@@ -123,7 +123,7 @@ void MacroAssembler::PopAll(RegList reglist) {
     reglist.set(xzr);
   }
 
-  CPURegList registers(kXRegSizeInBits, reglist);
+  CPURegList registers(kCRegSizeInBits, reglist);
   int size = registers.RegisterSizeInBytes();
   DCHECK_EQ(0, (size * registers.Count()) % 16);
 
