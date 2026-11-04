@@ -968,17 +968,25 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
   DCHECK_IMPLIES(rd.IsC(), rn.IsC());
   if (operand.NeedsRelocation(this)) {
     UseScratchRegisterScope temps(this);
-    Register temp = temps.AcquireSameSizeAs(rn);
-    DCHECK_IMPLIES(temp.IsW(), RelocInfo::IsCompressedEmbeddedObject(
-                                   operand.ImmediateRMode()));
+    Register temp =
+        RelocInfo::IsCompressedEmbeddedObject(operand.ImmediateRMode())
+            ? temps.AcquireSameSizeAs(rn)
+            : temps.AcquireC();
     Ldr(temp, operand.immediate());
-    AddSubMacro(rd, rn, temp, S, op);
+    AddSubMacro(rd, rn, rd.IsC() || temp.IsW() ? temp : temp.X(), S, op);
   } else if ((operand.IsImmediate() &&
               !IsImmAddSub(operand.ImmediateValue())) ||
              (rn.IsZero() && !operand.IsShiftedRegister()) ||
              (operand.IsShiftedRegister() && (operand.shift() == ROR))) {
     UseScratchRegisterScope temps(this);
-    Register temp = rd.IsC() ? temps.AcquireX() : temps.AcquireSameSizeAs(rn);
+    // The capability path can need a second temporary.
+    CPURegList conflict(kCRegSizeInBits, RegList({}));
+    if (rd.IsC()) {
+      if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
+      if (!rn.IsSP()) conflict.Combine(CPURegList(rn.C()));
+    }
+    Register temp = rd.IsC() ? temps.PushAndAcquireFirstAvailable(conflict).X()
+                             : temps.AcquireSameSizeAs(rn);
     if (operand.IsImmediate()) {
       PreShiftImmMode mode = kAnyShift;
 
@@ -1014,7 +1022,9 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
             op = ADD;
           }
           if (AreAliased(rd, rn)) {
-            Register tempX = temps.AcquireX();
+            CPURegList conflict(imm_operand.reg().C());
+            if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
+            Register tempX = temps.PushAndAcquireFirstAvailable(conflict).X();
             AddSub(tempX, rn.X(), imm_operand.ToX(), S, op);
             Scvalue(rd, rn, tempX);
           } else {
@@ -1873,9 +1883,9 @@ void MacroAssembler::AssertMap(Register object) {
   AssertNotSmi(object, AbortReason::kOperandIsNotAMap);
 
   UseScratchRegisterScope temps(this);
-  Register temp = temps.AcquireX();
+  Register temp = temps.AcquireC();
 
-  IsObjectType(object, temp, temp, MAP_TYPE);
+  IsObjectType(object, temp.C(), temp.X(), MAP_TYPE);
   Check(eq, AbortReason::kOperandIsNotAMap);
 }
 
@@ -3875,7 +3885,7 @@ void MacroAssembler::IsObjectTypeInRange(Register heap_object, Register scratch,
   }
 #endif  // V8_STATIC_ROOTS_BOOL
   LoadMap(scratch, heap_object);
-  CompareInstanceTypeRange(scratch, scratch, lower_limit, higher_limit);
+  CompareInstanceTypeRange(scratch, scratch.X(), lower_limit, higher_limit);
 }
 
 // Sets condition flags based on comparison, and returns type in type_reg.
