@@ -513,7 +513,7 @@ TEST_F(MorelloDisasmTest, RoundTripsAssemblerOutput) {
   COMPARE(ldr(c1, MemOperand(c2, 16)), 0xC2400441, "ldr c1, [c2, #16]");
   COMPARE(str(c1, MemOperand(c2, 16)), 0xC2000441, "str c1, [c2, #16]");
   COMPARE(ldr(c1, MemOperand(c2, 65520)), 0xC27FFC41, "ldr c1, [c2, #65520]");
-  COMPARE(ldr(c1, MemOperand(c2, 8)), 0xA2408041, "ldur c1, [c2, #8]");
+  COMPARE(ldr(c1, MemOperand(c2, 15)), 0xA240F041, "ldur c1, [c2, #15]");
   COMPARE(str(c1, MemOperand(c2, -16)), 0xA21F0041, "stur c1, [c2, #-16]");
   COMPARE(str(c1, MemOperand(c2, -256)), 0xA2100041, "stur c1, [c2, #-256]");
   COMPARE(ldr(c1, MemOperand(c2, x3)), 0xA2636841, "ldr c1, [c2, x3]");

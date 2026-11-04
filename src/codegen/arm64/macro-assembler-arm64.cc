@@ -1116,12 +1116,13 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
   // Call the most common addressing modes used by Liftoff directly for improved
   // compilation performance: X register + immediate, X register + W register.
   Instr memop = op | Rt(rt) | RnSP(addr.base());
+  const bool is_cap_access = IsCapabilityAccess(rt, op);
   if (addr.IsImmediateOffset()) {
     int64_t offset = addr.offset();
-    unsigned size_log2 = CalcLSDataSizeLog2(op, rt.IsC());
+    unsigned size_log2 = CalcLSDataSizeLog2(op, is_cap_access);
     if (IsImmLSScaled(offset, size_log2)) {
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
+      if (is_cap_access) {
         DCHECK_GE(offset, 0);
         LoadStoreCapScaledImmOffset(memop, static_cast<int>(offset), size_log2);
         return;
@@ -1131,7 +1132,7 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
       return;
     } else if (IsImmLSUnscaled(offset)) {
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
+      if (is_cap_access) {
         // LDUR (capability, normal base) takes a signed 9-bit imm9, so it also
         // covers negative offsets.
         LoadStoreCapUnscaledImmOffset(memop, static_cast<int>(offset));
@@ -1147,7 +1148,7 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     // offset in Rm(). The capability class is a separate encoding that does
     // support UXTW (spec 4.4.80, 4.4.137) and Assembler::LoadStore already
     // selects it, so defer capabilities to the complex path.
-    if (rt.IsC()) {
+    if (is_cap_access) {
       LoadStoreMacroComplex(rt, addr, op);
       return;
     }
