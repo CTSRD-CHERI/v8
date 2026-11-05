@@ -538,7 +538,7 @@ void MaglevAssembler::LoadFixedArrayElement(Register result, Register array,
 inline void MaglevAssembler::LoadTaggedFieldWithoutDecompressing(
     Register result, Register object, int offset) {
   MacroAssembler::LoadTaggedFieldWithoutDecompressing(
-      result, FieldMemOperand(object, offset));
+      result.C(), FieldMemOperand(object, offset));
 }
 
 void MaglevAssembler::LoadFixedArrayElementWithoutDecompressing(

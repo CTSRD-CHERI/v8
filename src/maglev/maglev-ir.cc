@@ -6203,7 +6203,7 @@ void CheckNumber::GenerateCode(MaglevAssembler* masm,
                                const ProcessingState& state) {
   Label done;
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
   Register value = ToRegister(ValueInput());
   // If {value} is a Smi or a HeapNumber, we're done.
   __ JumpIfSmi(

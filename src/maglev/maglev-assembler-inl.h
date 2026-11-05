@@ -428,23 +428,25 @@ inline void MaglevAssembler::Branch(Condition condition, Label* if_true,
 
 inline void MaglevAssembler::LoadTaggedField(Register result,
                                              MemOperand operand) {
-  MacroAssembler::LoadTaggedField(result, operand);
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result), operand);
 }
 
 inline void MaglevAssembler::LoadTaggedField(Register result, Register object,
                                              int offset) {
-  MacroAssembler::LoadTaggedField(result, FieldMemOperand(object, offset));
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result),
+                                  FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::LoadTaggedSignedField(Register result,
                                                    MemOperand operand) {
-  MacroAssembler::LoadTaggedField(result, operand);
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result), operand);
 }
 
 inline void MaglevAssembler::LoadTaggedSignedField(Register result,
                                                    Register object,
                                                    int offset) {
-  MacroAssembler::LoadTaggedField(result, FieldMemOperand(object, offset));
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result),
+                                  FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::LoadAndUntagTaggedSignedField(Register result,
