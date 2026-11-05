@@ -845,7 +845,7 @@ inline void MaglevAssembler::CallRuntime(Runtime::FunctionId fid,
 
 inline void MaglevAssembler::SetMapAsRoot(Register object, RootIndex map) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
   LoadTaggedRoot(scratch, map);
   StoreTaggedFieldNoWriteBarrier(object, HeapObject::kMapOffset, scratch);
 }
@@ -1055,7 +1055,7 @@ inline void MaglevAssembler::JumpIfSeqOneByteStringMap(Register map,
 inline void MaglevAssembler::JumpIfString(Register heap_object, Label* target,
                                           Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else
@@ -1068,7 +1068,7 @@ inline void MaglevAssembler::JumpIfNotString(Register heap_object,
                                              Label* target,
                                              Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else
@@ -1080,7 +1080,7 @@ inline void MaglevAssembler::JumpIfNotString(Register heap_object,
 inline void MaglevAssembler::JumpIfNotSeqOneByteString(
     Register heap_object, Label* target, Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else
