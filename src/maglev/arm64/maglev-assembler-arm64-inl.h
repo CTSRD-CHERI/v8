@@ -148,7 +148,7 @@ template <typename Arg>
 inline Register ToRegister(MaglevAssembler* masm,
                            MaglevAssembler::TemporaryRegisterScope* scratch,
                            Arg arg) {
-  Register reg = scratch->AcquireScratch();
+  Register reg = scratch->AcquireScratch().C();
   masm->Move(reg, arg);
   return reg;
 }
@@ -161,7 +161,7 @@ inline Register ToRegister(MaglevAssembler* masm,
                            MaglevAssembler::TemporaryRegisterScope* scratch,
                            Input input) {
   if (input.operand().IsConstant()) {
-    Register reg = scratch->AcquireScratch();
+    Register reg = scratch->AcquireScratch().C();
     input.node()->LoadToRegister(masm, reg);
     return reg;
   }
@@ -171,7 +171,7 @@ inline Register ToRegister(MaglevAssembler* masm,
     return ToRegister(input);
   } else {
     DCHECK(operand.IsStackSlot());
-    Register reg = scratch->AcquireScratch();
+    Register reg = scratch->AcquireScratch().C();
     masm->Move(reg, masm->ToMemOperand(input.operand()));
     return reg;
   }
@@ -762,7 +762,7 @@ inline void MaglevAssembler::Move(Register dst, ExternalReference src) {
   Mov(dst, src);
 }
 inline void MaglevAssembler::Move(Register dst, Register src) {
-  MacroAssembler::Move(dst, src);
+  MacroAssembler::Move(dst.C(), src.C());
 }
 inline void MaglevAssembler::Move(Register dst, Tagged<TaggedIndex> i) {
   Mov(dst, i.ptr());

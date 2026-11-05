@@ -157,7 +157,11 @@ inline int GetSafepointIndexForStackSlot(int i) {
 }
 
 inline Register ToRegister(const compiler::InstructionOperand& operand) {
-  return compiler::AllocatedOperand::cast(operand).GetRegister();
+  const compiler::AllocatedOperand& allocated =
+      compiler::AllocatedOperand::cast(operand);
+  if (allocated.IsCapabilityRegister())
+    return allocated.GetCapabilityRegister();
+  return allocated.GetRegister();
 }
 
 inline DoubleRegister ToDoubleRegister(

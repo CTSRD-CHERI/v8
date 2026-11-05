@@ -44,6 +44,12 @@ inline Builtin AllocateBuiltin(AllocationType alloc_type) {
   return Builtin::kAllocateInOldGeneration;
 }
 
+#if V8_TARGET_CHERI
+inline Register ToCapabilityRegister(Register reg) { return reg.C(); }
+#else
+inline Register ToCapabilityRegister(Register reg) { return reg; }
+#endif
+
 // Label allowed to be passed to deferred code.
 class ZoneLabelRef {
  public:

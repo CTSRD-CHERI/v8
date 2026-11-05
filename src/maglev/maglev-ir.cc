@@ -1499,7 +1499,7 @@ struct GetRegister;
 template <>
 struct GetRegister<Register> {
   static Register Get(compiler::AllocatedOperand target) {
-    return target.GetRegister();
+    return ToRegister(target);
   }
 };
 template <>
