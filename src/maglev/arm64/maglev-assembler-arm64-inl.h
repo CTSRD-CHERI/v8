@@ -35,6 +35,8 @@ inline int ShiftFromScale(int n) {
       return 2;
     case 8:
       return 3;
+    case 16:
+      return 4;
     default:
       UNREACHABLE();
   }
@@ -502,8 +504,15 @@ inline void MaglevAssembler::LoadTaggedFieldByIndex(Register result,
                                                     Register object,
                                                     Register index, int scale,
                                                     int offset) {
-  Add(result, object, Operand(index, LSL, ShiftFromScale(scale)));
-  MacroAssembler::LoadTaggedField(result, FieldMemOperand(result, offset));
+  Register address = result.C();
+  Add(address, object.C(), Operand(index, LSL, ShiftFromScale(scale)));
+  int displacement = offset - kHeapObjectTag;
+  // A sub-pointer scale leaves the address unaligned for a capability load.
+  if (V8_TARGET_CHERI_BOOL && scale != kTaggedSize && !COMPRESS_POINTERS_BOOL) {
+    Add(address, address, displacement);
+    displacement = 0;
+  }
+  MacroAssembler::LoadTaggedField(address, MemOperand(address, displacement));
 }
 
 inline void MaglevAssembler::LoadBoundedSizeFromObject(Register result,
@@ -548,31 +557,32 @@ void MaglevAssembler::LoadFixedArrayElementWithoutDecompressing(
     CompareInt32AndAssert(index, 0, kUnsignedGreaterThanEqual,
                           AbortReason::kUnexpectedNegativeValue);
   }
-  Add(result, array, Operand(index, LSL, kTaggedSizeLog2));
+  Register address = result.C();
+  Add(address, array.C(), Operand(index, LSL, kTaggedSizeLog2));
   MacroAssembler::LoadTaggedFieldWithoutDecompressing(
-      result, FieldMemOperand(result, OFFSET_OF_DATA_START(FixedArray)));
+      address, FieldMemOperand(address, OFFSET_OF_DATA_START(FixedArray)));
 }
 
 void MaglevAssembler::LoadFixedDoubleArrayElement(DoubleRegister result,
                                                   Register array,
                                                   Register index) {
   MaglevAssembler::TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   if (v8_flags.debug_code) {
     AssertObjectType(array, FIXED_DOUBLE_ARRAY_TYPE,
                      AbortReason::kUnexpectedValue);
     CompareInt32AndAssert(index, 0, kUnsignedGreaterThanEqual,
                           AbortReason::kUnexpectedNegativeValue);
   }
-  Add(scratch, array, Operand(index, LSL, kDoubleSizeLog2));
+  Add(scratch, array.C(), Operand(index, LSL, kDoubleSizeLog2));
   Ldr(result, FieldMemOperand(scratch, OFFSET_OF_DATA_START(FixedArray)));
 }
 
 inline void MaglevAssembler::StoreFixedDoubleArrayElement(
     Register array, Register index, DoubleRegister value) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
-  Add(scratch, array, Operand(index, LSL, kDoubleSizeLog2));
+  Register scratch = temps.AcquireScratch().C();
+  Add(scratch, array.C(), Operand(index, LSL, kDoubleSizeLog2));
   Str(value, FieldMemOperand(scratch, OFFSET_OF_DATA_START(FixedArray)));
 }
 
@@ -603,39 +613,40 @@ inline void MaglevAssembler::LoadUnsignedField(Register result,
 inline void MaglevAssembler::SetSlotAddressForTaggedField(Register slot_reg,
                                                           Register object,
                                                           int offset) {
-  Add(slot_reg, object, offset - kHeapObjectTag);
+  Add(slot_reg.C(), object.C(), offset - kHeapObjectTag);
 }
 inline void MaglevAssembler::SetSlotAddressForFixedArrayElement(
     Register slot_reg, Register object, Register index) {
-  Add(slot_reg, object, OFFSET_OF_DATA_START(FixedArray) - kHeapObjectTag);
-  Add(slot_reg, slot_reg, Operand(index, LSL, kTaggedSizeLog2));
+  Register slot = slot_reg.C();
+  Add(slot, object.C(), OFFSET_OF_DATA_START(FixedArray) - kHeapObjectTag);
+  Add(slot, slot, Operand(index, LSL, kTaggedSizeLog2));
 }
 
 inline void MaglevAssembler::StoreTaggedFieldNoWriteBarrier(Register object,
                                                             int offset,
                                                             Register value) {
-  MacroAssembler::StoreTaggedField(value, FieldMemOperand(object, offset));
+  MacroAssembler::StoreTaggedField(value.C(), FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::StoreFixedArrayElementNoWriteBarrier(
     Register array, Register index, Register value) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
-  Add(scratch, array, Operand(index, LSL, kTaggedSizeLog2));
+  Register scratch = temps.AcquireScratch().C();
+  Add(scratch, array.C(), Operand(index, LSL, kTaggedSizeLog2));
   MacroAssembler::StoreTaggedField(
-      value, FieldMemOperand(scratch, OFFSET_OF_DATA_START(FixedArray)));
+      value.C(), FieldMemOperand(scratch, OFFSET_OF_DATA_START(FixedArray)));
 }
 
 inline void MaglevAssembler::StoreTaggedSignedField(Register object, int offset,
                                                     Register value) {
   AssertSmi(value);
-  MacroAssembler::StoreTaggedField(value, FieldMemOperand(object, offset));
+  MacroAssembler::StoreTaggedField(value.C(), FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::StoreTaggedSignedField(Register object, int offset,
                                                     Tagged<Smi> value) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   Mov(scratch, value);
   MacroAssembler::StoreTaggedField(scratch, FieldMemOperand(object, offset));
 }
@@ -724,7 +735,10 @@ inline void MaglevAssembler::IncrementAddress(Register reg, int32_t delta) {
 
 inline void MaglevAssembler::LoadAddress(Register dst, MemOperand location) {
   DCHECK(location.IsImmediateOffset());
-  Add(dst.X(), location.base(), Immediate(location.offset()));
+  // dst is passed to a C++ callback as the address of the exit-frame argument
+  // block, which v8::FunctionCallbackInfo indexes as values_[]. The first read
+  // is Length()'s values_[0], which faults if the base is untagged.
+  Add(dst.C(), location.base().C(), Immediate(location.offset()));
 }
 
 inline void MaglevAssembler::EmitEnterExitFrame(int extra_slots,
