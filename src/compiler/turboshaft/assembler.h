@@ -2934,8 +2934,20 @@ class AssemblerOpInterface : public Next {
   }
 
   V<WordPtr> MemoryChunkFromAddress(V<WordPtr> address) {
+#ifdef V8_CHERI_TIGHT_BOUNDS
+    V<WordPtr> reservation =
+        Load(LoadRootRegister(), LoadOp::Kind::RawAligned().Immutable(),
+             MemoryRepresentation::UintPtr(),
+             IsolateData::heap_reservation_cap_offset());
+    address = SetAddress(reservation, V<Word64>::Cast(address));
+    return SetBounds(
+        WordPtrBitwiseAnd(address,
+                          ~MemoryChunk::GetAlignmentMaskForAssembler()),
+        Word64Constant(uint64_t{sizeof(MemoryChunk)}));
+#else
     return WordPtrBitwiseAnd(address,
                              ~MemoryChunk::GetAlignmentMaskForAssembler());
+#endif
   }
 
   OpIndex AtomicRMW(V<Any> base, V<WordPtr> index, OpIndex value,
@@ -3601,6 +3613,9 @@ class AssemblerOpInterface : public Next {
   }
   V<WordPtr> SetBounds(V<WordPtr> pointer, V<Word64> bounds) {
     return ReduceIfReachableSetBounds(pointer, bounds);
+  }
+  V<WordPtr> SetAddress(V<WordPtr> pointer, V<Word64> address) {
+    return ReduceIfReachableSetAddress(pointer, address);
   }
   V<WordPtr> SealWithType(V<WordPtr> pointer, V<WordPtr> type) {
     return ReduceIfReachableSealWithType(pointer, type);

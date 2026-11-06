@@ -129,7 +129,10 @@ AllocationResult OldLargeObjectSpace::AllocateRaw(LocalHeap* local_heap,
 
   LargePage* page = AllocateLargePage(object_size, executable, hint);
   if (page == nullptr) return AllocationResult::Failure();
-  Tagged<HeapObject> object = page->GetObject();
+  Tagged<HeapObject> object =
+      ShouldBoundObjectsInSpace(identity())
+          ? HeapObject::FromAddress(page->area_start(), object_size)
+          : HeapObject::FromAddress(page->area_start());
   if (local_heap->is_main_thread() && identity() != SHARED_LO_SPACE) {
     UpdatePendingObject(object);
   }
@@ -371,7 +374,8 @@ AllocationResult NewLargeObjectSpace::AllocateRaw(LocalHeap* local_heap,
   // The size of the first object may exceed the capacity.
   capacity_ = std::max(capacity_, SizeOfObjects());
 
-  Tagged<HeapObject> result = page->GetObject();
+  Tagged<HeapObject> result =
+      HeapObject::FromAddress(page->area_start(), object_size);
   MemoryChunk* chunk = page->Chunk();
   page->SetFlagNonExecutable(MemoryChunk::TO_PAGE);
   UpdatePendingObject(result);
