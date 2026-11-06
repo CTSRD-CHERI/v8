@@ -1799,7 +1799,7 @@ void JumpToFailIfNotHeapNumberOrOddball(
     case TaggedToFloat64ConversionType::kNumberOrBoolean: {
       // Check if HeapNumber or Boolean, jump to fail otherwise.
       MaglevAssembler::TemporaryRegisterScope temps(masm);
-      Register map = temps.AcquireScratch();
+      Register map = ToCapabilityRegister(temps.AcquireScratch());
 
 #if V8_STATIC_ROOTS_BOOL
       static_assert(StaticReadOnlyRoot::kBooleanMap + Map::kSize ==
@@ -1832,7 +1832,7 @@ void JumpToFailIfNotHeapNumberOrOddball(
     case TaggedToFloat64ConversionType::kNumberOrUndefined: {
       // Check if HeapNumber or Undefined, jump to fail otherwise.
       MaglevAssembler::TemporaryRegisterScope temps(masm);
-      Register map = temps.AcquireScratch();
+      Register map = ToCapabilityRegister(temps.AcquireScratch());
 
       Label done;
       __ LoadMap(map, value);
@@ -2053,7 +2053,7 @@ void CheckedObjectToIndex::GenerateCode(MaglevAssembler* masm,
           [](MaglevAssembler* masm, Register object, Register result_reg,
              ZoneLabelRef done, CheckedObjectToIndex* node) {
             MaglevAssembler::TemporaryRegisterScope temps(masm);
-            Register map = temps.AcquireScratch();
+            Register map = ToCapabilityRegister(temps.AcquireScratch());
             Label check_string;
             __ LoadMapForCompare(map, object);
             __ JumpIfNotRoot(
@@ -2975,7 +2975,7 @@ void LoadTaggedFieldByFieldIndex::GenerateCode(MaglevAssembler* masm,
             __ bind(&if_outofobject);
             {
               MaglevAssembler::TemporaryRegisterScope temps(masm);
-              Register property_array = temps.Acquire();
+              Register property_array = ToCapabilityRegister(temps.Acquire());
               // Load the property array.
               __ LoadTaggedField(
                   property_array,
@@ -2997,15 +2997,15 @@ void LoadTaggedFieldByFieldIndex::GenerateCode(MaglevAssembler* masm,
             // need to copy anything anyway.
             __ JumpIfSmi(result_reg, *done);
             MaglevAssembler::TemporaryRegisterScope temps(masm);
-            Register map = temps.Acquire();
+            Register map = ToCapabilityRegister(temps.Acquire());
             // Hack: The temporary allocated for `map` might alias the result
             // register. If it does, use the field_index register as a temporary
             // instead (since it's clobbered anyway).
             // TODO(leszeks): Extend the result register's lifetime to overlap
             // the temporaries, so that this alias isn't possible.
-            if (map == result_reg) {
-              DCHECK_NE(map, field_index);
-              map = field_index;
+            if (map.code() == result_reg.code()) {
+              DCHECK_NE(map.code(), field_index.code());
+              map = ToCapabilityRegister(field_index);
             }
             __ LoadMapForCompare(map, result_reg);
             __ JumpIfNotRoot(map, RootIndex::kHeapNumberMap, *done);
@@ -3042,7 +3042,7 @@ void LoadTaggedFieldByFieldIndex::GenerateCode(MaglevAssembler* masm,
     __ bind(&if_outofobject);
     {
       MaglevAssembler::TemporaryRegisterScope temps(masm);
-      Register property_array = temps.Acquire();
+      Register property_array = ToCapabilityRegister(temps.Acquire());
       // Load the property array.
       __ LoadTaggedField(
           property_array,
@@ -3185,8 +3185,8 @@ void StoreMap::GenerateCode(MaglevAssembler* masm,
   // TODO(leszeks): Consider making this an arbitrary register and push/popping
   // in the deferred path.
   Register object = WriteBarrierDescriptor::ObjectRegister();
-  DCHECK_EQ(object, ToRegister(ValueInput()));
-  Register value = temps.Acquire();
+  DCHECK_EQ(object.code(), ToRegister(ValueInput()).code());
+  Register value = ToCapabilityRegister(temps.Acquire());
   __ MoveTagged(value, map_.object());
 
   switch (kind()) {
@@ -3762,8 +3762,8 @@ void StoreContextSlotWithWriteBarrier::GenerateCode(
   Register context = WriteBarrierDescriptor::ObjectRegister();
   Register new_value = ToRegister(NewValueInput());
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.Acquire();
-  Register old_value = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
+  Register old_value = ToCapabilityRegister(temps.Acquire());
   __ LoadTaggedField(old_value, context, offset());
 
   __ JumpIfSmi(old_value, *do_normal_store);
@@ -4375,7 +4375,7 @@ void HasInPrototypeChain::GenerateCode(MaglevAssembler* masm,
                v8_flags.debug_code ? Label::kFar : Label::kNear);
 
   // Loop through the prototype chain looking for the {prototype}.
-  Register map = temps.Acquire();
+  Register map = ToCapabilityRegister(temps.Acquire());
   __ LoadMap(map, object_reg);
   Label loop;
   {
@@ -4423,7 +4423,7 @@ void HasInPrototypeChain::GenerateCode(MaglevAssembler* masm,
 
     __ bind(*if_objectisdirect);
     // Check the current {object} prototype.
-    Register object_prototype = scratch;
+    Register object_prototype = ToCapabilityRegister(scratch);
     __ LoadTaggedField(object_prototype, map, Map::kPrototypeOffset);
     __ JumpIfRoot(object_prototype, RootIndex::kNullValue, &return_false,
                   v8_flags.debug_code ? Label::kFar : Label::kNear);
@@ -4720,8 +4720,10 @@ void ExtendPropertiesBackingStore::GenerateCode(MaglevAssembler* masm,
   Register result_reg = ToRegister(result());
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   Register new_property_array =
-      result_reg == object || result_reg == old_property_array ? temps.Acquire()
-                                                               : result_reg;
+      result_reg.code() == object.code() ||
+              result_reg.code() == old_property_array.code()
+          ? ToCapabilityRegister(temps.Acquire())
+          : result_reg;
   Register scratch = temps.Acquire();
   DCHECK(!AreAliased(object, old_property_array, new_property_array, scratch));
 
@@ -4905,14 +4907,14 @@ void GeneratorRestoreRegister::SetValueLocationConstraints() {
 void GeneratorRestoreRegister::GenerateCode(MaglevAssembler* masm,
                                             const ProcessingState& state) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register temp = temps.Acquire();
+  Register temp = ToCapabilityRegister(temps.Acquire());
   Register array = ToRegister(ArrayInput());
   Register stale = ToRegister(StaleInput());
   Register result_reg = ToRegister(result());
 
   // The input and the output can alias, if that happens we use a temporary
   // register and a move at the end.
-  Register value = (array == result_reg ? temp : result_reg);
+  Register value = (array.code() == result_reg.code() ? temp : result_reg);
 
   // Loads the current value in the generator register file.
   __ LoadTaggedField(value, array, FixedArray::OffsetOfElementAt(index()));
@@ -5989,7 +5991,7 @@ void ThrowIfNotSuperConstructor::SetValueLocationConstraints() {
 void ThrowIfNotSuperConstructor::GenerateCode(MaglevAssembler* masm,
                                               const ProcessingState& state) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
   __ LoadMap(scratch, ToRegister(ConstructorInput()));
   static_assert(Map::kBitFieldOffsetEnd + 1 - Map::kBitFieldOffset == 1);
   __ TestUint8AndJumpIfAllClear(
@@ -7924,7 +7926,7 @@ void Switch::SetValueLocationConstraints() {
 }
 void Switch::GenerateCode(MaglevAssembler* masm, const ProcessingState& state) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
   std::unique_ptr<Label*[]> labels = std::make_unique<Label*[]>(size());
   for (int i = 0; i < size(); i++) {
     BasicBlock* block = (targets())[i].block_ptr();
