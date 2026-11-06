@@ -464,25 +464,38 @@ inline MemOperand MaglevAssembler::ToMemOperand(
 inline void MaglevAssembler::BuildTypedArrayDataPointer(Register data_pointer,
                                                         Register object) {
   DCHECK_NE(data_pointer, object);
+  Register dp = data_pointer.C();
   LoadExternalPointerField(
-      data_pointer,
-      FieldMemOperand(object, JSTypedArray::kExternalPointerOffset));
+      dp, FieldMemOperand(object, JSTypedArray::kExternalPointerOffset));
   if (JSTypedArray::kMaxSizeInHeap == 0) return;
   TemporaryRegisterScope scope(this);
-  Register base = scope.AcquireScratch();
+  Register base = scope.AcquireScratch().C();
   if (COMPRESS_POINTERS_BOOL) {
     Ldr(base.W(), FieldMemOperand(object, JSTypedArray::kBasePointerOffset));
   } else {
     Ldr(base, FieldMemOperand(object, JSTypedArray::kBasePointerOffset));
   }
-  Add(data_pointer, data_pointer, base);
+  if (V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL) {
+    Label external_tagged, done;
+    Register tagged = scope.AcquireScratch();
+    Gctag(tagged, dp);
+    Tbnz(tagged, 0, &external_tagged);
+    scope.IncludeScratch(tagged);
+    Add(dp, base, dp.X());
+    B(&done);
+    Bind(&external_tagged);
+    Add(dp, dp, base.X());
+    Bind(&done);
+    return;
+  }
+  Add(dp, dp, base);
 }
 
 inline MemOperand MaglevAssembler::TypedArrayElementOperand(
     Register data_pointer, Register index, int element_size) {
-  Add(data_pointer, data_pointer,
-      Operand(index, LSL, ShiftFromScale(element_size)));
-  return MemOperand(data_pointer);
+  Register dp = data_pointer.C();
+  Add(dp, dp, Operand(index, LSL, ShiftFromScale(element_size)));
+  return MemOperand(dp);
 }
 
 inline void MaglevAssembler::StoreDataViewElement(Register value,

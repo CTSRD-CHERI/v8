@@ -7167,7 +7167,7 @@ void CheckTypedArrayValid::GenerateCode(MaglevAssembler* masm,
                                         const ProcessingState& state) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   Register object = ToRegister(ValueInput());
-  Register scratch = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
   __ DeoptIfBufferNotValid(object, scratch, access_mode(), this);
 }
 
@@ -7245,7 +7245,7 @@ void GenerateTypedArrayLoad(MaglevAssembler* masm, Register object,
   }
 
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
 
   Register data_pointer = scratch;
   // TODO(victorgomes): Consider hoisting array data pointer.
@@ -7255,14 +7255,25 @@ void GenerateTypedArrayLoad(MaglevAssembler* masm, Register object,
                                         kind);
 }
 
+// The immediate path builds with movz/movk, which cannot carry the tag.
+void LoadConstantTypedArrayDataPointer(MaglevAssembler* masm, Register dst,
+                                       void* data_ptr) {
+#if V8_TARGET_CHERI
+  __ Ldr(dst, Operand(reinterpret_cast<uintptr_t>(data_ptr),
+                      RelocInfo::CAPABILITY_CONSTANT));
+#else
+  __ Move(dst, reinterpret_cast<intptr_t>(data_ptr));
+#endif
+}
+
 template <typename ResultReg>
 void GenerateConstantTypedArrayLoad(MaglevAssembler* masm,
                                     compiler::JSTypedArrayRef typed_array,
                                     Register index, ResultReg result_reg,
                                     ElementsKind kind) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register data_pointer = temps.Acquire();
-  __ Move(data_pointer, reinterpret_cast<intptr_t>(typed_array.data_ptr()));
+  Register data_pointer = ToCapabilityRegister(temps.Acquire());
+  LoadConstantTypedArrayDataPointer(masm, data_pointer, typed_array.data_ptr());
 
   GenerateTypedArrayLoadFromDataPointer(masm, data_pointer, index, result_reg,
                                         kind);
@@ -7308,7 +7319,7 @@ void GenerateTypedArrayStore(MaglevAssembler* masm, Register object,
   }
 
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.Acquire();
+  Register scratch = ToCapabilityRegister(temps.Acquire());
 
   Register data_pointer = scratch;
   __ BuildTypedArrayDataPointer(data_pointer, object);
@@ -7322,9 +7333,8 @@ void GenerateConstantTypedArrayStore(MaglevAssembler* masm,
                                      Register index, ValueReg value,
                                      ElementsKind elements_kind) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register data_pointer = temps.Acquire();
-
-  __ Move(data_pointer, reinterpret_cast<intptr_t>(typed_array.data_ptr()));
+  Register data_pointer = ToCapabilityRegister(temps.Acquire());
+  LoadConstantTypedArrayDataPointer(masm, data_pointer, typed_array.data_ptr());
   GenerateTypedArrayStoreToDataPointer(masm, data_pointer, index, value,
                                        elements_kind);
 }
