@@ -1734,7 +1734,7 @@ void StraightForwardRegisterAllocator::AllocateSpillSlot(ValueNode* node) {
   uint32_t slot_size = 1;
   bool double_slot =
       IsDoubleRepresentation(node->properties().value_representation());
-  if constexpr (kDoubleSize != kSystemPointerSize) {
+  if constexpr (kDoubleSize > kSystemPointerSize) {
     if (double_slot) {
       slot_size = kDoubleSize / kSystemPointerSize;
     }

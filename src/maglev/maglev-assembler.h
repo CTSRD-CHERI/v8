@@ -1008,7 +1008,9 @@ class SaveRegisterStateForCall {
     int num_double_slots = snapshot_.live_double_registers.Count() *
                            (kDoubleSize / kSystemPointerSize);
 #ifdef V8_TARGET_ARCH_ARM64
-    num_double_slots = RoundUp<2>(num_double_slots);
+    num_double_slots =
+        (RoundUp<2>(snapshot_.live_double_registers.Count()) * kDoubleSize) /
+        kSystemPointerSize;
 #endif
     safepoint.SetNumExtraSpillSlots(pushed_reg_index + num_double_slots);
   }
