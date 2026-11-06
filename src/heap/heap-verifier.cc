@@ -147,7 +147,7 @@ void VerifyPointersVisitor::VerifyHeapObjectImpl(
     Tagged<HeapObject> heap_object) {
   CHECK(IsValidHeapObject(heap_, heap_object));
   CHECK(IsMap(heap_object->map(cage_base())));
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   // Make sure the object pointer is strictly bounded in CHERI.
   const ptraddr_t address = static_cast<ptraddr_t>(heap_object.address());
   const size_t size = heap_object->Size(cage_base());

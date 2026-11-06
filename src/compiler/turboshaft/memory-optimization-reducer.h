@@ -300,7 +300,7 @@ class MemoryOptimizationReducer : public Next {
                                               __ WordPtrConstant(bump_size)));
       __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                       MemoryRepresentation::UintPtr());
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
       obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
 #endif  // V8_CHERI_TIGHT_BOUNDS
       return __ BitcastWordPtrToHeapObject(
@@ -364,7 +364,7 @@ class MemoryOptimizationReducer : public Next {
         // Check if we can do bump pointer allocation here.
         V<WordPtr> top_value = __ GetVariable(top(type));
         V<WordPtr> obj_addr = top_value;
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
         obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
 #endif  // V8_CHERI_TIGHT_BOUNDS
         __ SetVariable(result,
@@ -423,7 +423,7 @@ class MemoryOptimizationReducer : public Next {
       V<WordPtr> allocated_addr =
           __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
                         __ IntPtrConstant(kHeapObjectTag));
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
       V<WordPtr> lab_top =
           __ LoadOffHeap(top_address, MemoryRepresentation::UintPtr());
       allocated_addr =
@@ -445,7 +445,7 @@ class MemoryOptimizationReducer : public Next {
                                             __ WordPtrConstant(bump_size)));
     __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                     MemoryRepresentation::UintPtr());
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
     obj_addr = __ SetBounds(obj_addr, V<Word64>::Cast(size));
 #endif  // V8_CHERI_TIGHT_BOUNDS
     return __ BitcastWordPtrToHeapObject(

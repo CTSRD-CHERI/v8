@@ -243,7 +243,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   CodeRange* EnsureCodeRange(size_t requested_size);
   CodeRange* GetCodeRange() const { return code_range_.get(); }
 
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   Address heap_reservation_cap() const {
     DCHECK(reservation_.IsReserved());
     return heap_reservation_cap_;
@@ -402,11 +402,11 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   VirtualMemoryCage* trusted_pointer_compression_cage_ = nullptr;
   VirtualMemoryCage* pointer_compression_cage_ = nullptr;
 #endif  // V8_COMPRESS_POINTERS
-#if defined(V8_COMPRESS_POINTERS) || V8_CHERI_TIGHT_BOUNDS
+#if defined(V8_COMPRESS_POINTERS) || defined(V8_CHERI_TIGHT_BOUNDS)
   // This is either a pointer compression cage or the CHERI heap reservation
   VirtualMemoryCage reservation_;
 #endif
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   // CHERI heap reservation capability. It is used as an authority to derive a pointer to
   // MemoryChunk header from a heap object address.
   Address heap_reservation_cap_ = kNullAddress;

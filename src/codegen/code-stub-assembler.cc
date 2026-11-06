@@ -1665,15 +1665,17 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
       BIND(&next);
     }
 
-#if V8_CHERI_TIGHT_BOUNDS
-    // Bounds are rounded up to the allocation alignment because that's the allocated size.
-    constexpr intptr_t kMask = static_cast<intptr_t>(kPointerAlignmentMask);
-    TNode<IntPtrT> bounds_size = WordAnd(
-        IntPtrAdd(size_in_bytes, IntPtrConstant(kMask)), IntPtrConstant(~kMask));
-    address =
-        UncheckedCast<RawPtrT>(SetBounds(address.value(), bounds_size));
-    DCHECK(address.IsCapability());
-#endif  // V8_CHERI_TIGHT_BOUNDS
+    if (V8_CHERI_TIGHT_BOUNDS_BOOL) {
+      // Bounds are rounded up to the allocation alignment because that's the
+      // allocated size.
+      constexpr intptr_t kMask = static_cast<intptr_t>(kPointerAlignmentMask);
+      TNode<IntPtrT> bounds_size =
+          WordAnd(IntPtrAdd(size_in_bytes, IntPtrConstant(kMask)),
+                  IntPtrConstant(~kMask));
+      address =
+          UncheckedCast<RawPtrT>(SetBounds(address.value(), bounds_size));
+      DCHECK(address.IsCapability());
+    }
 
     result = BitcastWordToTagged(
         RawPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
@@ -5343,15 +5345,12 @@ TNode<JSArray> CodeStubAssembler::AllocateJSArray(
 
 TNode<HeapObject> CodeStubAssembler::BoundHeapObject(TNode<HeapObject> object,
                                                      TNode<IntPtrT> size) {
-#if V8_CHERI_TIGHT_BOUNDS
+  if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return object;
   TNode<IntPtrT> address =
       IntPtrSub(BitcastTaggedToWord(object), IntPtrConstant(kHeapObjectTag));
   address = SetBounds(address, size);
   return UncheckedCast<HeapObject>(BitcastWordToTagged(
       IntPtrAdd(address, IntPtrConstant(kHeapObjectTag))));
-#else
-  return object;
-#endif  // V8_CHERI_TIGHT_BOUNDS
 }
 
 namespace {
@@ -14816,19 +14815,16 @@ void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
 
 TNode<IntPtrT> CodeStubAssembler::AddressWithPageBounds(
     TNode<IntPtrT> memory_chunk, TNode<IntPtrT> address) {
-#if V8_CHERI_TIGHT_BOUNDS
+  if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return address;
   TNode<IntPtrT> page = BasePageFromMemoryChunk(memory_chunk);
   TNode<RawPtrT> area_start =
       Load<RawPtrT>(page, IntPtrConstant(BasePage::AreaStartOffset()));
   return SetAddress(area_start, address);
-#else
-  return address;
-#endif  // V8_CHERI_TIGHT_BOUNDS
 }
 
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(
     TNode<IntPtrT> address) {
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   TNode<RawPtrT> reservation =
       Load<RawPtrT>(IsolateField(IsolateFieldId::kHeapReservationCap));
   TNode<IntPtrT> chunk = SetAddress(reservation, address);

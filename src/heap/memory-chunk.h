@@ -143,7 +143,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
 
   V8_INLINE Address address() const { return reinterpret_cast<Address>(this); }
 
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   static void InitHeapReservationCap(Address cap);
 #endif  // V8_CHERI_TIGHT_BOUNDS
 
@@ -163,7 +163,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
   // On CHERI, the returned pointer doesn't have the same provenance
   // as a. The returned pointer points and covers the MemoryChunk header.
   V8_INLINE static MemoryChunk* FromAddress(Address addr) {
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
     // LINT.IfChange
     // If this changes, we also need to update
     // - CodeStubAssembler::MemoryChunkFromAddress
@@ -333,7 +333,7 @@ class V8_EXPORT_PRIVATE MemoryChunk final {
       (static_cast<ScaledUint>(1) << kPageSizeBits);
   static constexpr ScaledInt kAlignmentMask = kAlignment - 1;
 
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   static Address heap_reservation_cap_;
 #endif  // V8_CHERI_TIGHT_BOUNDS
 

@@ -128,7 +128,7 @@ class BasePage {
 
   // On CHERI, widen an object-bounded pointer.
   Address AddressWithPageBounds(Address address) const {
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
     DCHECK_LE(static_cast<ptraddr_t>(area_start_),
               static_cast<ptraddr_t>(address));
     DCHECK_LE(static_cast<ptraddr_t>(address),

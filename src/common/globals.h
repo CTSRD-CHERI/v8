@@ -97,6 +97,12 @@ namespace internal {
 #define V8_CHERI_PURECAP_BOOL false
 #endif
 
+#ifdef V8_CHERI_TIGHT_BOUNDS
+#define V8_CHERI_TIGHT_BOUNDS_BOOL true
+#else
+#define V8_CHERI_TIGHT_BOUNDS_BOOL false
+#endif
+
 #ifdef DEBUG
 #define DEBUG_BOOL true
 #else
@@ -1484,11 +1490,7 @@ constexpr bool IsAnyLargeSpace(AllocationSpace space) {
 }
 
 constexpr bool ShouldBoundObjectsInSpace(AllocationSpace space) {
-#if V8_CHERI_TIGHT_BOUNDS
-  return !IsAnyCodeSpace(space);
-#else
-  return false;
-#endif  // V8_CHERI_TIGHT_BOUNDS
+  return V8_CHERI_TIGHT_BOUNDS_BOOL && !IsAnyCodeSpace(space);
 }
 
 constexpr const char* ToString(AllocationSpace space) {
