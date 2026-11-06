@@ -236,7 +236,7 @@ void MaglevAssembler::MaybeEmitDeoptBuiltinsCall(size_t eager_deopt_count,
       static_cast<int>(deopt_count) * Deoptimizer::kLazyDeoptExitSize);
 
   TemporaryRegisterScope scope(this);
-  Register scratch = scope.AcquireScratch();
+  Register scratch = scope.AcquireScratch().C();
   if (eager_deopt_count > 0) {
     Bind(eager_deopt_entry);
     LoadEntryFromBuiltin(Builtin::kDeoptimizationEntry_Eager, scratch);
@@ -257,7 +257,7 @@ void MaglevAssembler::LoadSingleCharacterString(Register result,
     Cmp(char_code, Immediate(String::kMaxOneByteCharCode));
     Assert(ls, AbortReason::kUnexpectedValue);
   }
-  Register table = scratch;
+  Register table = scratch.C();
   Add(table, kRootRegister,
       Operand(RootRegisterOffsetForRootIndex(
           RootIndex::kFirstSingleCharacterString)));
@@ -444,7 +444,7 @@ void MaglevAssembler::StringCharCodeOrCodePointAt(
   {
     // Reuse {instance_type} register here, since CompareRoot requires a scratch
     // register as well.
-    Register second_string = scratch1;
+    Register second_string = scratch1.C();
     LoadTaggedFieldWithoutDecompressing(second_string, string,
                                         offsetof(ConsString, second_));
     CompareRoot(second_string, RootIndex::kempty_string);

@@ -91,7 +91,7 @@ class MaglevAssembler::TemporaryRegisterScope
 inline MapCompare::MapCompare(MaglevAssembler* masm, Register object,
                               size_t map_count)
     : masm_(masm), object_(object), map_count_(map_count) {
-  map_ = masm_->scratch_register_scope()->AcquireScratch();
+  map_ = masm_->scratch_register_scope()->AcquireScratch().C();
   if (PointerCompressionIsEnabled()) {
     masm_->LoadCompressedMap(map_, object_);
   } else {
@@ -103,7 +103,7 @@ inline MapCompare::MapCompare(MaglevAssembler* masm, Register object,
 void MapCompare::Generate(Handle<Map> map, Condition cond, Label* if_true,
                           Label::Distance distance) {
   MaglevAssembler::TemporaryRegisterScope temps(masm_);
-  Register temp = temps.AcquireScratch();
+  Register temp = temps.AcquireScratch().C();
   masm_->Move(temp, map);
   masm_->CmpTagged(map_, temp);
   masm_->JumpIf(cond, if_true, distance);
@@ -434,7 +434,7 @@ inline Condition MaglevAssembler::IsRootConstant(Input input,
   } else {
     DCHECK(input.operand().IsStackSlot());
     TemporaryRegisterScope temps(this);
-    Register scratch = temps.AcquireScratch();
+    Register scratch = temps.AcquireScratch().C();
     Ldr(scratch, ToMemOperand(input.operand()));
     CompareRoot(scratch, root_index);
   }
@@ -930,7 +930,7 @@ inline void MaglevAssembler::JumpIfNotObjectType(Register heap_object,
                                                  Label* target,
                                                  Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectType(heap_object, scratch, scratch, type);
   JumpIf(kNotEqual, target, distance);
 }
@@ -939,7 +939,7 @@ inline void MaglevAssembler::AssertObjectType(Register heap_object,
                                               InstanceType type,
                                               AbortReason reason) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   AssertNotSmi(heap_object);
   IsObjectType(heap_object, scratch, scratch, type);
   Assert(kEqual, reason);
@@ -950,7 +950,7 @@ inline void MaglevAssembler::BranchOnObjectType(
     Label::Distance true_distance, bool fallthrough_when_true, Label* if_false,
     Label::Distance false_distance, bool fallthrough_when_false) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectType(heap_object, scratch, scratch, type);
   Branch(kEqual, if_true, true_distance, fallthrough_when_true, if_false,
          false_distance, fallthrough_when_false);
@@ -962,7 +962,7 @@ inline void MaglevAssembler::JumpIfObjectTypeInRange(Register heap_object,
                                                      Label* target,
                                                      Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectTypeInRange(heap_object, scratch, lower_limit, higher_limit);
   JumpIf(kUnsignedLessThanEqual, target, distance);
 }
@@ -971,7 +971,7 @@ inline void MaglevAssembler::JumpIfObjectTypeNotInRange(
     Register heap_object, InstanceType lower_limit, InstanceType higher_limit,
     Label* target, Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectTypeInRange(heap_object, scratch, lower_limit, higher_limit);
   JumpIf(kUnsignedGreaterThan, target, distance);
 }
@@ -981,7 +981,7 @@ inline void MaglevAssembler::AssertObjectTypeInRange(Register heap_object,
                                                      InstanceType higher_limit,
                                                      AbortReason reason) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   AssertNotSmi(heap_object);
   IsObjectTypeInRange(heap_object, scratch, lower_limit, higher_limit);
   Assert(kUnsignedLessThanEqual, reason);
@@ -993,7 +993,7 @@ inline void MaglevAssembler::BranchOnObjectTypeInRange(
     Label* if_false, Label::Distance false_distance,
     bool fallthrough_when_false) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectTypeInRange(heap_object, scratch, lower_limit, higher_limit);
   Branch(kUnsignedLessThanEqual, if_true, true_distance, fallthrough_when_true,
          if_false, false_distance, fallthrough_when_false);
@@ -1048,7 +1048,7 @@ inline void MaglevAssembler::AssertObjectInRange(Register heap_object,
 inline void MaglevAssembler::JumpIfJSAnyIsNotPrimitive(
     Register heap_object, Label* target, Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   MacroAssembler::JumpIfJSAnyIsNotPrimitive(heap_object, scratch, target,
                                             distance);
 }
