@@ -85,8 +85,7 @@ void* BoundedPageAllocator::AllocatePages(size_t size, size_t alignment,
 #if defined(V8_CHERI_TIGHT_BOUNDS) && V8_OS_FREEBSD
   if (tight_page_bounds_) {
     // The returned page pointer shouldn't have SW_VMEM
-    client_ptr = __builtin_cheri_perms_and(
-        ptr, ~static_cast<size_t>(CHERI_PERM_SW_VMEM));
+    client_ptr = V8_CHERI_PERMS_CLEAR(ptr, CHERI_PERM_SW_VMEM);
   }
 #endif
   // It's assumed that free regions are in kNoAccess/kNoAccessWillJitLater
