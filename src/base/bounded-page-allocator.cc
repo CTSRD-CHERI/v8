@@ -22,7 +22,9 @@ BoundedPageAllocator::BoundedPageAllocator(
       page_initialization_mode_(page_initialization_mode),
       page_freeing_mode_(page_freeing_mode),
       tight_page_bounds_(tight_page_bounds) {
-  DCHECK(!tight_page_bounds_ || V8_CHERI_BOUND_PAGES_BOOL);
+#ifndef V8_CHERI_TIGHT_BOUNDS
+  DCHECK(!tight_page_bounds_);
+#endif
   DCHECK_NOT_NULL(page_allocator);
   DCHECK(IsAligned(allocate_page_size, page_allocator->AllocatePageSize()));
   DCHECK(IsAligned(allocate_page_size_, commit_page_size_));
@@ -80,8 +82,8 @@ void* BoundedPageAllocator::AllocatePages(size_t size, size_t alignment,
   address = SetBoundsFromReservation(address, size);
   void* ptr = reinterpret_cast<void*>(address);
   void* client_ptr = ptr;
-#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
-  if (V8_CHERI_BOUND_PAGES_BOOL && tight_page_bounds_) {
+#if defined(V8_CHERI_TIGHT_BOUNDS) && V8_OS_FREEBSD
+  if (tight_page_bounds_) {
     // The returned page pointer shouldn't have SW_VMEM
     client_ptr = __builtin_cheri_perms_and(
         ptr, ~static_cast<size_t>(CHERI_PERM_SW_VMEM));

@@ -127,7 +127,7 @@ struct PtrComprCageReservationParams
 };
 #endif  // V8_COMPRESS_POINTERS
 
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
 struct CheriHeapReservationParams
     : public VirtualMemoryCage::ReservationParams {
   CheriHeapReservationParams() {
@@ -175,7 +175,7 @@ IsolateGroup::~IsolateGroup() {
   // code range.
   code_range_.reset();
 
-#if defined(V8_COMPRESS_POINTERS) || V8_CHERI_TIGHT_BOUNDS
+#if defined(V8_COMPRESS_POINTERS) || defined(V8_CHERI_TIGHT_BOUNDS)
   DCHECK(reservation_.IsReserved());
   reservation_.Free();
 #endif
@@ -285,7 +285,7 @@ void IsolateGroup::Initialize(bool process_wide) {
 #else   // !V8_COMPRESS_POINTERS
 void IsolateGroup::Initialize(bool process_wide) {
   process_wide_ = process_wide;
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   CheriHeapReservationParams params;
   if (!reservation_.InitReservation(params)) {
     V8::FatalProcessOutOfMemory(
@@ -324,7 +324,7 @@ void IsolateGroup::InitializeOncePerProcess() {
 #ifdef V8_COMPRESS_POINTERS
   V8HeapCompressionScheme::InitBase(group->GetPtrComprCageBase());
 #endif  // V8_COMPRESS_POINTERS
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
   MemoryChunk::InitHeapReservationCap(group->heap_reservation_cap());
 #endif  // V8_CHERI_TIGHT_BOUNDS
 #ifdef V8_ENABLE_SANDBOX

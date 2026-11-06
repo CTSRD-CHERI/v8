@@ -14,7 +14,7 @@
 namespace v8 {
 namespace internal {
 
-#if V8_CHERI_TIGHT_BOUNDS
+#ifdef V8_CHERI_TIGHT_BOUNDS
 Address MemoryChunk::heap_reservation_cap_ = kNullAddress;
 
 // static

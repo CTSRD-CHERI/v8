@@ -10,12 +10,6 @@
 #include "src/base/platform/mutex.h"
 #include "src/base/region-allocator.h"
 
-#if defined(__CHERI_PURE_CAPABILITY__) && defined(V8_CHERI_TIGHT_BOUNDS)
-#define V8_CHERI_BOUND_PAGES_BOOL true
-#else
-#define V8_CHERI_BOUND_PAGES_BOOL false
-#endif
-
 namespace v8 {
 namespace base {
 
@@ -158,14 +152,14 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   v8::PageAllocator* const page_allocator_;
 
   Address SetBoundsFromReservation(Address address, size_t size) const {
-    // This is a no-op in builds without CHERI bounding.
-    if (!V8_CHERI_BOUND_PAGES_BOOL || !tight_page_bounds_) return address;
-#ifdef __CHERI_PURE_CAPABILITY__
+#ifdef V8_CHERI_TIGHT_BOUNDS
+    if (!tight_page_bounds_) return address;
     const ptraddr_t start = static_cast<ptraddr_t>(address);
     Address result = V8_CHERI_SET_BOUNDS(
         V8_CHERI_ADDR_SET(region_allocator_.begin(), start), size);
     return result;
 #else
+    // This is a no-op in builds without CHERI bounding.
     USE(size);
     return address;
 #endif
@@ -175,7 +169,7 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   const PageInitializationMode page_initialization_mode_;
   const PageFreeingMode page_freeing_mode_;
   // Whether pages are CHERI bounded to the page size.
-  const bool tight_page_bounds_;
+  [[maybe_unused]] const bool tight_page_bounds_;
   AllocationStatus allocation_status_ = AllocationStatus::kSuccess;
 };
 
