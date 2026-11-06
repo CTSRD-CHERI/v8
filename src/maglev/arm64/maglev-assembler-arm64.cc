@@ -109,8 +109,8 @@ void MaglevAssembler::OSRPrologue(Graph* graph) {
 
   if (V8_ENABLE_SANDBOX_BOOL || v8_flags.debug_code) {
     TemporaryRegisterScope temps(this);
-    Register scratch = temps.AcquireScratch();
-    Add(scratch, sp,
+    Register scratch = temps.AcquireScratch().C();
+    Add(scratch, csp,
         source_frame_size * kSystemPointerSize +
             StandardFrameConstants::kFixedFrameSizeFromFp);
     Cmp(scratch, fp);
@@ -135,7 +135,7 @@ void MaglevAssembler::OSRPrologue(Graph* graph) {
     uint32_t size_so_far = source_frame_size + additional_tagged_double * 2;
     CHECK_LE(size_so_far, target_frame_size);
     if (size_so_far < target_frame_size) {
-      Sub(sp, sp,
+      Sub(csp, csp,
           Immediate((target_frame_size - size_so_far) * kSystemPointerSize));
     }
   }
@@ -219,7 +219,7 @@ void MaglevAssembler::Prologue(Graph* graph) {
     remaining_stack_slots += (remaining_stack_slots % 2);
     // Extend sp by the size of the remaining untagged part of the frame,
     // no need to initialise these.
-    Sub(sp, sp, Immediate(remaining_stack_slots * kSystemPointerSize));
+    Sub(csp, csp, Immediate(remaining_stack_slots * kSystemPointerSize));
   }
 }
 

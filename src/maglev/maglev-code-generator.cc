@@ -486,9 +486,9 @@ class ParallelMoveResolver {
     EmitMovesFromSource(register_with_slot_value, std::move(targets));
   }
 
-  void Push(Register reg) { __ Push(reg); }
+  void Push(Register reg) { __ Push(ToCapabilityRegister(reg)); }
+  void Pop(Register reg) { __ Pop(ToCapabilityRegister(reg)); }
   void Push(DoubleRegister reg) { __ PushAll({reg}); }
-  void Pop(Register reg) { __ Pop(reg); }
   void Pop(DoubleRegister reg) { __ PopAll({reg}); }
 
   MaglevAssembler* masm() const { return masm_; }

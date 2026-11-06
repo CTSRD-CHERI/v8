@@ -262,8 +262,8 @@ inline void PushAligned(MaglevAssembler* masm, Arg1 arg1, Arg2 arg2) {
     // If one of the operands is already in a register, there is no need
     // to reuse scratch registers, so two arguments can be pushed together.
     MaglevAssembler::TemporaryRegisterScope temps(masm);
-    masm->MacroAssembler::Push(ToRegister(masm, &temps, arg1),
-                               ToRegister(masm, &temps, arg2));
+    masm->MacroAssembler::Push(ToRegister(masm, &temps, arg1).C(),
+                               ToRegister(masm, &temps, arg2).C());
     return;
   }
   {
@@ -272,11 +272,12 @@ inline void PushAligned(MaglevAssembler* masm, Arg1 arg1, Arg2 arg2) {
     // reuse any scratch registers used to materialise the first argument for
     // the second one.
     MaglevAssembler::TemporaryRegisterScope temps(masm);
-    masm->MacroAssembler::Push(ToRegister(masm, &temps, arg1), padreg);
+    masm->MacroAssembler::Push(ToRegister(masm, &temps, arg1).C(), padreg.C());
   }
   {
     MaglevAssembler::TemporaryRegisterScope temps(masm);
-    masm->MacroAssembler::str(ToRegister(masm, &temps, arg2), MemOperand(sp));
+    masm->MacroAssembler::str(ToRegister(masm, &temps, arg2).C(),
+                              MemOperand(sp));
   }
 }
 
@@ -749,13 +750,13 @@ inline void MaglevAssembler::EmitEnterExitFrame(int extra_slots,
 }
 
 inline void MaglevAssembler::Move(StackSlot dst, Register src) {
-  Str(src, StackSlotOperand(dst));
+  Str(src.C(), StackSlotOperand(dst));
 }
 inline void MaglevAssembler::Move(StackSlot dst, DoubleRegister src) {
   Str(src, StackSlotOperand(dst));
 }
 inline void MaglevAssembler::Move(Register dst, StackSlot src) {
-  Ldr(dst, StackSlotOperand(src));
+  Ldr(dst.C(), StackSlotOperand(src));
 }
 inline void MaglevAssembler::Move(DoubleRegister dst, StackSlot src) {
   Ldr(dst, StackSlotOperand(src));
@@ -1512,13 +1513,13 @@ inline void MaglevAssembler::IntPtrToDouble(DoubleRegister result,
   Scvtf(result, src.X());
 }
 
-inline void MaglevAssembler::Pop(Register dst) { Pop(dst, padreg); }
+inline void MaglevAssembler::Pop(Register dst) { Pop(dst.C(), padreg.C()); }
 
 inline void MaglevAssembler::AssertStackSizeCorrect() {
   if (v8_flags.slow_debug_code) {
     TemporaryRegisterScope temps(this);
-    Register scratch = temps.AcquireScratch();
-    Add(scratch, sp,
+    Register scratch = temps.AcquireScratch().C();
+    Add(scratch, csp,
         RoundUp<2 * kSystemPointerSize>(
             code_gen_state()->stack_slots() * kSystemPointerSize +
             StandardFrameConstants::kFixedFrameSizeFromFp));
@@ -1532,10 +1533,10 @@ inline Condition MaglevAssembler::FunctionEntryStackCheck(
   TemporaryRegisterScope temps(this);
   Register stack_cmp_reg = sp;
   if (stack_check_offset >= kStackLimitSlackForDeoptimizationInBytes) {
-    stack_cmp_reg = temps.AcquireScratch();
-    Sub(stack_cmp_reg, sp, stack_check_offset);
+    stack_cmp_reg = temps.AcquireScratch().C();
+    Sub(stack_cmp_reg, csp, stack_check_offset);
   }
-  Register interrupt_stack_limit = temps.AcquireScratch();
+  Register interrupt_stack_limit = temps.AcquireScratch().C();
   LoadStackLimit(interrupt_stack_limit, StackLimitKind::kInterruptStackLimit);
   Cmp(stack_cmp_reg, interrupt_stack_limit);
   return kUnsignedGreaterThanEqual;

@@ -1048,7 +1048,7 @@ void HandleInterruptsAndTiering(MaglevAssembler* masm, ZoneLabelRef done,
     {
       SaveRegisterStateForCall save_register_state(masm,
                                                    node->register_snapshot());
-      Register function = scratch0;
+      Register function = scratch0.C();
       __ Ldr(function, MemOperand(fp, StandardFrameConstants::kFunctionOffset));
       __ Push(function);
       // Move into kContextRegister after the load into scratch0, just in case
@@ -1065,7 +1065,7 @@ void HandleInterruptsAndTiering(MaglevAssembler* masm, ZoneLabelRef done,
   {
     SaveRegisterStateForCall save_register_state(masm,
                                                  node->register_snapshot());
-    Register function = scratch0;
+    Register function = scratch0.C();
     __ Ldr(function, MemOperand(fp, StandardFrameConstants::kFunctionOffset));
     __ Push(function);
     // Move into kContextRegister after the load into scratch0, just in case
