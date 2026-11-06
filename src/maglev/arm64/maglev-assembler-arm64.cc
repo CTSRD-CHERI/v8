@@ -17,13 +17,13 @@ namespace {
 
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          Register size_in_bytes) {
-  __ Sub(object, object, size_in_bytes);
-  __ Add(object, object, kHeapObjectTag);
+  __ Sub(object.C(), object.C(), size_in_bytes);
+  __ Add(object.C(), object.C(), kHeapObjectTag);
 }
 
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          int size_in_bytes) {
-  __ Add(object, object, kHeapObjectTag - size_in_bytes);
+  __ Add(object.C(), object.C(), kHeapObjectTag - size_in_bytes);
 }
 
 template <typename T>
@@ -38,11 +38,20 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
   if (v8_flags.single_generation) {
     alloc_type = AllocationType::kOld;
   }
+  // Keep the allocation top granularity-aligned, as MainAllocator assumes.
+  if constexpr (std::is_same_v<T, int>) {
+    size_in_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(size_in_bytes);
+  } else {
+    if constexpr (V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL) {
+      __ Add(size_in_bytes, size_in_bytes, Immediate(kPointerAlignmentMask));
+      __ Bic(size_in_bytes, size_in_bytes, Immediate(kPointerAlignmentMask));
+    }
+  }
   IsolateFieldId top = SpaceAllocationTopAddress(alloc_type);
   IsolateFieldId limit = SpaceAllocationLimitAddress(alloc_type);
   ZoneLabelRef done(masm);
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   // We are a bit short on registers, so we use the same register for {object}
   // and {new_top}. Once we have defined {new_top}, we don't use {object} until
   // {new_top} is used for the last time. And there (at the end of this
@@ -50,8 +59,8 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
   // {size_in_bytes}.
   Register new_top = object;
   // Check if there is enough space.
-  __ Ldr(object, __ ExternalReferenceAsOperand(top));
-  __ Add(new_top, object, size_in_bytes);
+  __ Ldr(object.C(), __ ExternalReferenceAsOperand(top));
+  __ Add(new_top.C(), object.C(), size_in_bytes);
   __ Ldr(scratch, __ ExternalReferenceAsOperand(limit));
   __ Cmp(new_top, scratch);
   // Otherwise call runtime.
@@ -59,19 +68,19 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
                       register_snapshot, object, AllocateBuiltin(alloc_type),
                       size_in_bytes, done);
   // Store new top and tag object.
-  __ Move(__ ExternalReferenceAsOperand(top), new_top);
+  __ Move(__ ExternalReferenceAsOperand(top), new_top.C());
 #if V8_VERIFY_WRITE_BARRIERS
   if (v8_flags.verify_write_barriers) {
     ExternalReference last_young_allocation =
         ExternalReference::last_young_allocation_address(isolate);
 
     if (alloc_type == AllocationType::kYoung) {
-      __ Sub(object, object, size_in_bytes);
-      __ Str(object,
+      __ Sub(object.C(), object.C(), size_in_bytes);
+      __ Str(object.C(),
              __ ExternalReferenceAsOperand(last_young_allocation, scratch));
-      __ Add(object, object, size_in_bytes);
+      __ Add(object.C(), object.C(), size_in_bytes);
     } else {
-      __ Str(xzr,
+      __ Str(czr,
              __ ExternalReferenceAsOperand(last_young_allocation, scratch));
     }
   }
