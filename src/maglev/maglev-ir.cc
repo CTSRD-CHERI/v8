@@ -6637,12 +6637,14 @@ void CallKnownApiFunction::GenerateCallApiCallbackOptimizedInline(
                        kContextRegister);
 
   ASM_CODE_COMMENT_STRING(masm, "inlined CallApiCallbackOptimized builtin");
-  __ LoadRoot(undef, RootIndex::kUndefinedValue);
-  __ Move(scratch, ER::isolate_address());
+  Register return_value = ToCapabilityRegister(undef);
+  Register isolate = ToCapabilityRegister(scratch);
+  __ LoadRoot(return_value, RootIndex::kUndefinedValue);
+  __ Move(isolate, ER::isolate_address());
   __ Push(function_template_info_.object(),  // kTargetIndex
           kContextRegister,                  // kContextIndex
-          undef,                             // kReturnValue
-          scratch);                          // kIsolateIndex
+          return_value,                      // kReturnValue
+          isolate);                          // kIsolateIndex
 
   Register api_function_address =
       CallApiCallbackOptimizedDescriptor::ApiFunctionAddressRegister();
@@ -6666,7 +6668,7 @@ void CallKnownApiFunction::GenerateCallApiCallbackOptimizedInline(
   FrameScope frame_scope(masm, StackFrame::MANUAL);
   __ EmitEnterExitFrame(FC::getExtraSlotsCountFrom<ExitFrameConstants>(),
                         StackFrame::API_CALLBACK_EXIT, api_function_address,
-                        scratch);
+                        ToCapabilityRegister(scratch));
 
   Register fp = __ GetFramePointer();
 #ifdef V8_TARGET_ARCH_ARM64
