@@ -427,7 +427,7 @@ inline void MaglevAssembler::SmiSubConstant(Register dst, Register src,
 }
 
 inline void MaglevAssembler::MoveHeapNumber(Register dst, double value) {
-  Mov(dst, Operand::EmbeddedHeapNumber(value));
+  Mov(dst.C(), Operand::EmbeddedHeapNumber(value));
 }
 
 inline Condition MaglevAssembler::IsRootConstant(Input input,
@@ -814,13 +814,13 @@ inline void MaglevAssembler::Move(DoubleRegister dst, Float64 n) {
   Fmov(dst, n.get_scalar());
 }
 inline void MaglevAssembler::Move(Register dst, Handle<HeapObject> obj) {
-  Mov(dst, Operand(obj));
+  Mov(dst.C(), Operand(obj));
 }
 void MaglevAssembler::MoveTagged(Register dst, Handle<HeapObject> obj) {
 #ifdef V8_COMPRESS_POINTERS
   Mov(dst.W(), Operand(obj, RelocInfo::COMPRESSED_EMBEDDED_OBJECT));
 #else
-  Mov(dst, Operand(obj));
+  Mov(dst.C(), Operand(obj));
 #endif
 }
 

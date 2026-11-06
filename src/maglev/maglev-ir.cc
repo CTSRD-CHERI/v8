@@ -1060,7 +1060,7 @@ void Constant::DoLoadToRegister(MaglevAssembler* masm, Register reg) const {
 }
 
 void RootConstant::DoLoadToRegister(MaglevAssembler* masm, Register reg) const {
-  __ LoadRoot(reg, index());
+  __ LoadRoot(ToCapabilityRegister(reg), index());
 }
 
 void TrustedConstant::DoLoadToRegister(MaglevAssembler* masm,
@@ -1379,7 +1379,7 @@ void AllocateElementsArray::GenerateCode(MaglevAssembler* masm,
       __ CompareInt32AndJumpIf(length, 0, kGreaterThan, &loop,
                                Label::Distance::kNear);
     } else {
-      Register the_hole = scratch;
+      Register the_hole = ToCapabilityRegister(scratch);
       __ LoadTaggedRoot(the_hole, RootIndex::kTheHoleValue);
       __ bind(&loop);
       __ DecrementInt32(length);
@@ -4773,7 +4773,7 @@ void ExtendPropertiesBackingStore::GenerateCode(MaglevAssembler* masm,
   }
 
   // Initialize new properties to undefined.
-  __ LoadRoot(scratch, RootIndex::kUndefinedValue);
+  __ LoadRoot(ToCapabilityRegister(scratch), RootIndex::kUndefinedValue);
   for (int i = 0; i < JSObject::kFieldsAdded; ++i) {
     __ StoreTaggedFieldNoWriteBarrier(
         new_property_array, PropertyArray::OffsetOfElementAt(old_length_ + i),
@@ -6503,7 +6503,7 @@ void CallKnownJSFunction::GenerateCode(MaglevAssembler* masm,
   if (actual_parameter_count < expected_parameter_count_) {
     int number_of_undefineds =
         expected_parameter_count_ - actual_parameter_count;
-    __ LoadRoot(scratch, RootIndex::kUndefinedValue);
+    __ LoadRoot(ToCapabilityRegister(scratch), RootIndex::kUndefinedValue);
     __ PushReverse(ReceiverInput(), args(),
                    RepeatValue(scratch, number_of_undefineds));
   } else {
