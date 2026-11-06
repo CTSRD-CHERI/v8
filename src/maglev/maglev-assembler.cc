@@ -77,7 +77,7 @@ void MaglevAssembler::LoadDataField(const PolymorphicAccessInfo& access_info,
   FieldIndex field_index = access_info.field_index();
   if (!field_index.is_inobject()) {
     Register load_source_object = load_source;
-    if (load_source == object) {
+    if (load_source.code() == object.code()) {
       load_source = scratch;
     }
     // The field is in the property array, first load it from there.
@@ -521,7 +521,8 @@ void MaglevAssembler::CheckAndEmitDeferredWriteBarrier(
           // CheckPageFlag emits slightly better code when value == scratch.
           MaglevAssembler::TemporaryRegisterScope temp(masm);
           Register scratch = temp.AcquireScratch();
-          if (value != object && !register_snapshot.live_registers.has(value)) {
+          if (value.code() != object.code() &&
+              !register_snapshot.live_registers.has(value)) {
             scratch = value;
           }
           __ CheckPageFlag(value, scratch,

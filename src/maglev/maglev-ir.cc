@@ -2110,7 +2110,7 @@ void TruncateCheckedNumberOrOddballToInt32::GenerateCode(
     MaglevAssembler* masm, const ProcessingState& state) {
   Register value = ToRegister(ValueInput());
   Register result_reg = ToRegister(result());
-  DCHECK_EQ(value, result_reg);
+  DCHECK_EQ(value.code(), result_reg.code());
   Label* deopt_label =
       __ GetDeoptLabel(this, DeoptimizeReason::kNotANumberOrOddball);
   EmitTruncateNumberOrOddballToInt32(masm, value, result_reg, conversion_type(),
@@ -2125,7 +2125,7 @@ void TruncateUnsafeNumberOrOddballToInt32::GenerateCode(
     MaglevAssembler* masm, const ProcessingState& state) {
   Register value = ToRegister(ValueInput());
   Register result_reg = ToRegister(result());
-  DCHECK_EQ(value, result_reg);
+  DCHECK_EQ(value.code(), result_reg.code());
   EmitTruncateNumberOrOddballToInt32(masm, value, result_reg, conversion_type(),
                                      nullptr);
 }
@@ -2439,7 +2439,7 @@ void MigrateMapIfNeeded::GenerateCode(MaglevAssembler* masm,
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   Register object = ToRegister(ObjectInput());
   Register map = ToRegister(MapInput());
-  DCHECK_EQ(map, ToRegister(result()));
+  DCHECK_EQ(map.code(), ToRegister(result()).code());
 
   ZoneLabelRef done(masm);
 
@@ -3224,7 +3224,7 @@ void StoreTaggedFieldWithWriteBarrier::GenerateCode(
   // TODO(leszeks): Consider making this an arbitrary register and push/popping
   // in the deferred path.
   Register object = WriteBarrierDescriptor::ObjectRegister();
-  DCHECK_EQ(object, ToRegister(ObjectInput()));
+  DCHECK_EQ(object.code(), ToRegister(ObjectInput()).code());
   Register value = ToRegister(ValueInput());
 
   __ StoreTaggedFieldWithWriteBarrier(
@@ -3249,7 +3249,7 @@ void StoreTrustedPointerFieldWithWriteBarrier::GenerateCode(
   // TODO(leszeks): Consider making this an arbitrary register and push/popping
   // in the deferred path.
   Register object = WriteBarrierDescriptor::ObjectRegister();
-  DCHECK_EQ(object, ToRegister(ObjectInput()));
+  DCHECK_EQ(object.code(), ToRegister(ObjectInput()).code());
   Register value = ToRegister(ValueInput());
   __ StoreTrustedPointerFieldWithWriteBarrier(object, offset(), value,
                                               register_snapshot(), tag());
@@ -3290,7 +3290,7 @@ void LoadSignedIntDataViewElement::GenerateCode(MaglevAssembler* masm,
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   if (type_ != ExternalArrayType::kExternalInt8Array &&
       !IsIsLittleEndianInputConstant() &&
-      result_reg == ToRegister(IsLittleEndianInput())) {
+      result_reg.code() == ToRegister(IsLittleEndianInput()).code()) {
     reg_with_result = temps.Acquire();
   }
 
@@ -3306,7 +3306,8 @@ void LoadSignedIntDataViewElement::GenerateCode(MaglevAssembler* masm,
       }
     } else {
       ZoneLabelRef keep_byte_order(masm), reverse_byte_order(masm);
-      DCHECK_NE(reg_with_result, ToRegister(IsLittleEndianInput()));
+      DCHECK_NE(reg_with_result.code(),
+                ToRegister(IsLittleEndianInput()).code());
       __ ToBoolean(
           ToRegister(IsLittleEndianInput()), CheckType::kCheckHeapObject,
           V8_TARGET_BIG_ENDIAN_BOOL ? reverse_byte_order : keep_byte_order,
@@ -3572,7 +3573,8 @@ void CheckValueEqualsString::GenerateCode(MaglevAssembler* masm,
   using D = CallInterfaceDescriptorFor<Builtin::kStringEqual>::type;
 
   ZoneLabelRef end(masm);
-  DCHECK_EQ(D::GetRegisterParameter(D::kLeft), ToRegister(ValueInput()));
+  DCHECK_EQ(D::GetRegisterParameter(D::kLeft).code(),
+            ToRegister(ValueInput()).code());
   Register target = D::GetRegisterParameter(D::kLeft);
   // Maybe the string is internalized already, do a fast reference check first.
   __ CompareTaggedAndJumpIf(target, value().object(), kEqual, *end,
@@ -3781,9 +3783,11 @@ void StoreContextSlotWithWriteBarrier::GenerateCode(
           // context cells.
           RegisterSnapshot snapshot = node->register_snapshot();
           SaveRegisterStateForCall save_register_state(masm, snapshot);
-          if (new_value == D::GetRegisterParameter(D::kTheContext)) {
+          if (new_value.code() ==
+              D::GetRegisterParameter(D::kTheContext).code()) {
             // Be sure not to clobber new_value.
-            if (context == D::GetRegisterParameter(D::kNewValue)) {
+            if (context.code() ==
+                D::GetRegisterParameter(D::kNewValue).code()) {
               __ Move(scratch, new_value);
               new_value = scratch;
             } else {
@@ -4017,7 +4021,7 @@ void ConvertHoleToUndefined::SetValueLocationConstraints() {
 void ConvertHoleToUndefined::GenerateCode(MaglevAssembler* masm,
                                           const ProcessingState& state) {
   Label done;
-  DCHECK_EQ(ToRegister(ObjectInput()), ToRegister(result()));
+  DCHECK_EQ(ToRegister(ObjectInput()).code(), ToRegister(result()).code());
   __ JumpIfNotRoot(ToRegister(ObjectInput()), RootIndex::kTheHoleValue, &done);
   __ LoadRoot(ToRegister(result()), RootIndex::kUndefinedValue);
   __ bind(&done);
@@ -4043,7 +4047,7 @@ void ConvertReceiver::GenerateCode(MaglevAssembler* masm,
 
   // If {receiver} is not primitive, no need to move it to {result}, since
   // they share the same register.
-  DCHECK_EQ(receiver, ToRegister(result()));
+  DCHECK_EQ(receiver.code(), ToRegister(result()).code());
   __ JumpIfJSAnyIsNotPrimitive(receiver, &done);
 
   compiler::JSHeapBroker* broker = masm->compilation_info()->broker();
@@ -4075,7 +4079,7 @@ void CheckDerivedConstructResult::GenerateCode(MaglevAssembler* masm,
                                                const ProcessingState& state) {
   Register construct_result = ToRegister(ConstructResultInput());
 
-  DCHECK_EQ(construct_result, ToRegister(result()));
+  DCHECK_EQ(construct_result.code(), ToRegister(result()).code());
 
   // If the result is an object (in the ECMA sense), we should get rid
   // of the receiver and use the result; see ECMA-262 section 13.2.2-7
@@ -4611,7 +4615,7 @@ void UpdateJSArrayLength::GenerateCode(MaglevAssembler* masm,
   Register length = ToRegister(LengthInput());
   Register object = ToRegister(ObjectInput());
   Register index = ToRegister(IndexInput());
-  DCHECK_EQ(length, ToRegister(result()));
+  DCHECK_EQ(length.code(), ToRegister(result()).code());
 
   Label done, tag_length;
   if (v8_flags.debug_code) {
@@ -4642,7 +4646,7 @@ void EnsureWritableFastElements::GenerateCode(MaglevAssembler* masm,
                                               const ProcessingState& state) {
   Register object = ToRegister(ObjectInput());
   Register elements = ToRegister(ElementsInput());
-  DCHECK_EQ(elements, ToRegister(result()));
+  DCHECK_EQ(elements.code(), ToRegister(result()).code());
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   Register scratch = temps.Acquire();
   __ EnsureWritableFastElements(register_snapshot(), elements, object, scratch);
@@ -4664,7 +4668,7 @@ void MaybeGrowFastElements::GenerateCode(MaglevAssembler* masm,
   Register object = ToRegister(ObjectInput());
   Register index = ToRegister(IndexInput());
   Register elements_length = ToRegister(ElementsLengthInput());
-  DCHECK_EQ(elements, ToRegister(result()));
+  DCHECK_EQ(elements.code(), ToRegister(result()).code());
 
   ZoneLabelRef done(masm);
 
@@ -4679,7 +4683,7 @@ void MaybeGrowFastElements::GenerateCode(MaglevAssembler* masm,
               snapshot.live_tagged_registers.clear(result_reg);
               SaveRegisterStateForCall save_register_state(masm, snapshot);
               using D = GrowArrayElementsDescriptor;
-              if (index == D::GetRegisterParameter(D::kObject)) {
+              if (index.code() == D::GetRegisterParameter(D::kObject).code()) {
                 // That implies that the first parameter move will clobber the
                 // index value. So we use the result register as temporary.
                 // TODO(leszeks): Use parallel moves to resolve cases like this.
@@ -5033,7 +5037,7 @@ void Int32ToNumber::GenerateCode(MaglevAssembler* masm,
   // Object is not allowed to alias value, because SmiTagInt32AndJumpIfFail will
   // clobber `object` even if the tagging fails, and we don't want it to clobber
   // `value`.
-  bool input_output_alias = (object == value);
+  bool input_output_alias = (object.code() == value.code());
   Register res = object;
   if (input_output_alias) {
     res = temps.AcquireScratch();
@@ -5460,7 +5464,7 @@ void StringConcat::GenerateCode(MaglevAssembler* masm,
       RightInput()                      // right
   );
   masm->DefineExceptionHandlerAndLazyDeoptPoint(this);
-  DCHECK_EQ(kReturnRegister0, ToRegister(result()));
+  DCHECK_EQ(kReturnRegister0.code(), ToRegister(result()).code());
 }
 
 void ConsStringMap::SetValueLocationConstraints() {
@@ -6016,7 +6020,7 @@ void TruncateUint32ToInt32::SetValueLocationConstraints() {
 void TruncateUint32ToInt32::GenerateCode(MaglevAssembler* masm,
                                          const ProcessingState& state) {
   // No code emitted -- as far as the machine is concerned, int32 is uint32.
-  DCHECK_EQ(ToRegister(ValueInput()), ToRegister(result()));
+  DCHECK_EQ(ToRegister(ValueInput()).code(), ToRegister(result()).code());
 }
 
 void TruncateFloat64ToInt32::SetValueLocationConstraints() {
@@ -6174,7 +6178,7 @@ void Uint32ToUint8Clamped::SetValueLocationConstraints() {
 void Uint32ToUint8Clamped::GenerateCode(MaglevAssembler* masm,
                                         const ProcessingState& state) {
   Register value = ToRegister(ValueInput());
-  DCHECK_EQ(value, ToRegister(result()));
+  DCHECK_EQ(value.code(), ToRegister(result()).code());
   Label done;
   __ CompareInt32AndJumpIf(value, 255, kUnsignedLessThanEqual, &done,
                            Label::Distance::kNear);
@@ -6460,14 +6464,15 @@ void CallSelf::GenerateCode(MaglevAssembler* masm,
   if (actual_parameter_count < expected_parameter_count_) {
     int number_of_undefineds =
         expected_parameter_count_ - actual_parameter_count;
-    __ LoadRoot(scratch, RootIndex::kUndefinedValue);
+    __ LoadRoot(ToCapabilityRegister(scratch), RootIndex::kUndefinedValue);
     __ PushReverse(ReceiverInput(), args(),
                    RepeatValue(scratch, number_of_undefineds));
   } else {
     __ PushReverse(ReceiverInput(), args());
   }
-  DCHECK_EQ(kContextRegister, ToRegister(ContextInput()));
-  DCHECK_EQ(kJavaScriptCallTargetRegister, ToRegister(TargetInput()));
+  DCHECK_EQ(kContextRegister.code(), ToRegister(ContextInput()).code());
+  DCHECK_EQ(kJavaScriptCallTargetRegister.code(),
+            ToRegister(TargetInput()).code());
   __ Move(kJavaScriptCallArgCountRegister, actual_parameter_count);
   __ CallSelf();
   masm->DefineExceptionHandlerAndLazyDeoptPoint(this);
@@ -6513,8 +6518,9 @@ void CallKnownJSFunction::GenerateCode(MaglevAssembler* masm,
                              kJavaScriptCallTargetRegister,
                              kJavaScriptCallNewTargetRegister,
                              kJavaScriptCallArgCountRegister});
-  DCHECK_EQ(kContextRegister, ToRegister(ContextInput()));
-  DCHECK_EQ(kJavaScriptCallTargetRegister, ToRegister(TargetInput()));
+  DCHECK_EQ(kContextRegister.code(), ToRegister(ContextInput()).code());
+  DCHECK_EQ(kJavaScriptCallTargetRegister.code(),
+            ToRegister(TargetInput()).code());
   __ Move(kJavaScriptCallArgCountRegister, actual_parameter_count);
   if (shared_function_info().HasBuiltinId()) {
     Builtin builtin = shared_function_info().builtin_id();
@@ -6833,7 +6839,7 @@ void CallRuntime::SetValueLocationConstraints() {
 }
 void CallRuntime::GenerateCode(MaglevAssembler* masm,
                                const ProcessingState& state) {
-  DCHECK_EQ(ToRegister(ContextInput()), kContextRegister);
+  DCHECK_EQ(ToRegister(ContextInput()).code(), kContextRegister.code());
   __ Push(args());
   __ CallRuntime(function_id(), num_args());
   // TODO(victorgomes): Not sure if this is needed for all runtime calls.

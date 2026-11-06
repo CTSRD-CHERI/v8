@@ -397,7 +397,7 @@ inline void MaglevAssembler::SmiAddConstant(Register dst, Register src,
     if (SmiValuesAre31Bits()) {
       Adds(dst.W(), src.W(), Immediate(Smi::FromInt(value)));
     } else {
-      DCHECK(dst.IsX());
+      DCHECK(dst.IsX() || dst.IsC());
       Adds(dst.X(), src.X(), Immediate(Smi::FromInt(value)));
     }
     JumpIf(kOverflow, fail, distance);
@@ -414,7 +414,7 @@ inline void MaglevAssembler::SmiSubConstant(Register dst, Register src,
     if (SmiValuesAre31Bits()) {
       Subs(dst.W(), src.W(), Immediate(Smi::FromInt(value)));
     } else {
-      DCHECK(dst.IsX());
+      DCHECK(dst.IsX() || dst.IsC());
       Subs(dst.X(), src.X(), Immediate(Smi::FromInt(value)));
     }
     JumpIf(kOverflow, fail, distance);

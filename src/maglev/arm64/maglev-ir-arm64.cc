@@ -1126,7 +1126,7 @@ void Return::SetValueLocationConstraints() {
   UseFixed(ValueInput(), kReturnRegister0);
 }
 void Return::GenerateCode(MaglevAssembler* masm, const ProcessingState& state) {
-  DCHECK_EQ(ToRegister(ValueInput()), kReturnRegister0);
+  DCHECK_EQ(ToRegister(ValueInput()).code(), kReturnRegister0.code());
   // Read the formal number of parameters from the top level compilation unit
   // (i.e. the outermost, non inlined function).
   int formal_params_size =

@@ -731,7 +731,8 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
     } else {
       Register target = Descriptor::GetRegisterParameter(index);
       if constexpr (std::is_same_v<Input, std::decay_t<Arg>>) {
-        DCHECK_EQ(target, arg.location()->AssignedGeneralRegister());
+        DCHECK_EQ(target.code(),
+                  arg.location()->AssignedGeneralRegister().code());
         USE(target);
       } else {
         masm->Move(target, std::forward<Arg>(arg));
@@ -752,8 +753,8 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
     DCHECK(MachineTypeMatches(MachineType::AnyTagged(), context));
 
     if constexpr (std::is_same_v<Input, std::decay_t<decltype(context)>>) {
-      DCHECK_EQ(Descriptor::ContextRegister(),
-                context.location()->AssignedGeneralRegister());
+      DCHECK_EQ(Descriptor::ContextRegister().code(),
+                context.location()->AssignedGeneralRegister().code());
     } else {
       // Don't allow raw Register here, force materialisation from a constant.
       // This is because setting parameters could have clobbered the register.

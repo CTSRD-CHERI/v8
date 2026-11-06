@@ -607,7 +607,8 @@ class ExceptionHandlerTrampolineBuilder {
         // already in the right spot, but we do have to ensure it isn't
         // clobbered by calls to the NewHeapNumber builtin during
         // materialisation.
-        DCHECK_EQ(target.AssignedGeneralRegister(), kReturnRegister0);
+        DCHECK_EQ(target.AssignedGeneralRegister().code(),
+                  kReturnRegister0.code());
         *save_accumulator = true;
         continue;
       }
@@ -703,8 +704,9 @@ class ExceptionHandlerTrampolineBuilder {
       } else {
         __ Pop(target_reg);
       }
-      if (target_reg == scratch) {
-        __ Move(masm_->ToMemOperand(target.operand()), scratch);
+      if (target_reg.code() == scratch.code()) {
+        __ Move(masm_->ToMemOperand(target.operand()),
+                ToCapabilityRegister(scratch));
       }
     }
     if (save_accumulator) __ Pop(kReturnRegister0);
