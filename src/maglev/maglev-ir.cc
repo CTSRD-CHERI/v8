@@ -3904,13 +3904,14 @@ void CheckStringOrStringWrapper::GenerateCode(MaglevAssembler* masm,
 
   MaglevAssembler::TemporaryRegisterScope temps(masm);
   Register scratch = temps.Acquire();
+  Register map = ToCapabilityRegister(scratch);
 
   __ JumpIfString(object, &done);
   __ JumpIfNotObjectType(object, InstanceType::JS_PRIMITIVE_WRAPPER_TYPE,
                          deopt);
-  __ LoadMap(scratch, object);
+  __ LoadMap(map, object);
   __ LoadBitField<Map::Bits2::ElementsKindBits>(
-      scratch, FieldMemOperand(scratch, Map::kBitField2Offset));
+      scratch, FieldMemOperand(map, Map::kBitField2Offset));
   static_assert(FAST_STRING_WRAPPER_ELEMENTS + 1 ==
                 SLOW_STRING_WRAPPER_ELEMENTS);
   __ CompareInt32AndJumpIf(scratch, FAST_STRING_WRAPPER_ELEMENTS, kLessThan,

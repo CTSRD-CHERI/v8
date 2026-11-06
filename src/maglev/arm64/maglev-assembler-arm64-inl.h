@@ -520,7 +520,7 @@ inline void MaglevAssembler::LoadBoundedSizeFromObject(Register result,
                                                        int offset) {
   Move(result, FieldMemOperand(object, offset));
 #ifdef V8_ENABLE_SANDBOX
-  Lsr(result, result, kBoundedSizeShift);
+  Lsr(result.X(), result.X(), kBoundedSizeShift);
 #endif  // V8_ENABLE_SANDBOX
 }
 
@@ -903,7 +903,7 @@ inline void MaglevAssembler::DeoptIfBufferNotValid(Register array,
   EmitEagerDeoptIf(ne, DeoptimizeReason::kArrayBufferWasDetached, node);
 }
 inline void MaglevAssembler::LoadByte(Register dst, MemOperand src) {
-  Ldrb(dst, src);
+  Ldrb(dst.W(), src);
 }
 
 inline Condition MaglevAssembler::IsCallableAndNotUndetectable(
@@ -925,16 +925,16 @@ inline Condition MaglevAssembler::IsNotCallableNorUndetactable(
 
 inline void MaglevAssembler::LoadInstanceType(Register instance_type,
                                               Register heap_object) {
-  LoadMap(instance_type, heap_object);
-  Ldrh(instance_type.W(),
-       FieldMemOperand(instance_type, Map::kInstanceTypeOffset));
+  Register map = instance_type.C();
+  LoadMap(map, heap_object);
+  Ldrh(instance_type.W(), FieldMemOperand(map, Map::kInstanceTypeOffset));
 }
 
 inline void MaglevAssembler::JumpIfObjectType(Register heap_object,
                                               InstanceType type, Label* target,
                                               Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   IsObjectType(heap_object, scratch, scratch, type);
   JumpIf(kEqual, target, distance);
 }
@@ -1070,12 +1070,13 @@ inline void MaglevAssembler::JumpIfJSAnyIsNotPrimitive(
 inline void MaglevAssembler::CompareMapWithRoot(Register object,
                                                 RootIndex index,
                                                 Register scratch) {
+  Register map = scratch.C();
   if (V8_STATIC_ROOTS_BOOL && RootsTable::IsReadOnly(index)) {
-    LoadCompressedMap(scratch, object);
+    LoadCompressedMap(map, object);
     CmpTagged(scratch, Immediate(ReadOnlyRootPtr(index)));
     return;
   }
-  LoadMap(scratch, object);
+  LoadMap(map, object);
   CompareRoot(scratch, index);
 }
 

@@ -543,29 +543,28 @@ void MaglevAssembler::SeqOneByteStringCharCodeAt(Register result,
   ASM_CODE_COMMENT(this);
   if (v8_flags.debug_code) {
     TemporaryRegisterScope scope(this);
-    Register scratch = scope.AcquireScratch();
+    Register map = scope.AcquireScratch().C();
 
     // Check if {string} is a string.
     AssertNotSmi(string);
-    LoadMap(scratch, string);
-    CompareInstanceTypeRange(scratch, scratch, FIRST_STRING_TYPE,
-                             LAST_STRING_TYPE);
+    LoadMap(map, string);
+    CompareInstanceTypeRange(map, map.X(), FIRST_STRING_TYPE, LAST_STRING_TYPE);
     Check(kUnsignedLessThanEqual, AbortReason::kUnexpectedValue);
 
     // Check if {string} is a sequential one-byte string.
-    AndInt32(scratch, kStringRepresentationAndEncodingMask);
-    CompareInt32AndAssert(scratch, kSeqOneByteStringTag, kEqual,
+    AndInt32(map.X(), kStringRepresentationAndEncodingMask);
+    CompareInt32AndAssert(map.X(), kSeqOneByteStringTag, kEqual,
                           AbortReason::kUnexpectedValue);
 
-    LoadInt32(scratch, FieldMemOperand(string, offsetof(String, length_)));
-    CompareInt32AndAssert(index, scratch, kUnsignedLessThan,
+    LoadInt32(map.X(), FieldMemOperand(string, offsetof(String, length_)));
+    CompareInt32AndAssert(index, map.X(), kUnsignedLessThan,
                           AbortReason::kUnexpectedValue);
   }
 
   TemporaryRegisterScope scope(this);
   Register scratch = scope.AcquireScratch();
   Add(scratch, index, OFFSET_OF_DATA_START(SeqOneByteString) - kHeapObjectTag);
-  Ldrb(result, MemOperand(string, scratch));
+  Ldrb(result.W(), MemOperand(string, scratch));
 }
 
 void MaglevAssembler::CountLeadingZerosInt32(Register dst, Register src) {
