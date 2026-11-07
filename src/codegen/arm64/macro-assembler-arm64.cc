@@ -4214,7 +4214,10 @@ void MacroAssembler::MemoryChunkHeaderFromObject(const Register& header,
   Register address = object.X();
   UseScratchRegisterScope temps(this);
   if (AreAliased(header, object)) {
-    address = temps.AcquireX();
+    address = temps
+                  .PushAndAcquireFirstAvailable(
+                      CPURegList(header.C(), object.C(), kRootRegister))
+                  .X();
     Mov(address, object.X());
   }
   Ldr(header, MemOperand(kRootRegister,
