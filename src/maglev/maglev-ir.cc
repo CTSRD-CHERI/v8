@@ -7522,17 +7522,18 @@ void AttemptOnStackReplacement(MaglevAssembler* masm,
 
   // Case 2).
   {
-    __ LoadByte(scratch1,
+    const Register osr_state = scratch1.X();
+    __ LoadByte(osr_state,
                 FieldMemOperand(scratch0, FeedbackVector::kOsrStateOffset));
-    __ DecodeField<FeedbackVector::OsrUrgencyBits>(scratch1);
-    __ JumpIfByte(kUnsignedLessThanEqual, scratch1, loop_depth,
+    __ DecodeField<FeedbackVector::OsrUrgencyBits>(osr_state);
+    __ JumpIfByte(kUnsignedLessThanEqual, osr_state, loop_depth,
                   *no_code_for_osr);
 
     // If tiering is already in progress wait.
-    __ LoadByte(scratch1,
+    __ LoadByte(osr_state,
                 FieldMemOperand(scratch0, FeedbackVector::kFlagsOffset));
-    __ DecodeField<FeedbackVector::OsrTieringInProgressBit>(scratch1);
-    __ JumpIfByte(kNotEqual, scratch1, 0, *no_code_for_osr);
+    __ DecodeField<FeedbackVector::OsrTieringInProgressBit>(osr_state);
+    __ JumpIfByte(kNotEqual, osr_state, 0, *no_code_for_osr);
 
     // The osr_urgency exceeds the current loop_depth, signaling an OSR
     // request. Call into runtime to compile.
@@ -7585,10 +7586,10 @@ void TryOnStackReplacement::SetValueLocationConstraints() {
 void TryOnStackReplacement::GenerateCode(MaglevAssembler* masm,
                                          const ProcessingState& state) {
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch0 = temps.Acquire();
-  Register scratch1 = temps.Acquire();
+  Register scratch0 = ToCapabilityRegister(temps.Acquire());
+  Register scratch1 = ToCapabilityRegister(temps.Acquire());
 
-  const Register osr_state = scratch1;
+  const Register osr_state = scratch1.X();
   __ Move(scratch0, unit_->feedback().object());
   __ AssertFeedbackVector(scratch0, scratch1);
   __ LoadByte(osr_state,
