@@ -696,6 +696,8 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
 
   TNode<BoolT> IsRegularHeapObjectSize(TNode<IntPtrT> size);
 
+  TNode<RawPtrT> SetAllocationBounds(TNode<RawPtrT> address,
+                                     TNode<IntPtrT> size);
   TNode<HeapObject> SetHeapObjectBounds(TNode<HeapObject> object,
                                         TNode<IntPtrT> size);
 

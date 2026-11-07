@@ -1672,9 +1672,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
       TNode<IntPtrT> bounds_size =
           WordAnd(IntPtrAdd(size_in_bytes, IntPtrConstant(kMask)),
                   IntPtrConstant(~kMask));
-      address =
-          UncheckedCast<RawPtrT>(SetBounds(address.value(), bounds_size));
-      DCHECK(address.IsCapability());
+      address = SetAllocationBounds(address.value(), bounds_size);
     }
 
     result = BitcastWordToTagged(
@@ -5347,14 +5345,21 @@ TNode<JSArray> CodeStubAssembler::AllocateJSArray(
   return result;
 }
 
+TNode<RawPtrT> CodeStubAssembler::SetAllocationBounds(TNode<RawPtrT> address,
+                                                      TNode<IntPtrT> size) {
+  if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return address;
+  TNode<RawPtrT> bounded = UncheckedCast<RawPtrT>(SetBounds(address, size));
+  DCHECK(bounded.IsCapability());
+  return bounded;
+}
+
 TNode<HeapObject> CodeStubAssembler::SetHeapObjectBounds(
     TNode<HeapObject> object, TNode<IntPtrT> size) {
   if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return object;
-  TNode<IntPtrT> address =
-      IntPtrSub(BitcastTaggedToWord(object), IntPtrConstant(kHeapObjectTag));
-  address = SetBounds(address, size);
-  return UncheckedCast<HeapObject>(BitcastWordToTagged(
-      IntPtrAdd(address, IntPtrConstant(kHeapObjectTag))));
+  TNode<RawPtrT> address = ReinterpretCast<RawPtrT>(
+      IntPtrSub(BitcastTaggedToWord(object), IntPtrConstant(kHeapObjectTag)));
+  return UncheckedCast<HeapObject>(BitcastWordToTagged(RawPtrAdd(
+      SetAllocationBounds(address, size), IntPtrConstant(kHeapObjectTag))));
 }
 
 namespace {
