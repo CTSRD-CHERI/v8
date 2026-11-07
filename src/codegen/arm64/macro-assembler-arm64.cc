@@ -937,6 +937,8 @@ void MacroAssembler::CheriAddSub(const Register& rd, const Register& rn,
     CPURegList conflict(operand.reg().C());
     if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
     if (!rn.IsSP()) conflict.Combine(CPURegList(rn.C()));
+    DCHECK_IMPLIES(!temps.CanAcquire(),
+                   !rd.IsSP() && !rn.IsSP() && !operand.reg().IsSP());
     Register temp = temps.PushAndAcquireFirstAvailable(conflict).X();
     DCHECK(!AreAliased(rn, temp));
     DCHECK(!AreAliased(rd, temp));
@@ -985,6 +987,9 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
       if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
       if (!rn.IsSP()) conflict.Combine(CPURegList(rn.C()));
     }
+    DCHECK_IMPLIES(rd.IsC() && !temps.CanAcquire(),
+                   !rd.IsSP() && !rn.IsSP() &&
+                       (operand.IsImmediate() || !operand.reg().IsSP()));
     Register temp = rd.IsC() ? temps.PushAndAcquireFirstAvailable(conflict).X()
                              : temps.AcquireSameSizeAs(rn);
     if (operand.IsImmediate()) {
@@ -1024,6 +1029,7 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
           if (AreAliased(rd, rn)) {
             CPURegList conflict(imm_operand.reg().C());
             if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
+            DCHECK_IMPLIES(!temps.CanAcquire(), !rd.IsSP() && !rn.IsSP());
             Register tempX = temps.PushAndAcquireFirstAvailable(conflict).X();
             AddSub(tempX, rn.X(), imm_operand.ToX(), S, op);
             Scvalue(rd, rn, tempX);

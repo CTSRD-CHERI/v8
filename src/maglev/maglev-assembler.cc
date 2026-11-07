@@ -537,7 +537,8 @@ void MaglevAssembler::CheckAndEmitDeferredWriteBarrier(
         // The RecordWrite stub promises to restore all allocatable registers,
         // but not necessarily non-allocatable registers like temporaries. Make
         // sure we're not trying to keep any non-allocatable registers alive.
-        CHECK((register_snapshot.live_registers - kAllocatableGeneralRegisters)
+        CHECK((register_snapshot.live_registers -
+               MaglevAssembler::GetAllocatableRegisters())
                   .is_empty());
         if (object != stub_object_reg &&
             register_snapshot.live_registers.has(stub_object_reg)) {

@@ -104,7 +104,13 @@ class V8_EXPORT_PRIVATE MaglevAssembler : public MacroAssembler {
   MaglevAssembler(Isolate* isolate, Zone* zone,
                   MaglevCodeGenState* code_gen_state)
       : MacroAssembler(isolate, zone, CodeObjectRequired::kNo),
-        code_gen_state_(code_gen_state) {}
+        code_gen_state_(code_gen_state) {
+#if defined(V8_TARGET_ARCH_ARM64) && V8_TARGET_CHERI
+    // Lend kMaglevExtraScratchRegister to the scratch pool for the whole
+    // compilation, so scopeless and deferred code can reach it too.
+    TmpList()->Combine(CPURegList(kMaglevExtraScratchRegister));
+#endif
+  }
 
   static constexpr RegList GetAllocatableRegisters() {
 #if defined(V8_TARGET_ARCH_ARM)
@@ -114,6 +120,8 @@ class V8_EXPORT_PRIVATE MaglevAssembler : public MacroAssembler {
            kMaglevFlagsRegister;
 #elif defined(V8_TARGET_ARCH_LOONG64)
     return kAllocatableGeneralRegisters - kMaglevFlagsRegister;
+#elif defined(V8_TARGET_ARCH_ARM64) && V8_TARGET_CHERI
+    return kAllocatableGeneralRegisters - kMaglevExtraScratchRegister;
 #else
     return kAllocatableGeneralRegisters;
 #endif

@@ -82,7 +82,11 @@ class MaglevAssembler::TemporaryRegisterScope
   }
 
   void ResetToDefaultImpl() {
-    scratch_scope_.SetAvailable(masm_->DefaultTmpList());
+    CPURegList scratch = masm_->DefaultTmpList();
+    if (V8_TARGET_CHERI_BOOL) {
+      scratch.Combine(CPURegList(kMaglevExtraScratchRegister));
+    }
+    scratch_scope_.SetAvailable(scratch);
     scratch_scope_.SetAvailableFP(masm_->DefaultFPTmpList());
   }
 

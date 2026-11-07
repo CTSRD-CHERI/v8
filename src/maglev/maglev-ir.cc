@@ -6598,7 +6598,7 @@ void CallKnownApiFunction::GenerateCallApiCallbackOptimizedInline(
   // list (in particular, this can happen on arm64 where cp is a temp register
   // by default).
   temps.SetAvailable(
-      kAllocatableGeneralRegisters -
+      MaglevAssembler::GetAllocatableRegisters() -
       RegList{
           kContextRegister,
           CallApiCallbackOptimizedDescriptor::ActualArgumentsCountRegister(),

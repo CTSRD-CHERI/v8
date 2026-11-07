@@ -638,6 +638,10 @@ ALIAS_REGISTER(VRegister, fp_scratch2, d31);
 
 #undef ALIAS_REGISTER
 
+// Reserved from maglev's allocation on CHERI so that the MacroAssembler's
+// scratch pool always has a spare: nested helpers can need a third temporary.
+constexpr Register kMaglevExtraScratchRegister = c13;
+
 // Arm64 calling convention
 constexpr Register kCArgRegs[] = {c0, c1, c2, c3, c4, c5, c6, c7};
 constexpr int kRegisterPassedArguments = arraysize(kCArgRegs);
