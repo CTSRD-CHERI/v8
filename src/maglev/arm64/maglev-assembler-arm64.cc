@@ -609,11 +609,20 @@ void MaglevAssembler::TruncateDoubleToInt32(Register dst, DoubleRegister src) {
       vs,
       [](MaglevAssembler* masm, DoubleRegister src, Register dst,
          ZoneLabelRef done) {
+#if V8_TARGET_CHERI
+        // kDoubleToI takes its argument in the upper half of the caller's
+        // first capability slot, which an 8-byte push cannot address.
+        __ MacroAssembler::Push(czr);
+        __ Str(src, MemOperand(csp, 8));
+        __ CallBuiltin(Builtin::kDoubleToI);
+        __ Ldr(dst.W(), MemOperand(csp, 8));
+        __ Drop(1);
+#else   // !V8_TARGET_CHERI
         __ MacroAssembler::Push(xzr, src);
         __ CallBuiltin(Builtin::kDoubleToI);
         __ Ldr(dst.W(), MemOperand(sp, 0));
-        DCHECK_EQ(xzr.SizeInBytes(), src.SizeInBytes());
-        __ Drop(2);
+        __ Drop(2, kXRegSize);
+#endif  // V8_TARGET_CHERI
         __ B(*done);
       },
       src, dst, done);
@@ -657,8 +666,7 @@ void MaglevAssembler::TryTruncateDoubleToUint32(Register dst,
 
   // Convert the input float64 value to uint32.
   Fcvtzu(dst.W(), src);
-  // Convert that uint32 value back to float64.
-  Ucvtf(converted_back, dst);
+  Ucvtf(converted_back, dst.W());
   // Check that the result of the float64->uint32->float64 is equal to the input
   // (i.e. that the conversion didn't truncate.
   Fcmp(src, converted_back);
