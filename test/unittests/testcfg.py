@@ -13,6 +13,8 @@ ADDITIONAL_VARIANTS = set([
     "no_memory_protection_keys",
     "minor_ms",
     "stress_maglev",
+    "stress_maglev_future",
+    "stress_maglev_no_turbofan",
     "conservative_stack_scanning",
     "precise_pinning",
     "scavenger_chaos_mode",
