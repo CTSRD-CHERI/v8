@@ -300,9 +300,7 @@ class MemoryOptimizationReducer : public Next {
                                               __ WordPtrConstant(bump_size)));
       __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                       MemoryRepresentation::UintPtr());
-#ifdef V8_CHERI_TIGHT_BOUNDS
-      obj_addr = __ SetBounds(obj_addr, V<MachineWord>::Cast(size));
-#endif  // V8_CHERI_TIGHT_BOUNDS
+      obj_addr = SetAllocationBounds(obj_addr, size);
       return __ BitcastWordPtrToHeapObject(
           __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
     }
@@ -364,9 +362,7 @@ class MemoryOptimizationReducer : public Next {
         // Check if we can do bump pointer allocation here.
         V<WordPtr> top_value = __ GetVariable(top(type));
         V<WordPtr> obj_addr = top_value;
-#ifdef V8_CHERI_TIGHT_BOUNDS
-        obj_addr = __ SetBounds(obj_addr, V<MachineWord>::Cast(size));
-#endif  // V8_CHERI_TIGHT_BOUNDS
+        obj_addr = SetAllocationBounds(obj_addr, size);
         __ SetVariable(result,
                        __ BitcastWordPtrToHeapObject(__ WordPtrAdd(
                            obj_addr, __ IntPtrConstant(kHeapObjectTag))));
@@ -423,12 +419,7 @@ class MemoryOptimizationReducer : public Next {
       V<WordPtr> allocated_addr =
           __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
                         __ IntPtrConstant(kHeapObjectTag));
-#ifdef V8_CHERI_TIGHT_BOUNDS
-      V<WordPtr> lab_top =
-          __ LoadOffHeap(top_address, MemoryRepresentation::UintPtr());
-      allocated_addr =
-          __ SetAddress(lab_top, V<MachineWord>::Cast(allocated_addr));
-#endif  // V8_CHERI_TIGHT_BOUNDS
+      allocated_addr = RederiveFromLabTop(top_address, allocated_addr);
       __ SetVariable(top(type), allocated_addr);
       __ Goto(done);
     }
@@ -445,9 +436,7 @@ class MemoryOptimizationReducer : public Next {
                                             __ WordPtrConstant(bump_size)));
     __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                     MemoryRepresentation::UintPtr());
-#ifdef V8_CHERI_TIGHT_BOUNDS
-    obj_addr = __ SetBounds(obj_addr, V<MachineWord>::Cast(size));
-#endif  // V8_CHERI_TIGHT_BOUNDS
+    obj_addr = SetAllocationBounds(obj_addr, size);
     return __ BitcastWordPtrToHeapObject(
         __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
   }
@@ -600,6 +589,25 @@ class MemoryOptimizationReducer : public Next {
         __ WordPtrConstant(~static_cast<ScaledUint>(kPointerAlignmentMask)));
   }
 #endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
+
+#ifdef V8_CHERI_TIGHT_BOUNDS
+  V<WordPtr> SetAllocationBounds(V<WordPtr> address, V<WordPtr> size) {
+    return __ SetBounds(address, V<MachineWord>::Cast(size));
+  }
+
+  V<WordPtr> RederiveFromLabTop(V<WordPtr> top_address, V<WordPtr> address) {
+    V<WordPtr> lab_top =
+        __ LoadOffHeap(top_address, MemoryRepresentation::UintPtr());
+    return __ SetAddress(lab_top, V<MachineWord>::Cast(address));
+  }
+#else
+  V<WordPtr> SetAllocationBounds(V<WordPtr> address, V<WordPtr> size) {
+    return address;
+  }
+  V<WordPtr> RederiveFromLabTop(V<WordPtr> top_address, V<WordPtr> address) {
+    return address;
+  }
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
   V<WordPtr> GetLimitAddress(AllocationType type) {
     return __ IsolateField(type == AllocationType::kYoung

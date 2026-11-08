@@ -56,9 +56,7 @@ class ReadOnlyHeapImageDeserializer final {
           DeserializeReadOnlyRootsTable();
           break;
         case Bytecode::kFinalizeReadOnlySpace:
-#ifdef V8_CHERI_TIGHT_BOUNDS
           SetBoundsOnReadOnlyReferences();
-#endif  // V8_CHERI_TIGHT_BOUNDS
           ro_space()->FinalizeSpaceForDeserialization(source_->GetUint30());
           return;
       }
@@ -105,10 +103,7 @@ class ReadOnlyHeapImageDeserializer final {
           const_cast<uint8_t*>(source_->data() + source_->position());
       ro::BitSet tagged_slots(data, tagged_slots_size_in_bits);
       DecodeTaggedSlots(start, tagged_slots);
-#ifdef V8_CHERI_TIGHT_BOUNDS
-      relocated_segments_.push_back(
-          {start, data, tagged_slots.size_in_bits()});
-#endif  // V8_CHERI_TIGHT_BOUNDS
+      RecordRelocatedSegment(start, data, tagged_slots.size_in_bits());
       source_->Advance(static_cast<int>(tagged_slots.size_in_bytes()));
     }
   }
@@ -168,6 +163,11 @@ class ReadOnlyHeapImageDeserializer final {
     size_t size_in_bits;
   };
 
+  void RecordRelocatedSegment(Address start, const uint8_t* tagged_slots,
+                              size_t size_in_bits) {
+    relocated_segments_.push_back({start, tagged_slots, size_in_bits});
+  }
+
   void SetBoundsOnReadOnlyReferences() {
     // Set bounds on tagged relocation slots.
     for (const RelocatedSegment& segment : relocated_segments_) {
@@ -192,6 +192,10 @@ class ReadOnlyHeapImageDeserializer final {
     return HeapObject::FromAddressWithBounds(object.address(), object->Size())
         .ptr();
   }
+#else
+  void RecordRelocatedSegment(Address start, const uint8_t* tagged_slots,
+                              size_t size_in_bits) {}
+  void SetBoundsOnReadOnlyReferences() {}
 #endif  // V8_CHERI_TIGHT_BOUNDS
 
   SnapshotByteSource* const source_;

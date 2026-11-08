@@ -245,13 +245,10 @@ class HeapObject : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
   // bounds specified by (address, size).
   static inline Tagged<HeapObject> FromAddressWithBounds(Address address,
                                                          size_t size) {
-#ifdef V8_CHERI_TIGHT_BOUNDS
+    if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return FromAddress(address);
     // TODO(zyj20): think about non-representable bounds
-    Address bounded = V8_CHERI_SET_BOUNDS(address, size);
-    return FromAddress(bounded);
-#else
-    return FromAddress(address);
-#endif  // V8_CHERI_TIGHT_BOUNDS
+    return FromAddress(
+        reinterpret_cast<Address>(V8_CHERI_SET_BOUNDS(address, size)));
   }
 
   // Returns the address of this HeapObject.
