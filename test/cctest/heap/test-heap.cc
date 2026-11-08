@@ -2184,9 +2184,15 @@ TEST(TestAlignedAllocation) {
         CcTest::heap()->allocator()->new_space_allocator();
 
     // Make one allocation to force allocating an allocation area. Using
-    // kDoubleSize to not change space alignment
-    USE(allocator->AllocateRaw(kDoubleSize, kDoubleAligned,
-                               AllocationOrigin::kRuntime, AllocationHint()));
+    // kDoubleSize to not change space alignment. The slot must become a filler,
+    // or AllocateFreshPage's free space at the area start keeps a stale map.
+    constexpr int dummy_size = ALIGN_TO_ALLOCATION_ALIGNMENT(kDoubleSize);
+    AllocationResult dummy =
+        allocator->AllocateRaw(dummy_size, kDoubleAligned,
+                               AllocationOrigin::kRuntime, AllocationHint());
+    CHECK(!dummy.IsFailure());
+    CcTest::heap()->CreateFillerObjectAt(dummy.ToObjectChecked().address(),
+                                         dummy_size);
 
     // Allocate a pointer sized object that must be double aligned at an
     // aligned address.
