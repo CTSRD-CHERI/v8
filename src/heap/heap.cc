@@ -3376,6 +3376,12 @@ bool Heap::CanMoveObjectStart(Tagged<HeapObject> object) {
     return false;
   }
 
+  if (kDoubleSize % kTaggedSize != 0 && IsFixedDoubleArray(object)) {
+    // Left trimming moves the object start by whole elements, and the filler
+    // it leaves must stay kTaggedSize-aligned.
+    return false;
+  }
+
   // Compilation jobs may have references to the object.
   if (isolate()->concurrent_recompilation_enabled() &&
       isolate()->optimizing_compile_dispatcher()->HasJobs()) {
@@ -3514,6 +3520,8 @@ Tagged<FixedArrayBase> Heap::LeftTrimFixedArray(Tagged<FixedArrayBase> object,
   // Calculate location of new array start.
   Address old_start = object.address();
   Address new_start = old_start + bytes_to_trim;
+
+  DCHECK(IsAligned(bytes_to_trim, kTaggedSize));
 
   // Technically in new space this write might be omitted (except for
   // debug mode which iterates through the heap), but to play safer
