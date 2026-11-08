@@ -4040,14 +4040,15 @@ struct SetBoundsOp : FixedArityOperationT<2, SetBoundsOp> {
       ZoneVector<MaybeRegisterRepresentation>& storage) const {
     storage.resize(2);
     storage[0] = MaybeRegisterRepresentation::WordPtr();
-    storage[1] = MaybeRegisterRepresentation::Word64();
+    storage[1] = MaybeRegisterRepresentation::MachineWord();
     return base::VectorOf(storage);
   }
 
   V<WordPtr> pointer() const { return input<WordPtr>(0); }
-  V<Word64> bounds() const { return input<Word64>(1); }
+  V<MachineWord> bounds() const { return input<MachineWord>(1); }
 
-  SetBoundsOp(V<WordPtr> pointer, V<Word64> bounds) : Base(pointer, bounds) {}
+  SetBoundsOp(V<WordPtr> pointer, V<MachineWord> bounds)
+      : Base(pointer, bounds) {}
   auto options() const {
     DCHECK_EQ(outputs_rep()[0], RegisterRepresentation::WordPtr());
     return std::tuple{};

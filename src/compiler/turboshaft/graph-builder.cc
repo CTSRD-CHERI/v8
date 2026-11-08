@@ -1408,7 +1408,7 @@ OpIndex GraphBuilder::Process(
                        Map<Word64>(node->InputAt(1)));
     case IrOpcode::kSetBounds:
       return __ SetBounds(Map<WordPtr>(node->InputAt(0)),
-                          Map<Word64>(node->InputAt(1)));
+                          Map<MachineWord>(node->InputAt(1)));
     case IrOpcode::kSetAddress:
       return __ SetAddress(Map<WordPtr>(node->InputAt(0)),
                            Map<MachineWord>(node->InputAt(1)));

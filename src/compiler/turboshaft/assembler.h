@@ -3611,7 +3611,7 @@ class AssemblerOpInterface : public Next {
   V<WordPtr> AlignD(V<WordPtr> value, V<Word64> alignment) {
     return ReduceIfReachableAlignD(value, alignment);
   }
-  V<WordPtr> SetBounds(V<WordPtr> pointer, V<Word64> bounds) {
+  V<WordPtr> SetBounds(V<WordPtr> pointer, V<MachineWord> bounds) {
     return ReduceIfReachableSetBounds(pointer, bounds);
   }
   V<WordPtr> SetAddress(V<WordPtr> pointer, V<MachineWord> address) {
