@@ -6359,6 +6359,46 @@ TEST(RightTrimFixedArrayWithBlackAllocatedPages) {
   CHECK(!NormalPage::FromHeapObject(*array)->Chunk()->IsBlackAllocatedPage());
 }
 
+// RightTrimArray must tile the difference of the aligned object sizes, not of
+// the element byte counts: the latter omit the tail padding.
+TEST(ContinuousRightTrimFixedDoubleArray) {
+  v8_flags.stress_concurrent_allocation = false;
+  CcTest::InitializeVM();
+  v8::HandleScope scope(CcTest::isolate());
+  Isolate* isolate = CcTest::i_isolate();
+  Heap* heap = CcTest::heap();
+  heap::InvokeMajorGC(heap);
+
+  for (int old_capacity = 2; old_capacity <= 40; old_capacity++) {
+    for (int to_trim = 1; to_trim <= 2; to_trim++) {
+      int new_capacity = old_capacity - to_trim;
+      const int old_size = FixedDoubleArray::SizeFor(old_capacity);
+      const int new_size = FixedDoubleArray::SizeFor(new_capacity);
+
+      DirectHandle<FixedDoubleArray> array =
+          Cast<FixedDoubleArray>(isolate->factory()->NewFixedDoubleArray(
+              old_capacity, AllocationType::kOld));
+      CHECK_EQ(old_size, array->AllocatedSize());
+      Address start_address = array->address();
+
+      isolate->heap()->RightTrimArray(*array, new_capacity, old_capacity);
+
+      if (new_size == old_size) {
+        // The trim fits into reserved padding, so there is nothing to tile.
+        CHECK_EQ(new_size, array->AllocatedSize());
+        continue;
+      }
+      Tagged<HeapObject> filler =
+          HeapObject::FromAddress(start_address + new_size);
+      CHECK(IsFreeSpaceOrFiller(filler));
+      CHECK_EQ(filler->Size(), old_size - new_size);
+      CHECK_EQ(start_address + old_size, filler->address() + filler->Size());
+    }
+  }
+
+  heap::InvokeMajorGC(heap);
+}
+
 TEST(Regress618958) {
   if (!v8_flags.incremental_marking) return;
   CcTest::InitializeVM();
