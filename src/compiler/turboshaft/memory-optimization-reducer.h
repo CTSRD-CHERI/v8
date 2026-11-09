@@ -277,9 +277,7 @@ class MemoryOptimizationReducer : public Next {
     if (v8_flags.single_generation && type == AllocationType::kYoung) {
       type = AllocationType::kOld;
     }
-#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
     size = AlignToAllocationAlignment(size);
-#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
 
     V<WordPtr> top_address = __ IsolateField(
         type == AllocationType::kYoung ? IsolateFieldId::kNewAllocationInfoTop
@@ -578,8 +576,8 @@ class MemoryOptimizationReducer : public Next {
                     last_value, MemoryRepresentation::UintPtr());
   }
 
-#if V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
   V<WordPtr> AlignToAllocationAlignment(V<WordPtr> size) {
+    if (!V8_CHERI_PURECAP_BOOL || COMPRESS_POINTERS_BOOL) return size;
     uint64_t constant_size;
     if (__ matcher().MatchWordPtrConstant(size, &constant_size)) {
       return __ UintPtrConstant(ALIGN_TO_ALLOCATION_ALIGNMENT(constant_size));
@@ -588,7 +586,6 @@ class MemoryOptimizationReducer : public Next {
         __ WordPtrAdd(size, __ WordPtrConstant(kPointerAlignmentMask)),
         __ WordPtrConstant(~static_cast<ScaledUint>(kPointerAlignmentMask)));
   }
-#endif  // V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS)
 
 #ifdef V8_CHERI_TIGHT_BOUNDS
   V<WordPtr> SetAllocationBounds(V<WordPtr> address, V<WordPtr> size) {
