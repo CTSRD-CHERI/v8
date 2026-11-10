@@ -615,7 +615,7 @@ void LiftoffAssembler::MergeStackWith(CacheState& target, uint32_t arity,
       LoadFromInstance(
           target.cached_mem_start, instance_data,
           ObjectAccess::ToTagged(WasmTrustedInstanceData::kMemory0StartOffset),
-          sizeof(size_t));
+          kSystemPointerSize);
     } else {
       LoadProtectedPointer(
           target.cached_mem_start, instance_data,
