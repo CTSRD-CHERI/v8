@@ -5,6 +5,8 @@
 #ifndef V8_OBJECTS_TAGGED_FIELD_H_
 #define V8_OBJECTS_TAGGED_FIELD_H_
 
+#include <algorithm>
+
 #include "src/base/atomicops.h"
 #include "src/base/macros.h"
 #include "src/base/template-meta-programming/functional.h"
@@ -79,7 +81,7 @@ class UnalignedValueMember {
   void set_value(T value) { base::WriteUnalignedValue(storage_, value); }
 
  protected:
-  alignas(kSystemPointerAddrSize) char storage_[sizeof(T)];
+  alignas(std::min(alignof(Tagged_t), alignof(T))) char storage_[sizeof(T)];
 };
 
 class UnalignedDoubleMember : public UnalignedValueMember<double> {
@@ -93,7 +95,8 @@ class UnalignedDoubleMember : public UnalignedValueMember<double> {
     base::WriteUnalignedValue(storage_, value);
   }
 };
-static_assert(alignof(UnalignedDoubleMember) == kSystemPointerAddrSize);
+static_assert(alignof(UnalignedDoubleMember) ==
+              std::min(alignof(Tagged_t), alignof(double)));
 static_assert(sizeof(UnalignedDoubleMember) == sizeof(double));
 
 // FLEXIBLE_ARRAY_MEMBER(T, name) represents a marker for a variable-sized

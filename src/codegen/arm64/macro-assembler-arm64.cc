@@ -364,7 +364,9 @@ void MacroAssembler::PrepareC64Jump(const Register& cd) {
 }
 #else   // !V8_TARGET_CHERI
 void MacroAssembler::CheriSentryAdd(const Register& cd, const Register& cn,
-                                    const Operand& operand) {}
+                                    const Operand& operand) {
+  Add(cd, cn, operand);
+}
 void MacroAssembler::PrepareC64Jump(const Register& cd) {}
 #endif  // V8_TARGET_CHERI
 
@@ -1477,6 +1479,11 @@ void MacroAssembler::Switch(Register scratch, Register value,
   }
   bind(&fallthrough);
 }
+
+template void MacroAssembler::Pop<MacroAssembler::kDontLoadLR>(
+    const CPURegister&, const CPURegister&, const CPURegister&,
+    const CPURegister&);
+
 
 // Abstracted stack operations.
 
@@ -4213,7 +4220,7 @@ void MacroAssembler::CheckPageFlag(const Register& object, int mask,
   ASM_CODE_COMMENT(this);
   UseScratchRegisterScope temps(this);
   Register scratch = temps.AcquireX();
-  And(scratch.C(), object, ~MemoryChunk::GetAlignmentMaskForAssembler());
+  And(scratch.C(), object.C(), ~MemoryChunk::GetAlignmentMaskForAssembler());
   Ldr(scratch.X(), MemOperand(scratch.C(), MemoryChunk::FlagsOffset()));
   if (cc == ne) {
     TestAndBranchIfAnySet(scratch, mask, condition_met);

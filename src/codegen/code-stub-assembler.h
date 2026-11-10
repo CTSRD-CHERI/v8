@@ -1334,6 +1334,73 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
     }
   };
 
+#if !V8_TARGET_CHERI
+  template <class T>
+  TNode<T> LoadReference(Reference reference)
+    requires std::is_convertible_v<TNode<T>, TNode<Object>>
+  {
+    if (IsMapOffsetConstant(reference.offset)) {
+      TNode<Map> map = LoadMap(CAST(reference.object));
+      DCHECK((std::is_base_of_v<T, Map>));
+      return ReinterpretCast<T>(map);
+    }
+
+    TNode<IntPtrT> offset =
+        IntPtrSub(reference.offset, IntPtrConstant(kHeapObjectTag));
+    CSA_DCHECK(this, TaggedIsNotSmi(reference.object));
+    return CAST(
+        LoadFromObject(MachineTypeOf<T>::value, reference.object, offset));
+  }
+  template <class T>
+  TNode<T> LoadReference(Reference reference)
+    requires(std::is_convertible_v<TNode<T>, TNode<UntaggedT>> ||
+             is_maybe_weak_v<T>)
+  {
+    DCHECK(!IsMapOffsetConstant(reference.offset));
+    TNode<IntPtrT> offset =
+        IntPtrSub(reference.offset, IntPtrConstant(kHeapObjectTag));
+    return UncheckedCast<T>(
+        LoadFromObject(MachineTypeOf<T>::value, reference.object, offset));
+  }
+  template <class T>
+  void StoreReference(Reference reference, TNode<T> value)
+    requires(std::is_convertible_v<TNode<T>, TNode<MaybeObject>>)
+  {
+    if (IsMapOffsetConstant(reference.offset)) {
+      DCHECK((std::is_base_of_v<T, Map>));
+      return StoreMap(CAST(reference.object), ReinterpretCast<Map>(value));
+    }
+    MachineRepresentation rep = MachineRepresentationOf<T>::value;
+    StoreToObjectWriteBarrier write_barrier = StoreToObjectWriteBarrier::kFull;
+    if (std::is_same_v<T, Smi>) {
+      write_barrier = StoreToObjectWriteBarrier::kNone;
+    } else if (std::is_same_v<T, Map>) {
+      write_barrier = StoreToObjectWriteBarrier::kMap;
+    }
+    TNode<IntPtrT> offset =
+        IntPtrSub(reference.offset, IntPtrConstant(kHeapObjectTag));
+    CSA_DCHECK(this, TaggedIsNotSmi(reference.object));
+    StoreToObject(rep, reference.object, offset, value, write_barrier);
+  }
+  template <class T>
+  void StoreReference(Reference reference, TNode<T> value)
+    requires std::is_convertible_v<TNode<T>, TNode<UntaggedT>>
+  {
+    DCHECK(!IsMapOffsetConstant(reference.offset));
+    TNode<IntPtrT> offset =
+        IntPtrSub(reference.offset, IntPtrConstant(kHeapObjectTag));
+    StoreToObject(MachineRepresentationOf<T>::value, reference.object, offset,
+                  value, StoreToObjectWriteBarrier::kNone);
+  }
+
+  TNode<RawPtrT> GCUnsafeReferenceToRawPtr(TNode<Object> object,
+                                           TNode<IntPtrT> offset) {
+    return ReinterpretCast<RawPtrT>(
+        IntPtrAdd(BitcastTaggedToWord(object),
+                  IntPtrSub(offset, IntPtrConstant(kHeapObjectTag))));
+  }
+
+#else
   template <class T>
   TNode<T> LoadReference(Reference reference)
     requires std::is_convertible_v<TNode<T>, TNode<Object>>
@@ -1510,6 +1577,8 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
     DCHECK_IMPLIES(V8_TARGET_CHERI_BOOL, result.IsCapability());
     return result.value();
   }
+
+#endif  // V8_TARGET_CHERI
 
   // Load the floating point value of a HeapNumber.
   TNode<Float64T> LoadHeapNumberValue(TNode<HeapObject> object);

@@ -55,6 +55,7 @@ intptr_t DeoptPc(Address start, int64_t offset) {
   // 0 of the value. ORing it in keeps the tag only while the capability is
   // unsealed, so the sealed case sets it on the address before sealing.
   Address pc = start + offset;
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_TARGET_ARCH_ARM64
   if (V8_CHERI_SEALED(start)) {
     DCHECK(V8_CHERI_TAG_GET(start));
     ptraddr_t addr = static_cast<ptraddr_t>(pc) | 1;
@@ -68,6 +69,7 @@ intptr_t DeoptPc(Address start, int64_t offset) {
   } else {
     pc |= 1;
   }
+#endif
   DCHECK_IMPLIES(V8_CHERI_PURECAP_BOOL, V8_CHERI_TAG_GET(pc));
   return static_cast<intptr_t>(pc);
 }

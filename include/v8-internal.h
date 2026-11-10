@@ -428,7 +428,7 @@ static const size_t kExternalPointerTableReservationSize = 1024 * MB;
 #ifdef __CHERI_PURE_CAPABILITY__
 static const uint32_t kExternalPointerIndexShift = 7;
 #else
-static const uint32_t kExternalPointerIndexShift = 7;
+static const uint32_t kExternalPointerIndexShift = 5;
 #endif
 #endif  // V8_TARGET_OS_ANDROID
 
