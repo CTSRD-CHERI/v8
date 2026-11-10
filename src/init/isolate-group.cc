@@ -186,7 +186,8 @@ void IsolateGroup::Initialize(bool process_wide, Sandbox* sandbox) {
   const void* read_only_reservation_start = page_allocator_->AllocatePages(
       cage_base, kContiguousReadOnlyReservationSize,
       MemoryChunk::GetAlignmentForAllocation(),
-      PageAllocator::Permission::kNoAccess);
+      PageAllocator::Permission::kNoAccess,
+      PageAllocator::Permission::kReadWrite);
   CHECK_EQ(read_only_reservation_start, cage_base);
   read_only_page_allocator_ = std::make_unique<v8::base::BoundedPageAllocator>(
       page_allocator_, reinterpret_cast<Address>(read_only_reservation_start),
@@ -237,7 +238,8 @@ void IsolateGroup::Initialize(bool process_wide) {
   const void* read_only_reservation_start = page_allocator_->AllocatePages(
       cage_base, kContiguousReadOnlyReservationSize,
       MemoryChunk::GetAlignmentForAllocation(),
-      PageAllocator::Permission::kNoAccess);
+      PageAllocator::Permission::kNoAccess,
+      PageAllocator::Permission::kReadWrite);
   CHECK_EQ(read_only_reservation_start, cage_base);
   read_only_page_allocator_ = std::make_unique<v8::base::BoundedPageAllocator>(
       page_allocator_, reinterpret_cast<Address>(read_only_reservation_start),
