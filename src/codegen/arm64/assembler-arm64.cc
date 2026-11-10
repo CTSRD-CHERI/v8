@@ -1007,7 +1007,12 @@ void Assembler::adr(const Register& rd, Label* label) {
 
 void Assembler::nop(NopMarkerTypes n) {
   DCHECK((FIRST_NOP_MARKER <= n) && (n <= LAST_NOP_MARKER));
+#if V8_TARGET_CHERI
+  // An integer self-move clears the tag of the corresponding capability.
+  capmov(Register::CRegFromCode(n), Register::CRegFromCode(n));
+#else
   mov(Register::XRegFromCode(n), Register::XRegFromCode(n));
+#endif
 }
 
 void Assembler::add(const Register& rd, const Register& rn,
