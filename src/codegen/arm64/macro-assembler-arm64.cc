@@ -1478,6 +1478,11 @@ void MacroAssembler::Switch(Register scratch, Register value,
   bind(&fallthrough);
 }
 
+template void MacroAssembler::Pop<MacroAssembler::kDontLoadLR>(
+    const CPURegister&, const CPURegister&, const CPURegister&,
+    const CPURegister&);
+
+
 // Abstracted stack operations.
 
 void MacroAssembler::Push(const CPURegister& src0, const CPURegister& src1,
