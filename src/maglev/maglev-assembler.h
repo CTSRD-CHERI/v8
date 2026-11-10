@@ -44,6 +44,12 @@ inline Builtin AllocateBuiltin(AllocationType alloc_type) {
   return Builtin::kAllocateInOldGeneration;
 }
 
+#if V8_TARGET_CHERI
+inline Register ToCapabilityRegister(Register reg) { return reg.C(); }
+#else
+inline Register ToCapabilityRegister(Register reg) { return reg; }
+#endif
+
 // Label allowed to be passed to deferred code.
 class ZoneLabelRef {
  public:
@@ -98,7 +104,13 @@ class V8_EXPORT_PRIVATE MaglevAssembler : public MacroAssembler {
   MaglevAssembler(Isolate* isolate, Zone* zone,
                   MaglevCodeGenState* code_gen_state)
       : MacroAssembler(isolate, zone, CodeObjectRequired::kNo),
-        code_gen_state_(code_gen_state) {}
+        code_gen_state_(code_gen_state) {
+#if defined(V8_TARGET_ARCH_ARM64) && V8_TARGET_CHERI
+    // Lend kMaglevExtraScratchRegister to the scratch pool for the whole
+    // compilation, so scopeless and deferred code can reach it too.
+    TmpList()->Combine(CPURegList(kMaglevExtraScratchRegister));
+#endif
+  }
 
   static constexpr RegList GetAllocatableRegisters() {
 #if defined(V8_TARGET_ARCH_ARM)
@@ -108,6 +120,8 @@ class V8_EXPORT_PRIVATE MaglevAssembler : public MacroAssembler {
            kMaglevFlagsRegister;
 #elif defined(V8_TARGET_ARCH_LOONG64)
     return kAllocatableGeneralRegisters - kMaglevFlagsRegister;
+#elif defined(V8_TARGET_ARCH_ARM64) && V8_TARGET_CHERI
+    return kAllocatableGeneralRegisters - kMaglevExtraScratchRegister;
 #else
     return kAllocatableGeneralRegisters;
 #endif
@@ -1002,7 +1016,9 @@ class SaveRegisterStateForCall {
     int num_double_slots = snapshot_.live_double_registers.Count() *
                            (kDoubleSize / kSystemPointerSize);
 #ifdef V8_TARGET_ARCH_ARM64
-    num_double_slots = RoundUp<2>(num_double_slots);
+    num_double_slots =
+        (RoundUp<2>(snapshot_.live_double_registers.Count()) * kDoubleSize) /
+        kSystemPointerSize;
 #endif
     safepoint.SetNumExtraSpillSlots(pushed_reg_index + num_double_slots);
   }

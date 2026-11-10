@@ -15272,6 +15272,7 @@ TEST_F(AssemblerArm64Test, blr_lr) {
 
   __ Mov(x0, 0x0);
   __ Adr(lr, &target);
+  __ PrepareC64Jump(lr);
 
   __ Call(lr);
   __ Mov(x0, 0xDEADBEEF);

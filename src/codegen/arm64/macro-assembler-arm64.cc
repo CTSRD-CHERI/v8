@@ -102,7 +102,7 @@ void MacroAssembler::PushAll(RegList reglist) {
     reglist.set(xzr);
   }
 
-  CPURegList registers(kXRegSizeInBits, reglist);
+  CPURegList registers(kCRegSizeInBits, reglist);
   int size = registers.RegisterSizeInBytes();
   DCHECK_EQ(0, (size * registers.Count()) % 16);
 
@@ -123,7 +123,7 @@ void MacroAssembler::PopAll(RegList reglist) {
     reglist.set(xzr);
   }
 
-  CPURegList registers(kXRegSizeInBits, reglist);
+  CPURegList registers(kCRegSizeInBits, reglist);
   int size = registers.RegisterSizeInBytes();
   DCHECK_EQ(0, (size * registers.Count()) % 16);
 
@@ -937,6 +937,8 @@ void MacroAssembler::CheriAddSub(const Register& rd, const Register& rn,
     CPURegList conflict(operand.reg().C());
     if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
     if (!rn.IsSP()) conflict.Combine(CPURegList(rn.C()));
+    DCHECK_IMPLIES(!temps.CanAcquire(),
+                   !rd.IsSP() && !rn.IsSP() && !operand.reg().IsSP());
     Register temp = temps.PushAndAcquireFirstAvailable(conflict).X();
     DCHECK(!AreAliased(rn, temp));
     DCHECK(!AreAliased(rd, temp));
@@ -968,17 +970,28 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
   DCHECK_IMPLIES(rd.IsC(), rn.IsC());
   if (operand.NeedsRelocation(this)) {
     UseScratchRegisterScope temps(this);
-    Register temp = temps.AcquireSameSizeAs(rn);
-    DCHECK_IMPLIES(temp.IsW(), RelocInfo::IsCompressedEmbeddedObject(
-                                   operand.ImmediateRMode()));
+    Register temp =
+        RelocInfo::IsCompressedEmbeddedObject(operand.ImmediateRMode())
+            ? temps.AcquireSameSizeAs(rn)
+            : temps.AcquireC();
     Ldr(temp, operand.immediate());
-    AddSubMacro(rd, rn, temp, S, op);
+    AddSubMacro(rd, rn, rd.IsC() || temp.IsW() ? temp : temp.X(), S, op);
   } else if ((operand.IsImmediate() &&
               !IsImmAddSub(operand.ImmediateValue())) ||
              (rn.IsZero() && !operand.IsShiftedRegister()) ||
              (operand.IsShiftedRegister() && (operand.shift() == ROR))) {
     UseScratchRegisterScope temps(this);
-    Register temp = rd.IsC() ? temps.AcquireX() : temps.AcquireSameSizeAs(rn);
+    // The capability path can need a second temporary.
+    CPURegList conflict(kCRegSizeInBits, RegList({}));
+    if (rd.IsC()) {
+      if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
+      if (!rn.IsSP()) conflict.Combine(CPURegList(rn.C()));
+    }
+    DCHECK_IMPLIES(rd.IsC() && !temps.CanAcquire(),
+                   !rd.IsSP() && !rn.IsSP() &&
+                       (operand.IsImmediate() || !operand.reg().IsSP()));
+    Register temp = rd.IsC() ? temps.PushAndAcquireFirstAvailable(conflict).X()
+                             : temps.AcquireSameSizeAs(rn);
     if (operand.IsImmediate()) {
       PreShiftImmMode mode = kAnyShift;
 
@@ -1014,7 +1027,10 @@ void MacroAssembler::AddSubMacro(const Register& rd, const Register& rn,
             op = ADD;
           }
           if (AreAliased(rd, rn)) {
-            Register tempX = temps.AcquireX();
+            CPURegList conflict(imm_operand.reg().C());
+            if (!rd.IsSP()) conflict.Combine(CPURegList(rd.C()));
+            DCHECK_IMPLIES(!temps.CanAcquire(), !rd.IsSP() && !rn.IsSP());
+            Register tempX = temps.PushAndAcquireFirstAvailable(conflict).X();
             AddSub(tempX, rn.X(), imm_operand.ToX(), S, op);
             Scvalue(rd, rn, tempX);
           } else {
@@ -1116,12 +1132,13 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
   // Call the most common addressing modes used by Liftoff directly for improved
   // compilation performance: X register + immediate, X register + W register.
   Instr memop = op | Rt(rt) | RnSP(addr.base());
+  const bool is_cap_access = IsCapabilityAccess(rt, op);
   if (addr.IsImmediateOffset()) {
     int64_t offset = addr.offset();
-    unsigned size_log2 = CalcLSDataSizeLog2(op, rt.IsC());
+    unsigned size_log2 = CalcLSDataSizeLog2(op, is_cap_access);
     if (IsImmLSScaled(offset, size_log2)) {
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
+      if (is_cap_access) {
         DCHECK_GE(offset, 0);
         LoadStoreCapScaledImmOffset(memop, static_cast<int>(offset), size_log2);
         return;
@@ -1131,7 +1148,7 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
       return;
     } else if (IsImmLSUnscaled(offset)) {
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
+      if (is_cap_access) {
         // LDUR (capability, normal base) takes a signed 9-bit imm9, so it also
         // covers negative offsets.
         LoadStoreCapUnscaledImmOffset(memop, static_cast<int>(offset));
@@ -1147,7 +1164,7 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     // offset in Rm(). The capability class is a separate encoding that does
     // support UXTW (spec 4.4.80, 4.4.137) and Assembler::LoadStore already
     // selects it, so defer capabilities to the complex path.
-    if (rt.IsC()) {
+    if (is_cap_access) {
       LoadStoreMacroComplex(rt, addr, op);
       return;
     }
@@ -1872,9 +1889,9 @@ void MacroAssembler::AssertMap(Register object) {
   AssertNotSmi(object, AbortReason::kOperandIsNotAMap);
 
   UseScratchRegisterScope temps(this);
-  Register temp = temps.AcquireX();
+  Register temp = temps.AcquireC();
 
-  IsObjectType(object, temp, temp, MAP_TYPE);
+  IsObjectType(object, temp.C(), temp.X(), MAP_TYPE);
   Check(eq, AbortReason::kOperandIsNotAMap);
 }
 
@@ -3874,7 +3891,7 @@ void MacroAssembler::IsObjectTypeInRange(Register heap_object, Register scratch,
   }
 #endif  // V8_STATIC_ROOTS_BOOL
   LoadMap(scratch, heap_object);
-  CompareInstanceTypeRange(scratch, scratch, lower_limit, higher_limit);
+  CompareInstanceTypeRange(scratch, scratch.X(), lower_limit, higher_limit);
 }
 
 // Sets condition flags based on comparison, and returns type in type_reg.
@@ -4236,10 +4253,10 @@ void MacroAssembler::PreCheckSkippedWriteBarrier(Register object,
   {
     UseScratchRegisterScope temps(this);
     Register scratch1 = temps.AcquireX();
-    sub(scratch, object, kHeapObjectTag);
+    sub(scratch.X(), object.X(), kHeapObjectTag);
     Ldr(scratch1,
         MemOperand(kRootRegister, IsolateData::last_young_allocation_offset()));
-    cmp(scratch, scratch1);
+    cmp(scratch.X(), scratch1);
     B(Condition::kEqual, ok);
   }
 
@@ -4261,21 +4278,22 @@ void MacroAssembler::PreCheckSkippedWriteBarrier(Register object,
     Register scratch1 = temps.AcquireX();
 
     // Check LAB start <= last_young_allocation_.
-    ldr(scratch, MemOperand(kRootRegister,
-                            IsolateData::new_allocation_info_start_offset()));
+    ldr(scratch.X(),
+        MemOperand(kRootRegister,
+                   IsolateData::new_allocation_info_start_offset()));
     ldr(scratch1,
         MemOperand(kRootRegister, IsolateData::last_young_allocation_offset()));
-    cmp(scratch, scratch1);
+    cmp(scratch.X(), scratch1);
     B(Condition::kUnsignedGreaterThan, &not_ok);
 
     // Check last_young_allocation_ < (object address+1).
-    cmp(scratch1, object);
+    cmp(scratch1, object.X());
     B(Condition::kUnsignedGreaterThanEqual, &not_ok);
 
     // Check (object address+1) < LAB top.
-    ldr(scratch, MemOperand(kRootRegister,
-                            IsolateData::new_allocation_info_top_offset()));
-    cmp(object, scratch);
+    ldr(scratch.X(), MemOperand(kRootRegister,
+                                IsolateData::new_allocation_info_top_offset()));
+    cmp(object.X(), scratch.X());
     B(Condition::kUnsignedLessThan, ok);
   }
 

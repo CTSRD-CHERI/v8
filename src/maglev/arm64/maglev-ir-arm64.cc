@@ -923,7 +923,7 @@ void LoadTypedArrayLength::GenerateCode(MaglevAssembler* masm,
   if (shift_size > 0) {
     // TODO(leszeks): Merge this shift with the one in LoadBoundedSize.
     DCHECK(shift_size == 1 || shift_size == 2 || shift_size == 3);
-    __ Lsr(result_register, result_register, shift_size);
+    __ Lsr(result_register.X(), result_register.X(), shift_size);
   }
 }
 
@@ -1048,7 +1048,7 @@ void HandleInterruptsAndTiering(MaglevAssembler* masm, ZoneLabelRef done,
     {
       SaveRegisterStateForCall save_register_state(masm,
                                                    node->register_snapshot());
-      Register function = scratch0;
+      Register function = scratch0.C();
       __ Ldr(function, MemOperand(fp, StandardFrameConstants::kFunctionOffset));
       __ Push(function);
       // Move into kContextRegister after the load into scratch0, just in case
@@ -1065,7 +1065,7 @@ void HandleInterruptsAndTiering(MaglevAssembler* masm, ZoneLabelRef done,
   {
     SaveRegisterStateForCall save_register_state(masm,
                                                  node->register_snapshot());
-    Register function = scratch0;
+    Register function = scratch0.C();
     __ Ldr(function, MemOperand(fp, StandardFrameConstants::kFunctionOffset));
     __ Push(function);
     // Move into kContextRegister after the load into scratch0, just in case
@@ -1126,7 +1126,7 @@ void Return::SetValueLocationConstraints() {
   UseFixed(ValueInput(), kReturnRegister0);
 }
 void Return::GenerateCode(MaglevAssembler* masm, const ProcessingState& state) {
-  DCHECK_EQ(ToRegister(ValueInput()), kReturnRegister0);
+  DCHECK_EQ(ToRegister(ValueInput()).code(), kReturnRegister0.code());
   // Read the formal number of parameters from the top level compilation unit
   // (i.e. the outermost, non inlined function).
   int formal_params_size =

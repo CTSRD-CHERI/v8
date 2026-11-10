@@ -1764,15 +1764,15 @@ void MacroAssembler::InitializeRootRegister() {
 }
 
 void MacroAssembler::SmiTag(Register dst, Register src) {
-  DCHECK(dst.Is64Bits() && src.Is64Bits());
+  DCHECK((dst.Is64Bits() || dst.IsC()) && (src.Is64Bits() || src.IsC()));
   DCHECK(SmiValuesAre32Bits() || SmiValuesAre31Bits());
-  Lsl(dst, src, kSmiShift);
+  Lsl(dst.X(), src.X(), kSmiShift);
 }
 
 void MacroAssembler::SmiTag(Register smi) { SmiTag(smi, smi); }
 
 void MacroAssembler::SmiUntag(Register dst, Register src) {
-  DCHECK_IMPLIES(!V8_TARGET_CHERI_BOOL, dst.Is64Bits() && src.Is64Bits());
+  DCHECK((dst.Is64Bits() || dst.IsC()) && (src.Is64Bits() || src.IsC()));
   if (v8_flags.enable_slow_asserts) {
     AssertSmi(src);
   }

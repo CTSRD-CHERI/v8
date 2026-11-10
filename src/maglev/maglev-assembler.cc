@@ -42,6 +42,7 @@ void MaglevAssembler::AllocateTwoByteString(RegisterSnapshot register_snapshot,
 
 Register MaglevAssembler::FromAnyToRegister(ConstInput input,
                                             Register scratch) {
+  scratch = ToCapabilityRegister(scratch);
   if (input.operand().IsConstant()) {
     input.node()->LoadToRegister(this, scratch);
     return scratch;
@@ -76,7 +77,7 @@ void MaglevAssembler::LoadDataField(const PolymorphicAccessInfo& access_info,
   FieldIndex field_index = access_info.field_index();
   if (!field_index.is_inobject()) {
     Register load_source_object = load_source;
-    if (load_source == object) {
+    if (load_source.code() == object.code()) {
       load_source = scratch;
     }
     // The field is in the property array, first load it from there.
@@ -97,7 +98,7 @@ void MaglevAssembler::JumpIfNotUndetectable(Register object, Register scratch,
     AssertNotSmi(object);
   }
   // For heap objects, check the map's undetectable bit.
-  LoadMap(scratch, object);
+  LoadMap(ToCapabilityRegister(scratch), object);
   TestUint8AndJumpIfAllClear(FieldMemOperand(scratch, Map::kBitFieldOffset),
                              Map::Bits1::IsUndetectableBit::kMask, target,
                              distance);
@@ -113,7 +114,7 @@ void MaglevAssembler::JumpIfUndetectable(Register object, Register scratch,
     AssertNotSmi(object);
   }
   // For heap objects, check the map's undetectable bit.
-  LoadMap(scratch, object);
+  LoadMap(ToCapabilityRegister(scratch), object);
   TestUint8AndJumpIfAnySet(FieldMemOperand(scratch, Map::kBitFieldOffset),
                            Map::Bits1::IsUndetectableBit::kMask, target,
                            distance);
@@ -128,7 +129,7 @@ void MaglevAssembler::JumpIfNotCallable(Register object, Register scratch,
   } else if (v8_flags.debug_code) {
     AssertNotSmi(object);
   }
-  LoadMap(scratch, object);
+  LoadMap(ToCapabilityRegister(scratch), object);
   static_assert(Map::kBitFieldOffsetEnd + 1 - Map::kBitFieldOffset == 1);
   TestUint8AndJumpIfAllClear(FieldMemOperand(scratch, Map::kBitFieldOffset),
                              Map::Bits1::IsCallableBit::kMask, target,
@@ -230,7 +231,7 @@ void MaglevAssembler::ToBoolean(Register value, CheckType check_type,
     JumpIfRoot(value, RootIndex::kNullValue, *is_false);
   }
 #endif
-  Register map = temps.AcquireScratch();
+  Register map = ToCapabilityRegister(temps.AcquireScratch());
   LoadMap(map, value);
 
   if (!compilation_info()
@@ -450,7 +451,7 @@ void MaglevAssembler::TestTypeOf(
     }
     case LiteralFlag::kUndefined: {
       MaglevAssembler::TemporaryRegisterScope temps(this);
-      Register map = temps.AcquireScratch();
+      Register map = ToCapabilityRegister(temps.AcquireScratch());
       // Make sure `object` isn't a valid temp here, since we reuse it.
       DCHECK(!temps.Available().has(object));
       JumpIfSmi(object, is_false, false_distance);
@@ -466,7 +467,7 @@ void MaglevAssembler::TestTypeOf(
     }
     case LiteralFlag::kFunction: {
       MaglevAssembler::TemporaryRegisterScope temps(this);
-      Register scratch = temps.AcquireScratch();
+      Register scratch = ToCapabilityRegister(temps.AcquireScratch());
       JumpIfSmi(object, is_false, false_distance);
       // Check if callable bit is set and not undetectable.
       LoadMap(scratch, object);
@@ -477,7 +478,7 @@ void MaglevAssembler::TestTypeOf(
     }
     case LiteralFlag::kObject: {
       MaglevAssembler::TemporaryRegisterScope temps(this);
-      Register scratch = temps.AcquireScratch();
+      Register scratch = ToCapabilityRegister(temps.AcquireScratch());
       JumpIfSmi(object, is_false, false_distance);
       // If the object is null then return true.
       JumpIfRoot(object, RootIndex::kNullValue, is_true, true_distance);
@@ -520,7 +521,8 @@ void MaglevAssembler::CheckAndEmitDeferredWriteBarrier(
           // CheckPageFlag emits slightly better code when value == scratch.
           MaglevAssembler::TemporaryRegisterScope temp(masm);
           Register scratch = temp.AcquireScratch();
-          if (value != object && !register_snapshot.live_registers.has(value)) {
+          if (value.code() != object.code() &&
+              !register_snapshot.live_registers.has(value)) {
             scratch = value;
           }
           __ CheckPageFlag(value, scratch,
@@ -535,7 +537,8 @@ void MaglevAssembler::CheckAndEmitDeferredWriteBarrier(
         // The RecordWrite stub promises to restore all allocatable registers,
         // but not necessarily non-allocatable registers like temporaries. Make
         // sure we're not trying to keep any non-allocatable registers alive.
-        CHECK((register_snapshot.live_registers - kAllocatableGeneralRegisters)
+        CHECK((register_snapshot.live_registers -
+               MaglevAssembler::GetAllocatableRegisters())
                   .is_empty());
         if (object != stub_object_reg &&
             register_snapshot.live_registers.has(stub_object_reg)) {
@@ -704,7 +707,7 @@ void MaglevAssembler::TryMigrateInstance(Register object,
     // restoring pop all.
     return_val = kReturnRegister0;
     MaglevAssembler::TemporaryRegisterScope temps(this);
-    Register scratch = temps.AcquireScratch();
+    Register scratch = ToCapabilityRegister(temps.AcquireScratch());
     if (register_snapshot.live_registers.has(return_val)) {
       DCHECK(!register_snapshot.live_registers.has(scratch));
       Move(scratch, return_val);

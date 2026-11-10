@@ -4803,14 +4803,15 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
                           LoadStoreOp op) {
   Register base = addr.base().C();
   Instr memop = op | Rt(rt) | RnSP(base);
+  const bool is_cap_access = IsCapabilityAccess(rt, op);
 
   if (addr.IsImmediateOffset()) {
-    unsigned size_log2 = CalcLSDataSizeLog2(op, rt.IsC());
+    unsigned size_log2 = CalcLSDataSizeLog2(op, is_cap_access);
     int offset = static_cast<int>(addr.offset());
     if (IsImmLSScaled(addr.offset(), size_log2)) {
 #if V8_TARGET_CHERI
       // Use the scaled addressing mode.
-      if (rt.IsC()) {
+      if (is_cap_access) {
         LoadStoreCapScaledImmOffset(memop, offset, size_log2);
         return;
       }
@@ -4820,7 +4821,7 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
       DCHECK(IsImmLSUnscaled(addr.offset()));
 #if V8_TARGET_CHERI
       // Use the unscaled addressing mode.
-      if (rt.IsC()) {
+      if (is_cap_access) {
         LoadStoreCapUnscaledImmOffset(memop, offset);
         return;
       }
@@ -4840,9 +4841,9 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     // Shifts are encoded in one bit, indicating a left shift by the memory
     // access size.
     DCHECK(shift_amount == 0 ||
-           shift_amount == CalcLSDataSizeLog2(op, rt.IsC()));
+           shift_amount == CalcLSDataSizeLog2(op, is_cap_access));
 #if V8_TARGET_CHERI
-    if (rt.IsC()) {
+    if (is_cap_access) {
       Emit(LoadStoreCapRegisterOffsetNormalFixed | memop |
            Cm(addr.regoffset()) | ExtendMode(ext) |
            ImmShiftLS((shift_amount > 0) ? 1 : 0));
@@ -4855,12 +4856,12 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     // Pre-index and post-index modes.
     DCHECK(IsImmLSUnscaled(addr.offset()));
     DCHECK_NE(rt, addr.base());
-    DCHECK_IMPLIES(rt.IsC(), IsAligned(addr.offset(), kSystemPointerSize));
     int offset = static_cast<int>(addr.offset());
+    DCHECK_IMPLIES(is_cap_access, IsAligned(offset, kSystemPointerSize));
     if (addr.IsPreIndex()) {
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
-        unsigned size = CalcLSDataSizeLog2(op, rt.IsC());
+      if (is_cap_access) {
+        unsigned size = CalcLSDataSizeLog2(op, is_cap_access);
         Emit(LoadStorePreCapIndexFixed | memop | ImmLS(offset >> size));
         return;
       }
@@ -4869,8 +4870,8 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr,
     } else {
       DCHECK(addr.IsPostIndex());
 #if V8_TARGET_CHERI
-      if (rt.IsC()) {
-        unsigned size = CalcLSDataSizeLog2(op, rt.IsC());
+      if (is_cap_access) {
+        unsigned size = CalcLSDataSizeLog2(op, is_cap_access);
         Emit(LoadStorePostCapIndexFixed | memop | ImmLS(offset >> size));
         return;
       }

@@ -1070,14 +1070,32 @@ inline void Assembler::LoadStoreUnscaledImmOffset(Instr memop, int offset) {
   Emit(LoadStoreUnscaledOffsetFixed | memop | ImmLS(offset));
 }
 
+inline bool Assembler::IsCapabilityAccess(const CPURegister& rt,
+                                          LoadStoreOp op) {
 #if V8_TARGET_CHERI
+  return rt.IsC() && (op == STR_c || op == LDR_c);
+#else
+  return false;
+#endif
+}
+
+#if V8_TARGET_CHERI
+inline void Assembler::CheckCapAccessOffset(int offset) {
+  const int64_t residue =
+      (static_cast<int64_t>(offset) % kSystemPointerSize + kSystemPointerSize) %
+      kSystemPointerSize;
+  DCHECK(residue == 0 || residue == kSystemPointerSize - 1);
+}
+
 inline void Assembler::LoadStoreCapScaledImmOffset(Instr memop, int offset,
                                                    unsigned size) {
+  CheckCapAccessOffset(offset);
   Emit(LoadStoreCapUnsignedOffsetCapNormalFixed | memop |
        ImmLSUnsigned(offset >> size));
 }
 inline void Assembler::LoadStoreCapUnscaledImmOffset(Instr memop, int offset) {
   DCHECK(IsImmLSUnscaled(offset));
+  CheckCapAccessOffset(offset);
   Emit(LoadStoreCapUnscaledOffsetNormalFixed | memop | ImmLS(offset));
 }
 #endif

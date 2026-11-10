@@ -3187,9 +3187,13 @@ TNode<RawPtrT> CodeStubAssembler::LoadJSTypedArrayDataPtr(
   GotoIf(CapabilityIsTagged(UncheckedCast<UintPtrT>(base_pointer)),
          &base_is_cap);
   {
-    CSA_DCHECK(this,
-               Word32Or(CapabilityIsTagged(external_pointer),
-                        IntPtrEqual(external_pointer, IntPtrConstant(0))));
+    // The mock allocator backs a logically huge ArrayBuffer with one page, so
+    // a large byteOffset can legitimately derive an out-of-bounds capability.
+    CSA_DCHECK(
+        this,
+        Word32Or(IsMockArrayBufferAllocatorFlag(),
+                 Word32Or(CapabilityIsTagged(external_pointer),
+                          IntPtrEqual(external_pointer, IntPtrConstant(0)))));
     result = RawPtrAdd(external_pointer, base_pointer);
     Goto(&done);
   }

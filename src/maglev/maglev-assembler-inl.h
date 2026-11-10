@@ -428,23 +428,25 @@ inline void MaglevAssembler::Branch(Condition condition, Label* if_true,
 
 inline void MaglevAssembler::LoadTaggedField(Register result,
                                              MemOperand operand) {
-  MacroAssembler::LoadTaggedField(result, operand);
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result), operand);
 }
 
 inline void MaglevAssembler::LoadTaggedField(Register result, Register object,
                                              int offset) {
-  MacroAssembler::LoadTaggedField(result, FieldMemOperand(object, offset));
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result),
+                                  FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::LoadTaggedSignedField(Register result,
                                                    MemOperand operand) {
-  MacroAssembler::LoadTaggedField(result, operand);
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result), operand);
 }
 
 inline void MaglevAssembler::LoadTaggedSignedField(Register result,
                                                    Register object,
                                                    int offset) {
-  MacroAssembler::LoadTaggedField(result, FieldMemOperand(object, offset));
+  MacroAssembler::LoadTaggedField(ToCapabilityRegister(result),
+                                  FieldMemOperand(object, offset));
 }
 
 inline void MaglevAssembler::LoadAndUntagTaggedSignedField(Register result,
@@ -729,7 +731,8 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
     } else {
       Register target = Descriptor::GetRegisterParameter(index);
       if constexpr (std::is_same_v<Input, std::decay_t<Arg>>) {
-        DCHECK_EQ(target, arg.location()->AssignedGeneralRegister());
+        DCHECK_EQ(target.code(),
+                  arg.location()->AssignedGeneralRegister().code());
         USE(target);
       } else {
         masm->Move(target, std::forward<Arg>(arg));
@@ -750,8 +753,8 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
     DCHECK(MachineTypeMatches(MachineType::AnyTagged(), context));
 
     if constexpr (std::is_same_v<Input, std::decay_t<decltype(context)>>) {
-      DCHECK_EQ(Descriptor::ContextRegister(),
-                context.location()->AssignedGeneralRegister());
+      DCHECK_EQ(Descriptor::ContextRegister().code(),
+                context.location()->AssignedGeneralRegister().code());
     } else {
       // Don't allow raw Register here, force materialisation from a constant.
       // This is because setting parameters could have clobbered the register.
@@ -843,7 +846,7 @@ inline void MaglevAssembler::CallRuntime(Runtime::FunctionId fid,
 
 inline void MaglevAssembler::SetMapAsRoot(Register object, RootIndex map) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
   LoadTaggedRoot(scratch, map);
   StoreTaggedFieldNoWriteBarrier(object, HeapObject::kMapOffset, scratch);
 }
@@ -1053,7 +1056,7 @@ inline void MaglevAssembler::JumpIfSeqOneByteStringMap(Register map,
 inline void MaglevAssembler::JumpIfString(Register heap_object, Label* target,
                                           Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else
@@ -1066,7 +1069,7 @@ inline void MaglevAssembler::JumpIfNotString(Register heap_object,
                                              Label* target,
                                              Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else
@@ -1078,7 +1081,7 @@ inline void MaglevAssembler::JumpIfNotString(Register heap_object,
 inline void MaglevAssembler::JumpIfNotSeqOneByteString(
     Register heap_object, Label* target, Label::Distance distance) {
   TemporaryRegisterScope temps(this);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = ToCapabilityRegister(temps.AcquireScratch());
 #ifdef V8_COMPRESS_POINTERS
   LoadCompressedMap(scratch, heap_object);
 #else

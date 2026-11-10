@@ -49,7 +49,13 @@ int MaglevSafepointTable::find_return_pc(int pc_offset) {
 }
 
 MaglevSafepointEntry MaglevSafepointTable::FindEntry(Address pc) const {
+#if defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__)
+  // Return addresses carry the C64 bit, which is not part of the code offset
+  // that safepoint entries are recorded at.
+  int pc_offset = static_cast<int>((pc & ~1) - instruction_start_);
+#else
   int pc_offset = static_cast<int>(pc - instruction_start_);
+#endif
 
   // Check if the PC is pointing at a trampoline.
   if (has_deopt_data()) {

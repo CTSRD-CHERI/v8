@@ -2889,7 +2889,8 @@ TEST_F(CheriAssemblerArm64Test,
        capability_unscaled_offset_field_is_signed_and_in_bytes) {
   SETUP_ENCODER();
   const uint32_t kRegs = (20u << 5) | 18u;
-  const int offsets[] = {-256, -16, -1, 8, 255};
+  // Legal capability displacements: 0 or -1 modulo 16 (plain or tagged base).
+  const int offsets[] = {-256, -16, -1, 15, 255};
   for (int offset : offsets) {
     uint32_t ldr = 0;
     uint32_t str = 0;
@@ -2901,10 +2902,10 @@ TEST_F(CheriAssemblerArm64Test,
     CHECK_EQ(0xA2000000u | field | kRegs, str);
   }
 
-  // 264 is past the signed field, so it costs two instructions.
+  // 271 is past the signed field, so it costs two instructions.
   enc.Reset();
   CHECK_EQ(0, enc.pc_offset());
-  enc.Str(c18, MemOperand(c20, 264));
+  enc.Str(c18, MemOperand(c20, 271));
   CHECK_EQ(2 * kInstrSize, enc.pc_offset());
 }
 

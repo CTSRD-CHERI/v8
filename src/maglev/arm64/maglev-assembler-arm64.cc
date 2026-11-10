@@ -17,13 +17,13 @@ namespace {
 
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          Register size_in_bytes) {
-  __ Sub(object, object, size_in_bytes);
-  __ Add(object, object, kHeapObjectTag);
+  __ Sub(object.C(), object.C(), size_in_bytes);
+  __ Add(object.C(), object.C(), kHeapObjectTag);
 }
 
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          int size_in_bytes) {
-  __ Add(object, object, kHeapObjectTag - size_in_bytes);
+  __ Add(object.C(), object.C(), kHeapObjectTag - size_in_bytes);
 }
 
 template <typename T>
@@ -38,11 +38,20 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
   if (v8_flags.single_generation) {
     alloc_type = AllocationType::kOld;
   }
+  // Keep the allocation top granularity-aligned, as MainAllocator assumes.
+  if constexpr (std::is_same_v<T, int>) {
+    size_in_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(size_in_bytes);
+  } else {
+    if constexpr (V8_TARGET_CHERI_BOOL && !COMPRESS_POINTERS_BOOL) {
+      __ Add(size_in_bytes, size_in_bytes, Immediate(kPointerAlignmentMask));
+      __ Bic(size_in_bytes, size_in_bytes, Immediate(kPointerAlignmentMask));
+    }
+  }
   IsolateFieldId top = SpaceAllocationTopAddress(alloc_type);
   IsolateFieldId limit = SpaceAllocationLimitAddress(alloc_type);
   ZoneLabelRef done(masm);
   MaglevAssembler::TemporaryRegisterScope temps(masm);
-  Register scratch = temps.AcquireScratch();
+  Register scratch = temps.AcquireScratch().C();
   // We are a bit short on registers, so we use the same register for {object}
   // and {new_top}. Once we have defined {new_top}, we don't use {object} until
   // {new_top} is used for the last time. And there (at the end of this
@@ -50,8 +59,8 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
   // {size_in_bytes}.
   Register new_top = object;
   // Check if there is enough space.
-  __ Ldr(object, __ ExternalReferenceAsOperand(top));
-  __ Add(new_top, object, size_in_bytes);
+  __ Ldr(object.C(), __ ExternalReferenceAsOperand(top));
+  __ Add(new_top.C(), object.C(), size_in_bytes);
   __ Ldr(scratch, __ ExternalReferenceAsOperand(limit));
   __ Cmp(new_top, scratch);
   // Otherwise call runtime.
@@ -59,19 +68,19 @@ void AllocateRaw(MaglevAssembler* masm, Isolate* isolate,
                       register_snapshot, object, AllocateBuiltin(alloc_type),
                       size_in_bytes, done);
   // Store new top and tag object.
-  __ Move(__ ExternalReferenceAsOperand(top), new_top);
+  __ Move(__ ExternalReferenceAsOperand(top), new_top.C());
 #if V8_VERIFY_WRITE_BARRIERS
   if (v8_flags.verify_write_barriers) {
     ExternalReference last_young_allocation =
         ExternalReference::last_young_allocation_address(isolate);
 
     if (alloc_type == AllocationType::kYoung) {
-      __ Sub(object, object, size_in_bytes);
-      __ Str(object,
+      __ Sub(object.C(), object.C(), size_in_bytes);
+      __ Str(object.C(),
              __ ExternalReferenceAsOperand(last_young_allocation, scratch));
-      __ Add(object, object, size_in_bytes);
+      __ Add(object.C(), object.C(), size_in_bytes);
     } else {
-      __ Str(xzr,
+      __ Str(czr,
              __ ExternalReferenceAsOperand(last_young_allocation, scratch));
     }
   }
@@ -109,8 +118,8 @@ void MaglevAssembler::OSRPrologue(Graph* graph) {
 
   if (V8_ENABLE_SANDBOX_BOOL || v8_flags.debug_code) {
     TemporaryRegisterScope temps(this);
-    Register scratch = temps.AcquireScratch();
-    Add(scratch, sp,
+    Register scratch = temps.AcquireScratch().C();
+    Add(scratch, csp,
         source_frame_size * kSystemPointerSize +
             StandardFrameConstants::kFixedFrameSizeFromFp);
     Cmp(scratch, fp);
@@ -135,7 +144,7 @@ void MaglevAssembler::OSRPrologue(Graph* graph) {
     uint32_t size_so_far = source_frame_size + additional_tagged_double * 2;
     CHECK_LE(size_so_far, target_frame_size);
     if (size_so_far < target_frame_size) {
-      Sub(sp, sp,
+      Sub(csp, csp,
           Immediate((target_frame_size - size_so_far) * kSystemPointerSize));
     }
   }
@@ -219,7 +228,7 @@ void MaglevAssembler::Prologue(Graph* graph) {
     remaining_stack_slots += (remaining_stack_slots % 2);
     // Extend sp by the size of the remaining untagged part of the frame,
     // no need to initialise these.
-    Sub(sp, sp, Immediate(remaining_stack_slots * kSystemPointerSize));
+    Sub(csp, csp, Immediate(remaining_stack_slots * kSystemPointerSize));
   }
 }
 
@@ -236,7 +245,7 @@ void MaglevAssembler::MaybeEmitDeoptBuiltinsCall(size_t eager_deopt_count,
       static_cast<int>(deopt_count) * Deoptimizer::kLazyDeoptExitSize);
 
   TemporaryRegisterScope scope(this);
-  Register scratch = scope.AcquireScratch();
+  Register scratch = scope.AcquireScratch().C();
   if (eager_deopt_count > 0) {
     Bind(eager_deopt_entry);
     LoadEntryFromBuiltin(Builtin::kDeoptimizationEntry_Eager, scratch);
@@ -257,7 +266,7 @@ void MaglevAssembler::LoadSingleCharacterString(Register result,
     Cmp(char_code, Immediate(String::kMaxOneByteCharCode));
     Assert(ls, AbortReason::kUnexpectedValue);
   }
-  Register table = scratch;
+  Register table = scratch.C();
   Add(table, kRootRegister,
       Operand(RootRegisterOffsetForRootIndex(
           RootIndex::kFirstSingleCharacterString)));
@@ -444,7 +453,7 @@ void MaglevAssembler::StringCharCodeOrCodePointAt(
   {
     // Reuse {instance_type} register here, since CompareRoot requires a scratch
     // register as well.
-    Register second_string = scratch1;
+    Register second_string = scratch1.C();
     LoadTaggedFieldWithoutDecompressing(second_string, string,
                                         offsetof(ConsString, second_));
     CompareRoot(second_string, RootIndex::kempty_string);
@@ -543,29 +552,28 @@ void MaglevAssembler::SeqOneByteStringCharCodeAt(Register result,
   ASM_CODE_COMMENT(this);
   if (v8_flags.debug_code) {
     TemporaryRegisterScope scope(this);
-    Register scratch = scope.AcquireScratch();
+    Register map = scope.AcquireScratch().C();
 
     // Check if {string} is a string.
     AssertNotSmi(string);
-    LoadMap(scratch, string);
-    CompareInstanceTypeRange(scratch, scratch, FIRST_STRING_TYPE,
-                             LAST_STRING_TYPE);
+    LoadMap(map, string);
+    CompareInstanceTypeRange(map, map.X(), FIRST_STRING_TYPE, LAST_STRING_TYPE);
     Check(kUnsignedLessThanEqual, AbortReason::kUnexpectedValue);
 
     // Check if {string} is a sequential one-byte string.
-    AndInt32(scratch, kStringRepresentationAndEncodingMask);
-    CompareInt32AndAssert(scratch, kSeqOneByteStringTag, kEqual,
+    AndInt32(map.X(), kStringRepresentationAndEncodingMask);
+    CompareInt32AndAssert(map.X(), kSeqOneByteStringTag, kEqual,
                           AbortReason::kUnexpectedValue);
 
-    LoadInt32(scratch, FieldMemOperand(string, offsetof(String, length_)));
-    CompareInt32AndAssert(index, scratch, kUnsignedLessThan,
+    LoadInt32(map.X(), FieldMemOperand(string, offsetof(String, length_)));
+    CompareInt32AndAssert(index, map.X(), kUnsignedLessThan,
                           AbortReason::kUnexpectedValue);
   }
 
   TemporaryRegisterScope scope(this);
   Register scratch = scope.AcquireScratch();
   Add(scratch, index, OFFSET_OF_DATA_START(SeqOneByteString) - kHeapObjectTag);
-  Ldrb(result, MemOperand(string, scratch));
+  Ldrb(result.W(), MemOperand(string, scratch));
 }
 
 void MaglevAssembler::CountLeadingZerosInt32(Register dst, Register src) {
@@ -601,11 +609,20 @@ void MaglevAssembler::TruncateDoubleToInt32(Register dst, DoubleRegister src) {
       vs,
       [](MaglevAssembler* masm, DoubleRegister src, Register dst,
          ZoneLabelRef done) {
+#if V8_TARGET_CHERI
+        // kDoubleToI takes its argument in the upper half of the caller's
+        // first capability slot, which an 8-byte push cannot address.
+        __ MacroAssembler::Push(czr);
+        __ Str(src, MemOperand(csp, 8));
+        __ CallBuiltin(Builtin::kDoubleToI);
+        __ Ldr(dst.W(), MemOperand(csp, 8));
+        __ Drop(1);
+#else   // !V8_TARGET_CHERI
         __ MacroAssembler::Push(xzr, src);
         __ CallBuiltin(Builtin::kDoubleToI);
         __ Ldr(dst.W(), MemOperand(sp, 0));
-        DCHECK_EQ(xzr.SizeInBytes(), src.SizeInBytes());
-        __ Drop(2);
+        __ Drop(2, kXRegSize);
+#endif  // V8_TARGET_CHERI
         __ B(*done);
       },
       src, dst, done);
@@ -649,8 +666,7 @@ void MaglevAssembler::TryTruncateDoubleToUint32(Register dst,
 
   // Convert the input float64 value to uint32.
   Fcvtzu(dst.W(), src);
-  // Convert that uint32 value back to float64.
-  Ucvtf(converted_back, dst);
+  Ucvtf(converted_back, dst.W());
   // Check that the result of the float64->uint32->float64 is equal to the input
   // (i.e. that the conversion didn't truncate.
   Fcmp(src, converted_back);
@@ -687,7 +703,7 @@ void MaglevAssembler::TryChangeFloat64ToIndex(Register result,
 void MaglevAssembler::Move(ExternalReference dst, int32_t imm) {
   TemporaryRegisterScope temps(this);
   Register scratch_imm = temps.AcquireScratch();
-  Register scratch_dst = temps.AcquireScratch();
+  Register scratch_dst = temps.AcquireScratch().C();
   Move(scratch_imm, imm);
   str(scratch_imm, ExternalReferenceAsOperand(dst, scratch_dst));
 }

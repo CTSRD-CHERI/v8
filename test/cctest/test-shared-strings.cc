@@ -1394,7 +1394,12 @@ UNINITIALIZED_TEST(ExternalizeInternalizedString) {
 
   HandleScope handle_scope(i_isolate1);
 
-  const char raw_one_byte[] = "external string";
+  // The cached/uncached threshold is the string object size, which scales with
+  // the pointer size; keep the test string above it.
+  constexpr int kOneByteLength = sizeof(ExternalString);
+  char raw_one_byte[kOneByteLength + 1];
+  memset(raw_one_byte, 'x', kOneByteLength);
+  raw_one_byte[kOneByteLength] = '\0';
   base::uc16 raw_two_byte[] = {2001, 2002, 2003};
   base::Vector<base::uc16> two_byte_vec(raw_two_byte, 3);
 
@@ -1456,7 +1461,12 @@ UNINITIALIZED_TEST(InternalizeSharedExternalString) {
 
   HandleScope handle_scope(i_isolate1);
 
-  const char raw_one_byte[] = "external string";
+  // The cached/uncached threshold is the string object size, which scales with
+  // the pointer size; keep the test string above it.
+  constexpr int kOneByteLength = sizeof(ExternalString);
+  char raw_one_byte[kOneByteLength + 1];
+  memset(raw_one_byte, 'x', kOneByteLength);
+  raw_one_byte[kOneByteLength] = '\0';
   base::uc16 raw_two_byte[] = {2001, 2002, 2003};
   base::Vector<base::uc16> two_byte_vec(raw_two_byte, 3);
 

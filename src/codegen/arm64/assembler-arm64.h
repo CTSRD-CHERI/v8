@@ -3396,7 +3396,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   inline void LoadStoreCapScaledImmOffset(Instr memop, int offset,
                                           unsigned size);
   inline void LoadStoreCapUnscaledImmOffset(Instr memop, int offset);
+  static void CheckCapAccessOffset(int offset);
 #endif
+  inline static bool IsCapabilityAccess(const CPURegister& rt, LoadStoreOp op);
   inline void LoadStoreWRegOffset(Instr memop, const Register& regoffset);
   void LoadStorePair(const CPURegister& rt, const CPURegister& rt2,
                      const MemOperand& addr, LoadStorePairOp op);
