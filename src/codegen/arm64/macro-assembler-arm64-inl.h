@@ -504,6 +504,8 @@ void MacroAssembler::Gcbase(const Register& rd, const Register& cn) {}
 void MacroAssembler::Gcseal(const Register& rd, const Register& cn) {}
 void MacroAssembler::Scvalue(const Register& cd, const Register& cn,
                              const Register& rm) {}
+void MacroAssembler::Scbnds(const Register& cd, const Register& cn,
+                            const Operand& operand) {}
 void MacroAssembler::Scbndse(const Register& cd, const Register& cn,
                              const Register& rm) {}
 void MacroAssembler::Build(const Register& cd, const Register& cn,

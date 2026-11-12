@@ -1068,6 +1068,12 @@ TNode<IntPtrT> CodeAssembler::SetBounds(Node* pointer, Node* size) {
       .MarkAsCapability();
 }
 
+TNode<IntPtrT> CodeAssembler::SetAddress(Node* pointer, Node* address) {
+  return TNode<IntPtrT>::UncheckedCast(
+             raw_assembler()->SetAddress(pointer, address))
+      .MarkAsCapability();
+}
+
 TNode<IntPtrT> CodeAssembler::SealWithType(Node* pointer, Node* type) {
   return TNode<IntPtrT>::UncheckedCast(
              raw_assembler()->SealWithType(pointer, type))

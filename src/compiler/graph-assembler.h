@@ -431,6 +431,8 @@ class V8_EXPORT_PRIVATE GraphAssembler {
   Node* CapAdd(Node* a, Node* b);
   Node* CapSub(Node* a, Node* b);
   Node* SealWithType(Node* pointer, Node* type);
+  Node* SetBounds(Node* pointer, Node* size);
+  Node* SetAddress(Node* pointer, Node* address);
   Node* CapabilityIsTagged(Node* maybe_cap);
 
   Node* AlignU(Node* a, Node* b);

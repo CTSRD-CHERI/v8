@@ -411,6 +411,12 @@ size_t Heap::AllocatorLimitOnMaxOldGenerationSize(uint64_t physical_memory) {
   return kPtrComprCageReservationSize -
          YoungGenerationSizeFromSemiSpaceSize(
              DefaultMaxSemiSpaceSize(physical_memory));
+#elif defined(V8_CHERI_TIGHT_BOUNDS)
+  // Every heap page comes out of the CHERI heap reservation.
+  return kCheriHeapReservationSize -
+         YoungGenerationSizeFromSemiSpaceSize(
+             DefaultMaxSemiSpaceSize(physical_memory)) -
+         kMaximalCodeRangeSize;
 #else
   return std::numeric_limits<size_t>::max();
 #endif
@@ -3516,6 +3522,7 @@ Tagged<FixedArrayBase> Heap::LeftTrimFixedArray(Tagged<FixedArrayBase> object,
 
   const int len = object->length();
   DCHECK(elements_to_trim <= len);
+  const int new_size = object->Size() - bytes_to_trim;
 
   // Calculate location of new array start.
   Address old_start = object.address();
@@ -3541,8 +3548,8 @@ Tagged<FixedArrayBase> Heap::LeftTrimFixedArray(Tagged<FixedArrayBase> object,
   RELAXED_WRITE_FIELD(object, bytes_to_trim + kTaggedSize,
                       Smi::FromInt(len - elements_to_trim));
 
-  Tagged<FixedArrayBase> new_object =
-      Cast<FixedArrayBase>(HeapObject::FromAddress(new_start));
+  Tagged<FixedArrayBase> new_object = Cast<FixedArrayBase>(
+      HeapObject::FromAddressWithBounds(new_start, new_size));
 
   if (isolate()->log_object_relocation()) {
     // Notify the heap profiler of change in object layout.

@@ -56,6 +56,7 @@ class ReadOnlyHeapImageDeserializer final {
           DeserializeReadOnlyRootsTable();
           break;
         case Bytecode::kFinalizeReadOnlySpace:
+          SetBoundsOnReadOnlyReferences();
           ro_space()->FinalizeSpaceForDeserialization(source_->GetUint30());
           return;
       }
@@ -102,6 +103,7 @@ class ReadOnlyHeapImageDeserializer final {
           const_cast<uint8_t*>(source_->data() + source_->position());
       ro::BitSet tagged_slots(data, tagged_slots_size_in_bits);
       DecodeTaggedSlots(start, tagged_slots);
+      RecordRelocatedSegment(start, data, tagged_slots.size_in_bits());
       source_->Advance(static_cast<int>(tagged_slots.size_in_bytes()));
     }
   }
@@ -151,8 +153,56 @@ class ReadOnlyHeapImageDeserializer final {
     return isolate_->read_only_heap()->read_only_space();
   }
 
+#ifdef V8_CHERI_TIGHT_BOUNDS
+  static_assert(!V8_STATIC_ROOTS_BOOL,
+                "CHERI object bounding does not support static roots");
+  
+  struct RelocatedSegment {
+    Address start;
+    const uint8_t* tagged_slots;
+    size_t size_in_bits;
+  };
+
+  void RecordRelocatedSegment(Address start, const uint8_t* tagged_slots,
+                              size_t size_in_bits) {
+    relocated_segments_.push_back({start, tagged_slots, size_in_bits});
+  }
+
+  void SetBoundsOnReadOnlyReferences() {
+    // Set bounds on tagged relocation slots.
+    for (const RelocatedSegment& segment : relocated_segments_) {
+      ro::BitSet tagged_slots(const_cast<uint8_t*>(segment.tagged_slots),
+                              segment.size_in_bits);
+      for (size_t i = 0; i < tagged_slots.size_in_bits(); i++) {
+        if (!tagged_slots.contains(static_cast<int>(i))) continue;
+        Address* slot =
+            reinterpret_cast<Address*>(segment.start + i * kTaggedSize);
+        *slot = SetObjectBounds(*slot);
+      }
+    }
+    // Set bounds on RO roots.
+    ReadOnlyRoots roots(isolate_);
+    for (size_t i = 0; i < ReadOnlyRoots::kEntriesCount; i++) {
+      roots.read_only_roots_[i] = SetObjectBounds(roots.read_only_roots_[i]);
+    }
+  }
+
+  static Address SetObjectBounds(Address ptr) {
+    Tagged<HeapObject> object = Cast<HeapObject>(Tagged<Object>(ptr));
+    return HeapObject::FromAddressWithBounds(object.address(), object->Size())
+        .ptr();
+  }
+#else
+  void RecordRelocatedSegment(Address start, const uint8_t* tagged_slots,
+                              size_t size_in_bits) {}
+  void SetBoundsOnReadOnlyReferences() {}
+#endif  // V8_CHERI_TIGHT_BOUNDS
+
   SnapshotByteSource* const source_;
   Isolate* const isolate_;
+#ifdef V8_CHERI_TIGHT_BOUNDS
+  std::vector<RelocatedSegment> relocated_segments_;
+#endif  // V8_CHERI_TIGHT_BOUNDS
 };
 
 ReadOnlyDeserializer::ReadOnlyDeserializer(Isolate* isolate,

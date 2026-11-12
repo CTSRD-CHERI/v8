@@ -100,6 +100,14 @@ Tagged<AllocationMemento> PretenuringHandler::FindAllocationMemento(
       return {};
     }
   }
+  // The potential memento may be outside the object pointer bounds, for example,
+  // when there isn't a memento. If we don't widen the bounds, the memento map
+  // check below crashes in CHERI.
+  if (V8_CHERI_TIGHT_BOUNDS_BOOL) {
+    memento_address = MemoryChunk::FromAddress(object_address)
+                          ->Metadata(heap->isolate())
+                          ->AddressWithPageBounds(memento_address);
+  }
 
   Tagged<HeapObject> candidate = HeapObject::FromAddress(memento_address);
   ObjectSlot candidate_map_slot = candidate->map_slot();
