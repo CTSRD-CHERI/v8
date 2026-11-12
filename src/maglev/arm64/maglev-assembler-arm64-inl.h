@@ -1617,6 +1617,12 @@ inline void MaglevAssembler::MaybeEmitPlaceHolderForDeopt() {
   // Implemented only for x64.
 }
 
+inline void MaglevAssembler::SetAllocationBounds(Register object,
+                                                 const Operand& size_in_bytes) {
+  if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return;
+  Scbnds(object.C(), object.C(), size_in_bytes);
+}
+
 }  // namespace maglev
 }  // namespace internal
 }  // namespace v8
