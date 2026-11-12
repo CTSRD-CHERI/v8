@@ -2713,11 +2713,7 @@ class V8_NODISCARD UseScratchRegisterScope {
   V8_EXPORT_PRIVATE ~UseScratchRegisterScope() {
     available_->set_bits(old_available_);
     availablefp_->set_bits(old_availablefp_);
-    // TODO(cheri): Be smarter about this, this is a nasty workaround.
-    CPURegister reg = NoCPUReg;
-    while ((reg = pushed_.PopLowestIndex()) != NoCPUReg) {
-      masm_->Pop(reg);
-    }
+    if (!pushed_.IsEmpty()) PopPushedRegisters();
   }
 
   // Take a register from the appropriate temps list. It will be returned
@@ -2797,6 +2793,10 @@ class V8_NODISCARD UseScratchRegisterScope {
   }
 
  private:
+  // This is out of line because it calls MacroAssembler::Pop<>,
+  // which is only defined in macro-assembler-arm64-inl.h.
+  V8_EXPORT_PRIVATE void PopPushedRegisters();
+
   V8_EXPORT_PRIVATE static CPURegister AcquireNextAvailable(
       CPURegList* available) {
     CHECK(!available->IsEmpty());
