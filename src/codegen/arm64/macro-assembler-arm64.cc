@@ -1512,6 +1512,14 @@ void MacroAssembler::Pop(const CPURegister& dst0, const CPURegister& dst1,
   PopHelper(count - 4, size, dst4, dst5, dst6, dst7);
 }
 
+void UseScratchRegisterScope::PopPushedRegisters() {
+  // TODO(cheri): Be smarter about this, this is a nasty workaround.
+  CPURegister reg = NoCPUReg;
+  while ((reg = pushed_.PopLowestIndex()) != NoCPUReg) {
+    masm_->Pop(reg);
+  }
+}
+
 void MacroAssembler::PushMultipleTimes(CPURegister src, Register count) {
   UseScratchRegisterScope temps(this);
   Register temp = temps.AcquireSameSizeAs(count);
