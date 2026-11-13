@@ -70,3 +70,22 @@ gcc_toolchain("morello-buildroot") {
   }
 }
 
+gcc_toolchain("morello-hybrid") {
+  toolprefix = "$clang_base_path/bin"
+  cc = "${toolprefix}/clang"
+  cxx = "${toolprefix}/clang++"
+  readelf = "${toolprefix}/llvm-readelf"
+  nm = "${toolprefix}/llvm-nm"
+  ar = "${toolprefix}/llvm-ar"
+  ld = cxx
+  extra_cppflags = "--target=aarch64-unknown-freebsd -march=morello -mabi=aapcs"
+  extra_asmflags = "--target=aarch64-unknown-freebsd -march=morello -mabi=aapcs"
+  extra_ldflags = "--target=aarch64-unknown-freebsd -march=morello -mabi=aapcs -Wl,--dynamic-linker=/libexec/ld-elf64.so.1"
+  toolchain_args = {
+    current_cpu = "arm64"
+    current_os = "freebsd"
+    is_clang = true
+    is_cheri = false
+  }
+}
+
