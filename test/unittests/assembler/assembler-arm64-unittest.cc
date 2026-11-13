@@ -1736,6 +1736,11 @@ TEST_F(AssemblerArm64Test, adr_far) {
 
   START();
   __ Mov(x0, 0x0);
+  // Keep a tagged capability live in c2 across the far adr sequences.
+  // c2 should hold a tagged capability at the end. This tests that
+  // marker nops (nop(ADR_FAR_NOP)) do not invalidate capability
+  // registers.
+  __ Mov(c2, csp);
 
   __ Bind(&test_near);
   __ Adr(c10, &near_forward, MacroAssembler::kAdrFar);
@@ -1781,12 +1786,16 @@ TEST_F(AssemblerArm64Test, adr_far) {
   __ Bind(&fail);
   __ Orr(x0, x0, 1 << 4);
   __ Bind(&done);
+  __ Gctag(x1, c2);
 
   END();
 
   RUN();
 
   CHECK_EQUAL_64(0xF, x0);
+#ifdef __CHERI_PURE_CAPABILITY__
+  CHECK_EQUAL_64(0x1, x1);
+#endif
 }
 
 TEST_F(AssemblerArm64Test, branch_cond) {

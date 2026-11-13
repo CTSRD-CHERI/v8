@@ -1007,7 +1007,13 @@ void Assembler::adr(const Register& rd, Label* label) {
 
 void Assembler::nop(NopMarkerTypes n) {
   DCHECK((FIRST_NOP_MARKER <= n) && (n <= LAST_NOP_MARKER));
+#if V8_TARGET_CHERI
+  // Copy the whole capability register, otherwise the capability in c<n> is
+  // invalidated.
+  capmov(Register::CRegFromCode(n), Register::CRegFromCode(n));
+#else
   mov(Register::XRegFromCode(n), Register::XRegFromCode(n));
+#endif  // V8_TARGET_CHERI
 }
 
 void Assembler::add(const Register& rd, const Register& rn,
