@@ -1662,7 +1662,6 @@ class TurboshaftGraphBuildingInterface
     V<Float64> float_value = __ template LoadField<Float64>(
         tagged, AccessBuilder::ForHeapNumberValue());
     if constexpr (Is64()) {
-      DCHECK_EQ(WordPtr::bits, Word64::bits);
       GOTO(done_label,
            V<WordPtr>::Cast(
                __ TruncateFloat64ToInt64OverflowUndefined(float_value)));
