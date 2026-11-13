@@ -3751,6 +3751,7 @@ v8_header_set("v8_internal_headers") {
     "src/compiler/bytecode-analysis.h",
     "src/compiler/bytecode-graph-builder.h",
     "src/compiler/bytecode-liveness-map.h",
+    "src/compiler/c-linkage.h",
     "src/compiler/checkpoint-elimination.h",
     "src/compiler/code-assembler-compilation-job.h",
     "src/compiler/code-assembler.h",

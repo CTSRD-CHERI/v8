@@ -8148,6 +8148,7 @@ void TestPokePair(TurboshaftInstructionSelectorTest::StreamBuilder* m,
   auto s = m->Build();
   int num_poke_pair = 0;
   int num_poke = 0;
+  int num_poke_cargument = 0;
   for (size_t i = 0; i < s.size(); ++i) {
     if (s[i]->arch_opcode() == kArm64PokePair) {
       num_poke_pair++;
@@ -8156,10 +8157,26 @@ void TestPokePair(TurboshaftInstructionSelectorTest::StreamBuilder* m,
     if (s[i]->arch_opcode() == kArm64Poke) {
       num_poke++;
     }
+
+#if V8_TARGET_CHERI
+    if (s[i]->arch_opcode() == kArm64PokeCArgument) {
+      num_poke_cargument++;
+    }
+#endif
   }
 
+#if V8_TARGET_CHERI
+  // The purecap C-call path stores each memory argument at its AAPCS64-cap
+  // byte offset with kArm64PokeCArgument.
+  USE(expected_poke_pair);
+  USE(expected_poke);
+  EXPECT_EQ(static_cast<int>(args.size()), num_poke_cargument);
+  EXPECT_EQ(0, num_poke_pair);
+  EXPECT_EQ(0, num_poke);
+#else
   EXPECT_EQ(expected_poke_pair, num_poke_pair);
   EXPECT_EQ(expected_poke, num_poke);
+#endif
 }
 }  // namespace
 

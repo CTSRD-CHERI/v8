@@ -47,6 +47,19 @@ inline constexpr MachineType MachineTypeForC() {
 FOREACH_CTYPE_MACHINE_TYPE_MAPPING(DECLARE_TEMPLATE_SPECIALIZATION)
 #undef DECLARE_TEMPLATE_SPECIALIZATION
 
+#if V8_TARGET_CHERI
+// Native CHERI pointer-width integers are capability-sized, unlike int64_t.
+// Keep this distinct from ptraddr_t/ScaledInt, which are fixed-width scalars.
+template <>
+inline MachineType constexpr MachineTypeForC<intptr_t>() {
+  return MachineType::Pointer();
+}
+template <>
+inline MachineType constexpr MachineTypeForC<uintptr_t>() {
+  return MachineType::Pointer();
+}
+#endif  // V8_TARGET_CHERI
+
 #ifdef V8_USE_SIMULATOR_WITH_GENERIC_C_CALLS
 template <>
 inline MachineType constexpr MachineTypeForC<v8::AnyCType>() {

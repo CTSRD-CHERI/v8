@@ -46,11 +46,16 @@ template <class T>
 using TVariable = TypedCodeAssemblerVariable<T>;
 using PromiseResolvingFunctions = TorqueStructPromiseResolvingFunctions;
 
-intptr_t sum10(intptr_t a0, intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4,
-               intptr_t a5, intptr_t a6, intptr_t a7, intptr_t a8,
-               intptr_t a9) {
-  return a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9;
+int64_t sum10(const int64_t* a0, const int64_t* a1, const int64_t* a2,
+              const int64_t* a3, const int64_t* a4, const int64_t* a5,
+              const int64_t* a6, const int64_t* a7, const int64_t* a8,
+              const int64_t* a9) {
+  const int64_t* const base = a0;
+  return (a0 - base) + (a1 - base) + (a2 - base) + (a3 - base) + (a4 - base) +
+         (a5 - base) + (a6 - base) + (a7 - base) + (a8 - base) + (a9 - base);
 }
+
+int64_t sum10_values[10];
 
 static int sum3(int a0, int a1, int a2) { return a0 + a1 + a2; }
 
@@ -68,19 +73,40 @@ TEST(CallCFunction) {
         ExternalReference::Create(reinterpret_cast<Address>(sum10)));
 
     MachineType type_intptr = MachineType::IntPtr();
+    MachineType type_pointer = MachineType::Pointer();
 
-    TNode<IntPtrT> const result = m.UncheckedCast<IntPtrT>(
-        m.CallCFunction(fun_constant, type_intptr,
-                        std::make_pair(type_intptr, m.IntPtrConstant(0)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(1)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(2)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(3)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(4)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(5)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(6)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(7)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(8)),
-                        std::make_pair(type_intptr, m.IntPtrConstant(9))));
+    TNode<IntPtrT> const result = m.UncheckedCast<IntPtrT>(m.CallCFunction(
+        fun_constant, type_intptr,
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[0])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[1])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[2])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[3])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[4])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[5])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[6])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[7])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[8])))),
+        std::make_pair(type_pointer,
+                       m.ExternalConstant(ExternalReference::Create(
+                           reinterpret_cast<Address>(&sum10_values[9]))))));
     m.Return(m.SmiTag(result));
   }
 
