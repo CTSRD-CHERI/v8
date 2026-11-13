@@ -179,7 +179,7 @@ macro AllocateNonEmptySeqOneByteString<Iterator: type>(
       chars: ...content
     };
   }
-  @ifnot (CHERI_PURECAP_UNCOMPRESSED) {
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) {
     return new (ClearPadding) SeqOneByteString{
       map: kSeqOneByteStringMap,
       raw_hash_field: kNameEmptyHashField,
@@ -202,7 +202,7 @@ macro AllocateNonEmptySeqTwoByteString<Iterator: type>(
       chars: ...content
     };
   }
-  @ifnot (CHERI_PURECAP_UNCOMPRESSED) {
+  @ifnot(CHERI_PURECAP_UNCOMPRESSED) {
     return new (ClearPadding) SeqTwoByteString{
       map: kSeqTwoByteStringMap,
       raw_hash_field: kNameEmptyHashField,
@@ -348,6 +348,38 @@ macro StringToSlice(string: String): never labels OneByte(ConstSlice<char8>),
   }
   VerifiedUnreachable();
 }
+
+@if(CHERI_PURECAP)
+  // Return the raw data pointer and character offset for an external string.
+  macro ExternalStringToRawPtr(string: String): never labels
+      OneByte(RawPtr<char8>, intptr), TwoByte(RawPtr<char16>, intptr) {
+    let string = string;
+    let offset: intptr = 0;
+    while (true) {
+      typeswitch (string) {
+        case (s: ThinString): {
+          string = s.actual;
+        }
+        case (s: ConsString): {
+          string = Flatten(s);
+        }
+        case (s: SlicedString): {
+          offset += Convert<intptr>(s.offset);
+          string = s.parent;
+        }
+        case (s: ExternalOneByteString): {
+          goto OneByte(s.GetChars(), offset);
+        }
+        case (s: ExternalTwoByteString): {
+          goto TwoByte(s.GetChars(), offset);
+        }
+        case (String): {
+          unreachable;
+        }
+      }
+    }
+    VerifiedUnreachable();
+  }
 
 // Dispatch on the slice type of two different strings.
 macro TwoStringsToSlices<Result: type, Functor: type>(

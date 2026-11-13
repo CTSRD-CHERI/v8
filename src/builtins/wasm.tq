@@ -1223,6 +1223,34 @@ builtin WasmStringEncodeWtf16(string: String, offset: uintptr, memory: uint32):
       SmiConstant(0), SmiFromInt32(string.length));
   return Unsigned(string.length);
 }
+@if(CHERI_PURECAP)
+  macro CopyExternalStringToWtf16Array(
+      string: String, arrayContent: MutableSlice<char16>): void {
+    try {
+      ExternalStringToRawPtr(string) otherwise OneByte, TwoByte;
+    } label OneByte(data: RawPtr<char8>, offset: intptr) {
+      let toIt = arrayContent.Iterator();
+      let index: intptr = 0;
+      while (true) {
+        let toRef = toIt.NextReference() otherwise break;
+        const fromRef = GetRefAt<char8>(
+            data, torque_internal::TimesSizeOf<char8>(offset + index));
+        *toRef = %RawDownCast<char16>(Convert<uint16>(*fromRef));
+        index++;
+      }
+    } label TwoByte(data: RawPtr<char16>, offset: intptr) {
+      let toIt = arrayContent.Iterator();
+      let index: intptr = 0;
+      while (true) {
+        let toRef = toIt.NextReference() otherwise break;
+        const fromRef = GetRefAt<char16>(
+            data, torque_internal::TimesSizeOf<char16>(offset + index));
+        *toRef = *fromRef;
+        index++;
+      }
+    }
+  }
+
 builtin WasmStringEncodeWtf16Array(
     string: String, array: WasmArray, start: uint32): uint32 {
   try {
@@ -1233,21 +1261,28 @@ builtin WasmStringEncodeWtf16Array(
         torque_internal::TimesSizeOf<char16>(Convert<intptr>(start));
     const arrayContent = torque_internal::unsafe::NewMutableSlice<char16>(
         array, byteOffset, string.length_intptr);
-    try {
-      StringToSlice(string) otherwise OneByte, TwoByte;
-    } label OneByte(slice: ConstSlice<char8>) {
-      let fromIt = slice.Iterator();
-      let toIt = arrayContent.Iterator();
-      while (true) {
-        let toRef = toIt.NextReference() otherwise break;
-        *toRef = %RawDownCast<char16>(Convert<uint16>(fromIt.NextNotEmpty()));
+    if (string.StringInstanceType().representation ==
+        StringRepresentationTag::kExternalStringTag) {
+      @if(CHERI_PURECAP) {
+        CopyExternalStringToWtf16Array(string, arrayContent);
       }
-    } label TwoByte(slice: ConstSlice<char16>) {
-      let fromIt = slice.Iterator();
-      let toIt = arrayContent.Iterator();
-      while (true) {
-        let toRef = toIt.NextReference() otherwise break;
-        *toRef = fromIt.NextNotEmpty();
+    } else {
+      try {
+        StringToSlice(string) otherwise OneByte, TwoByte;
+      } label OneByte(slice: ConstSlice<char8>) {
+        let fromIt = slice.Iterator();
+        let toIt = arrayContent.Iterator();
+        while (true) {
+          let toRef = toIt.NextReference() otherwise break;
+          *toRef = %RawDownCast<char16>(Convert<uint16>(fromIt.NextNotEmpty()));
+        }
+      } label TwoByte(slice: ConstSlice<char16>) {
+        let fromIt = slice.Iterator();
+        let toIt = arrayContent.Iterator();
+        while (true) {
+          let toRef = toIt.NextReference() otherwise break;
+          *toRef = fromIt.NextNotEmpty();
+        }
       }
     }
     return Unsigned(string.length);
