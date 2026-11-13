@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "src/compiler/c-linkage.h"
+
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/macro-assembler.h"
 #include "src/compiler/globals.h"
@@ -209,6 +211,69 @@ void BuildParameterLocations(const MachineSignature* msig,
         out_locations->AddParam(
             LinkageLocation::ForCallerFrameSlot(-1 - stack_offset, type));
         stack_offset++;
+      }
+    }
+  }
+}
+#elif V8_TARGET_ARCH_ARM64 && V8_TARGET_CHERI
+
+// Allocate general-purpose, floating-point, and capability arguments to their
+// respective register classes. Once a class is full, later arguments in that
+// class go to memory. Memory arguments use byte offsets in 8-byte units;
+// capabilities require 16-byte alignment. For example, after eight GP register
+// arguments, an int64 goes at offset 0 and a following capability at offset 16,
+// leaving an 8-byte alignment hole. FP arguments follow the same rule in 8-byte
+// slots. The NMAA tracks the next unused memory byte.
+void BuildParameterLocations(const MachineSignature* msig,
+                             size_t kFPParamRegisterCount,
+                             size_t kParamRegisterCount,
+                             const DoubleRegister* kFPParamRegisters,
+                             const v8::internal::Register* kParamRegisters,
+                             LocationSignature::Builder* out_locations) {
+  size_t ngrn = 0;
+  size_t nsrn = 0;
+  int nmaa = 0;
+  for (size_t i = 0; i < msig->parameter_count(); ++i) {
+    MachineType type = msig->GetParam(i);
+    MachineRepresentation rep = type.representation();
+    if (IsFloatingPoint(rep)) {
+      if (nsrn < kFPParamRegisterCount) {
+        out_locations->AddParam(LinkageLocation::ForRegister(
+            kFPParamRegisters[nsrn++].code(), type));
+      } else {
+        int alignment = AAPCS64CapArgumentAlignmentInBytes(type);
+        int size = AAPCS64CapArgumentSizeInBytes(type);
+        nmaa = (nmaa + alignment - 1) & -alignment;
+        out_locations->AddParam(LinkageLocation::ForCallerFrameSlot(
+            -1 - nmaa / kAbiSlotSize, type));
+        nmaa += size;
+      }
+    } else if (AAPCS64CapArgumentIsCapabilitySized(type)) {
+      if (ngrn < kParamRegisterCount) {
+        out_locations->AddParam(
+            LinkageLocation::ForRegister(kParamRegisters[ngrn++].code(), type));
+      } else {
+        int alignment = AAPCS64CapArgumentAlignmentInBytes(type);
+        int size = AAPCS64CapArgumentSizeInBytes(type);
+        nmaa = (nmaa + alignment - 1) & -alignment;
+        out_locations->AddParam(LinkageLocation::ForCallerFrameSlot(
+            -1 - nmaa / kAbiSlotSize, type));
+        nmaa += size;
+      }
+    } else {
+      // Scalar integral arguments use one 8-byte slot in memory, even if the
+      // source type is narrower. Capability and FP arguments are handled above.
+      CHECK(rep == MachineRepresentation::kBit || IsIntegral(rep));
+      if (ngrn < kParamRegisterCount) {
+        out_locations->AddParam(
+            LinkageLocation::ForRegister(kParamRegisters[ngrn++].code(), type));
+      } else {
+        int alignment = AAPCS64CapArgumentAlignmentInBytes(type);
+        int size = AAPCS64CapArgumentSizeInBytes(type);
+        nmaa = (nmaa + alignment - 1) & -alignment;
+        out_locations->AddParam(LinkageLocation::ForCallerFrameSlot(
+            -1 - nmaa / kAbiSlotSize, type));
+        nmaa += size;
       }
     }
   }

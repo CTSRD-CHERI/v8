@@ -55,7 +55,8 @@ void FrameAccessState::SetFrameAccessToDefault() {
 }
 
 FrameOffset FrameAccessState::GetFrameOffset(int spill_slot) const {
-  const int frame_offset = FrameSlotToFPOffset(spill_slot);
+  const int frame_offset =
+      FrameSlotToFPOffset(spill_slot, caller_frame_slot_size_);
   if (access_frame_with_fp()) {
     return FrameOffset::FromFramePointer(frame_offset);
   } else {

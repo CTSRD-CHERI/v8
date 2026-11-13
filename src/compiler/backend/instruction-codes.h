@@ -137,12 +137,19 @@ inline RecordWriteMode WriteBarrierKindToRecordWriteMode(
 
 // Target-specific opcodes that specify which assembly sequence to emit.
 // Most opcodes specify a single instruction.
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+#define CHERI_ARM64_ARCH_OPCODE_LIST(V) V(ArchTailCallCFunction)
+#else
+#define CHERI_ARM64_ARCH_OPCODE_LIST(V)
+#endif
+
 #define COMMON_ARCH_OPCODE_LIST(V)                                         \
   /* Tail call opcodes are grouped together to make IsTailCall fast */     \
   /* and Arch call opcodes are grouped together to make */                 \
   /* IsCallWithDescriptorFlags fast */                                     \
   V(ArchTailCallCodeObject)                                                \
   V(ArchTailCallAddress)                                                   \
+  CHERI_ARM64_ARCH_OPCODE_LIST(V)                                          \
   IF_WASM(V, ArchTailCallWasm)                                             \
   IF_WASM(V, ArchTailCallWasmIndirect)                                     \
   /* Update IsTailCall if further TailCall opcodes are added */            \

@@ -862,6 +862,31 @@ void CodeGenerator::AssemblePrepareTailCall() {
 
 namespace {
 
+void StoreCArgument(MacroAssembler* masm, Arm64OperandConverter& i,
+                    MemOperand destination) {
+  MachineRepresentation rep =
+      static_cast<MachineRepresentation>(i.InputInt32(2));
+  if (rep == MachineRepresentation::kFloat32) {
+    masm->Str(i.InputFloat32Register(0), destination);
+  } else if (rep == MachineRepresentation::kFloat64) {
+    masm->Str(i.InputFloat64Register(0), destination);
+#if V8_TARGET_CHERI
+  } else if (rep == MachineRepresentation::kCapability64 ||
+             rep == MachineRepresentation::kTaggedSigned ||
+             rep == MachineRepresentation::kTaggedPointer ||
+             rep == MachineRepresentation::kTagged) {
+#else
+  } else if (rep == MachineRepresentation::kTaggedSigned ||
+             rep == MachineRepresentation::kTaggedPointer ||
+             rep == MachineRepresentation::kTagged) {
+#endif
+    masm->Str(i.InputCapabilityRegister(0), destination);
+  } else {
+    DCHECK(rep == MachineRepresentation::kBit || IsIntegral(rep));
+    masm->Str(i.InputRegister(0).X(), destination);
+  }
+}
+
 bool HasImmediateInput(Instruction* instr, size_t index) {
   return instr->InputAt(index)->IsImmediate();
 }
@@ -898,7 +923,8 @@ void CodeGenerator::AssembleTailCallAfterGap(Instruction* instr,
                                 first_unused_slot_offset);
   DCHECK(instr->IsTailCall());
   InstructionOperandConverter g(this, instr);
-  int optional_padding_offset = g.InputInt32(instr->InputCount() - 2);
+  int optional_padding_offset =
+      g.InputInt32(instr->TailCallOptionalPaddingInputIndex());
   if (optional_padding_offset % 2) {
     __ Poke(padregc, optional_padding_offset * kSystemPointerSize);
   }
@@ -1119,6 +1145,9 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       frame_access_state()->SetFrameAccessToDefault();
       break;
     }
+#if V8_TARGET_CHERI
+    case kArchTailCallCFunction:
+#endif
     case kArchTailCallAddress: {
       CHECK(!instr->InputAt(0)->IsImmediate());
       Register reg = i.InputRegisterCapability(0);
@@ -1128,6 +1157,15 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       UseScratchRegisterScope temps(masm());
       temps.Exclude(c17);
       __ Mov(c17, reg);
+#if V8_TARGET_CHERI
+      if (instr->arch_opcode() == ArchOpcode::kArchTailCallCFunction) {
+        int memory_argument_bytes = static_cast<int>(
+            i.InputInt64(instr->TailCallCMemoryArgumentBytesInputIndex()));
+        if (memory_argument_bytes > 0) {
+          __ PrepareMemoryArguments(memory_argument_bytes);
+        }
+      }
+#endif
       __ Jump(c17);
       unwinding_info_writer_.MarkBlockWillExit();
       frame_access_state()->ClearSPDelta();
@@ -1227,6 +1265,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       uint32_t param_counts = i.InputUint32(instr->InputCount() - 1);
       int const num_gp_parameters = ParamField::decode(param_counts);
       int const num_fp_parameters = FPParamField::decode(param_counts);
+#if V8_TARGET_CHERI
+      int const memory_argument_bytes = i.InputInt32(instr->InputCount() - 2);
+#else
+      int const memory_argument_bytes = 0;
+#endif
       Label return_location;
       SetIsolateDataSlots set_isolate_data_slots = SetIsolateDataSlots::kYes;
 #if V8_ENABLE_WEBASSEMBLY
@@ -1240,7 +1283,8 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       if (instr->InputAt(0)->IsImmediate()) {
         ExternalReference ref = i.InputExternalReference(0);
         pc_offset = __ CallCFunction(ref, num_gp_parameters, num_fp_parameters,
-                                     set_isolate_data_slots, &return_location);
+                                     set_isolate_data_slots, &return_location,
+                                     memory_argument_bytes);
       } else {
         Register func = i.InputRegisterCapability(0);
         // The only register-input C-function call without a function
@@ -1251,7 +1295,8 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
           __ PrepareC64Jump(func);
         }
         pc_offset = __ CallCFunction(func, num_gp_parameters, num_fp_parameters,
-                                     set_isolate_data_slots, &return_location);
+                                     set_isolate_data_slots, &return_location,
+                                     memory_argument_bytes);
       }
       RecordSafepoint(instr->reference_map(), pc_offset);
 
@@ -2266,6 +2311,14 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       }
       break;
     }
+    case kArm64PokeCArgument:
+      StoreCArgument(masm(), i, MemOperand(csp, i.InputInt32(1)));
+      break;
+    case kArm64TailCallPokeCArgument:
+      StoreCArgument(masm(), i,
+                     MemOperand(fp, StandardFrameConstants::kFixedFrameSizeAboveFp +
+                                        i.InputInt32(1)));
+      break;
     case kArm64Peek: {
       int reverse_slot = i.InputInt32(0);
       int offset =
@@ -5242,9 +5295,22 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
     case MoveType::kStackToRegister: {
       MemOperand src = g.ToMemOperand(source, masm());
       if (destination->IsRegister()) {
+#if V8_TARGET_CHERI
+        // AAPCS64-cap scalar arguments on the caller's frame are 8-byte values
+        // in 8-byte slots; loading them as capabilities would require 16-byte
+        // alignment. Capability and tagged slots are still loaded at
+        // capability width so their tag survives.
+        if (LocationOperand::cast(source)->index() < 0 &&
+            !source->IsCapabilityStackSlot()) {
+          __ Ldr(g.ToRegister(destination), src);
+        } else {
+          __ Ldr(g.ToCapabilityRegister(destination), src);
+        }
+#else
         // As the stack slots are capability width, perform a capability width
         // load.
         __ Ldr(g.ToCapabilityRegister(destination), src);
+#endif
       } else {
         VRegister dst = g.ToDoubleRegister(destination);
         if (destination->IsFloatRegister() || destination->IsDoubleRegister()) {

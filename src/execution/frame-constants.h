@@ -863,7 +863,14 @@ inline static int FPOffsetToFrameSlot(int frame_offset) {
          frame_offset / kSystemPointerSize;
 }
 
-inline static int FrameSlotToFPOffset(int slot) {
+inline static int FrameSlotToFPOffset(
+    int slot, int caller_slot_size = kSystemPointerSize) {
+  if (slot < 0) {
+    // Caller frame slots may use a different stride from V8's own pointer-sized
+    // slots; C calls on CHERI lay their memory arguments out in 8-byte units.
+    return StandardFrameConstants::kFixedSlotCountAboveFp * kSystemPointerSize -
+           caller_slot_size - slot * caller_slot_size;
+  }
   return (StandardFrameConstants::kFixedSlotCountAboveFp - 1 - slot) *
          kSystemPointerSize;
 }

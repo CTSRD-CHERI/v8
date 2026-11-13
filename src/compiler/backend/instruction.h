@@ -1149,9 +1149,13 @@ class V8_EXPORT_PRIVATE Instruction final {
   bool IsTailCall() const {
 #if V8_ENABLE_WEBASSEMBLY
     return arch_opcode() <= ArchOpcode::kArchTailCallWasmIndirect;
+#elif V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    // The CHERI C-function opcode follows ArchTailCallAddress, so this also
+    // recognizes ordinary address and code-object tail calls.
+    return arch_opcode() <= ArchOpcode::kArchTailCallCFunction;
 #else
     return arch_opcode() <= ArchOpcode::kArchTailCallAddress;
-#endif  // V8_ENABLE_WEBASSEMBLY
+#endif
   }
 
   static constexpr bool IsCallWithDescriptorFlags(InstructionCode arch_opcode) {
@@ -1184,6 +1188,32 @@ class V8_EXPORT_PRIVATE Instruction final {
       default:
         UNREACHABLE();
     }
+  }
+#endif
+
+  // The last tail-call input is the first unused stack slot. CHERI C tail calls
+  // add MAL after that, so the first unused stack slot is the second-to-last
+  // input and MAL is the last input.
+  size_t TailCallFirstUnusedSlotInputIndex() const {
+    DCHECK(IsTailCall());
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    if (arch_opcode() == ArchOpcode::kArchTailCallCFunction) {
+      return InputCount() - 2;
+    }
+#endif
+    return InputCount() - 1;
+  }
+
+  // Optional padding immediately precedes the first unused slot operand.
+  size_t TailCallOptionalPaddingInputIndex() const {
+    return TailCallFirstUnusedSlotInputIndex() - 1;
+  }
+
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  // MAL is the final operand of a CHERI C tail call.
+  size_t TailCallCMemoryArgumentBytesInputIndex() const {
+    DCHECK_EQ(arch_opcode(), ArchOpcode::kArchTailCallCFunction);
+    return InputCount() - 1;
   }
 #endif
 

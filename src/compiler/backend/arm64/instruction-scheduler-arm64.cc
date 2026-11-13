@@ -371,6 +371,8 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kArm64Claim:
     case kArm64Poke:
     case kArm64PokePair:
+    case kArm64PokeCArgument:
+    case kArm64TailCallPokeCArgument:
     case kArm64StrH:
     case kArm64StrS:
     case kArm64StrD:

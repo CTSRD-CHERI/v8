@@ -265,6 +265,9 @@ class FrameAccessState : public ZoneObject {
   void SetFrameAccessToFP() { access_frame_with_fp_ = true; }
   void SetFrameAccessToSP() { access_frame_with_fp_ = false; }
 
+  void SetCallerFrameSlotSize(int size) { caller_frame_slot_size_ = size; }
+  int caller_frame_slot_size() const { return caller_frame_slot_size_; }
+
   int GetSPToFPSlotCount() const {
     int frame_slot_count =
         (has_frame() ? frame()->GetTotalFrameSlotCount() : kElidedFrameSlots) -
@@ -286,6 +289,7 @@ class FrameAccessState : public ZoneObject {
   bool access_frame_with_fp_;
   int sp_delta_;
   bool has_frame_;
+  int caller_frame_slot_size_ = kSystemPointerSize;
 };
 }  // namespace compiler
 }  // namespace internal

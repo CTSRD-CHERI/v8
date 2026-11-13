@@ -523,6 +523,14 @@ class V8_EXPORT_PRIVATE Linkage : public NON_EXPORTED_BASE(ZoneObject) {
   CallDescriptor* const incoming_;
 };
 
+int GetSizeInCallSlots(const CallDescriptor* descriptor,
+                       LinkageLocation location);
+
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+int GetCCallerFrameByteOffset(LinkageLocation location);
+int GetCMemoryArgumentSizeInBytes(const CallDescriptor* descriptor);
+#endif
+
 }  // namespace compiler
 }  // namespace internal
 }  // namespace v8

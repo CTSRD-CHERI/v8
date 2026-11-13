@@ -449,6 +449,7 @@ void MacroAssembler::DebugAssertCapabilityIsTagged(const Register& cs) {
   DCHECK(allow_macro_instructions());
   if (v8_flags.debug_code) {
     UseScratchRegisterScope temps(this);
+    if (temps.Available()->IncludesAliasOf(c9)) temps.Exclude(c9);
     Label out;
     size_t popcount = __builtin_popcount(temps.Available()->bits());
     if (popcount > 0) {

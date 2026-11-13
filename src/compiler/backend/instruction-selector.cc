@@ -15,6 +15,7 @@
 #include "src/common/globals.h"
 #include "src/compiler/backend/instruction-selector-impl.h"
 #include "src/compiler/backend/instruction.h"
+#include "src/compiler/c-linkage.h"
 #include "src/compiler/compiler-source-position-table.h"
 #include "src/compiler/globals.h"
 #include "src/compiler/js-heap-broker.h"
@@ -1079,6 +1080,19 @@ void InstructionSelector::AppendDeoptimizeArguments(
                                   instruction_zone());
 }
 
+struct TailCallCArgument {
+  OpIndex node;
+  int byte_offset;
+  MachineRepresentation representation;
+};
+
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+int TailCallSlots(int slots) {
+  return AddArgumentPaddingSlots(slots) /
+         (kSystemPointerSize / kAbiSlotSize);
+}
+#endif
+
 // An internal helper class for generating the operands to calls.
 // TODO(bmeurer): Get rid of the CallBuffer business and make
 // InstructionSelector::VisitCall platform independent instead.
@@ -1090,11 +1104,19 @@ struct CallBuffer {
         output_nodes(zone),
         outputs(zone),
         instruction_args(zone),
-        pushed_nodes(zone) {
+        pushed_nodes(zone)
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+        ,
+        tail_call_c_arguments(zone)
+#endif
+  {
     output_nodes.reserve(call_descriptor->ReturnCount());
     outputs.reserve(call_descriptor->ReturnCount());
     pushed_nodes.reserve(input_count());
     instruction_args.reserve(input_count() + frame_state_value_count());
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    tail_call_c_arguments.reserve(call_descriptor->ParameterCount());
+#endif
   }
 
   const CallDescriptor* descriptor;
@@ -1103,6 +1125,9 @@ struct CallBuffer {
   InstructionOperandVector outputs;
   InstructionOperandVector instruction_args;
   ZoneVector<PushParameter> pushed_nodes;
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  ZoneVector<TailCallCArgument> tail_call_c_arguments;
+#endif
 
   size_t input_count() const { return descriptor->InputCount(); }
 
@@ -1316,6 +1341,16 @@ void InstructionSelector::InitializeCallBuffer(
     DCHECK_NE(iter, arguments.end());
 
     LinkageLocation location = buffer->descriptor->GetInputLocation(index);
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    if (is_tail_call && buffer->descriptor->IsCFunctionCall() &&
+        location.IsCallerFrameSlot()) {
+      buffer->tail_call_c_arguments.push_back(
+          {*iter, GetCCallerFrameByteOffset(location),
+           location.GetType().representation()});
+      ++pushed_count;
+      continue;
+    }
+#endif
     if (is_tail_call) {
       location = LinkageLocation::ConvertToTailCallerLocation(
           location, stack_param_delta);
@@ -1327,7 +1362,7 @@ void InstructionSelector::InitializeCallBuffer(
       // This can insert empty slots before stack_index and will insert enough
       // slots after stack_index to store the parameter.
       if (static_cast<size_t>(stack_index) >= buffer->pushed_nodes.size()) {
-        int num_slots = location.GetSizeInPointers();
+        int num_slots = GetSizeInCallSlots(buffer->descriptor, location);
         buffer->pushed_nodes.resize(stack_index + num_slots);
       }
       PushParameter param = {*iter, location};
@@ -2259,12 +2294,14 @@ void InstructionSelector::VisitCall(
   }
   if (!effect_handlers.empty()) {
     flags |= CallDescriptor::kHasEffectHandler;
-    for (auto& handler : effect_handlers) {
-      buffer.instruction_args.push_back(g.Label(handler.block));
-      buffer.instruction_args.push_back(g.UseImmediate(handler.tag_index));
+    if (call_descriptor->kind() != CallDescriptor::kCallAddress) {
+      for (auto& handler : effect_handlers) {
+        buffer.instruction_args.push_back(g.Label(handler.block));
+        buffer.instruction_args.push_back(g.UseImmediate(handler.tag_index));
+      }
+      buffer.instruction_args.push_back(
+          g.UseImmediate(static_cast<int>(effect_handlers.size())));
     }
-    buffer.instruction_args.push_back(
-        g.UseImmediate(static_cast<int>(effect_handlers.size())));
   } else {
     // This bit had a different meaning before isel, so ensure that it is
     // cleared:
@@ -2287,8 +2324,28 @@ void InstructionSelector::VisitCall(
         fp_param_count |= 1 << kHasFunctionDescriptorBitShift;
       }
 #endif
+      // Handlers precede the C-call metadata, which remains the last two
+      // inputs.
+      if (exception_handler) {
+        buffer.instruction_args.push_back(g.Label(exception_handler));
+      } else if (lazy_deopt_on_throw) {
+        buffer.instruction_args.push_back(
+            g.UseImmediate(kLazyDeoptOnThrowSentinel));
+      }
+      if (!effect_handlers.empty()) {
+        for (auto& handler : effect_handlers) {
+          buffer.instruction_args.push_back(g.Label(handler.block));
+          buffer.instruction_args.push_back(g.UseImmediate(handler.tag_index));
+        }
+        buffer.instruction_args.push_back(
+            g.UseImmediate(static_cast<int>(effect_handlers.size())));
+      }
       // We store the param counts as a separate input because they need too
       // many bits to be encoded in the opcode.
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+      buffer.instruction_args.push_back(
+          g.UseImmediate64(GetCMemoryArgumentSizeInBytes(call_descriptor)));
+#endif
       buffer.instruction_args.push_back(
           g.UseImmediate(ParamField::encode(gp_param_count) |
                          FPParamField::encode(fp_param_count)));
@@ -2347,6 +2404,13 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
   auto callee = call_op.descriptor->descriptor;
   DCHECK(caller->CanTailCall(callee));
   const int stack_param_delta = callee->GetStackParameterDelta(caller);
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  const int tail_call_stack_param_delta =
+      callee->IsCFunctionCall() ? TailCallSlots(stack_param_delta)
+                                : stack_param_delta;
+#else
+  const int tail_call_stack_param_delta = stack_param_delta;
+#endif
   CallBuffer buffer(zone(), callee, nullptr);
 
   // Compute InstructionOperands for inputs and outputs.
@@ -2361,7 +2425,7 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
                        OptionalOpIndex::Nullopt(), call_op.arguments(),
                        static_cast<int>(call_op.outputs_rep().size()),
                        stack_param_delta);
-  UpdateMaxPushedArgumentCount(stack_param_delta);
+  UpdateMaxPushedArgumentCount(tail_call_stack_param_delta);
 
   // Select the appropriate opcode based on the call type.
   InstructionCode opcode;
@@ -2372,7 +2436,11 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
       break;
     case CallDescriptor::kCallAddress:
       DCHECK(!caller->IsJSFunctionCall());
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+      opcode = kArchTailCallCFunction;
+#else
       opcode = kArchTailCallAddress;
+#endif
       break;
 #if V8_ENABLE_WEBASSEMBLY
     case CallDescriptor::kCallWasmFunction:
@@ -2393,6 +2461,14 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
 
   Emit(kArchPrepareTailCall, g.NoOutput());
 
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  for (const TailCallCArgument& argument : buffer.tail_call_c_arguments) {
+    Emit(kArm64TailCallPokeCArgument, g.NoOutput(),
+         g.UseRegister(argument.node), g.TempImmediate(argument.byte_offset),
+         g.TempImmediate(static_cast<int>(argument.representation)));
+  }
+#endif
+
 #if V8_ENABLE_WEBASSEMBLY
   if (callee->IsIndirectWasmFunctionCall()) {
     buffer.instruction_args.push_back(
@@ -2408,13 +2484,24 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
   // that is unused with respect to the stack pointer that has been updated
   // for the tail call instruction. Backends that pad arguments can write the
   // padding value at this offset from the stack.
-  const int optional_padding_offset =
+  int optional_padding_offset =
       callee->GetOffsetToFirstUnusedStackSlot() - 1;
+  int first_unused_slot_offset =
+      kReturnAddressStackSlotCount + tail_call_stack_param_delta;
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  const int memory_argument_bytes = GetCMemoryArgumentSizeInBytes(callee);
+  if (callee->IsCFunctionCall()) {
+    optional_padding_offset = TailCallSlots(optional_padding_offset);
+    first_unused_slot_offset = TailCallSlots(first_unused_slot_offset);
+  }
+#endif
   buffer.instruction_args.push_back(g.TempImmediate(optional_padding_offset));
-
-  const int first_unused_slot_offset =
-      kReturnAddressStackSlotCount + stack_param_delta;
   buffer.instruction_args.push_back(g.TempImmediate(first_unused_slot_offset));
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  if (callee->IsCFunctionCall()) {
+    buffer.instruction_args.push_back(g.UseImmediate64(memory_argument_bytes));
+  }
+#endif
 
   // Emit the tailcall instruction.
   Emit(opcode, 0, nullptr, buffer.instruction_args.size(),

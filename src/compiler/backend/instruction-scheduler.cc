@@ -295,6 +295,9 @@ int InstructionScheduler::GetInstructionFlags(const Instruction* instr) const {
     case kArchPrepareTailCall:
     case kArchTailCallCodeObject:
     case kArchTailCallAddress:
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+    case kArchTailCallCFunction:
+#endif
 #if V8_ENABLE_WEBASSEMBLY
     case kArchTailCallWasm:
     case kArchTailCallWasmIndirect:

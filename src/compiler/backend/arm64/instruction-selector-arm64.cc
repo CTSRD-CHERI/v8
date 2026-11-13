@@ -3175,6 +3175,42 @@ void InstructionSelector::EmitPrepareArguments(
     OpIndex node) {
   Arm64OperandGenerator g(this);
 
+#if V8_TARGET_CHERI
+  if (call_descriptor->IsCFunctionCall()) {
+    // AAPCS64-cap uses byte offsets and representation-specific stores rather
+    // than generic pointer-sized gap moves. Emit one store per spilled argument,
+    // with 8-byte slots rounded to 16-byte stack alignment; register-only calls
+    // pay no memory-argument or C9 setup cost. The MAL/C9 setup is performed only
+    // when there are memory arguments.
+    int claim_count = 0;
+    if (call_descriptor->GPParameterCount() > kRegisterPassedArguments) {
+      claim_count +=
+          RoundUp<int>(static_cast<int>(call_descriptor->GPParameterCount()) -
+                           kRegisterPassedArguments,
+                       2);
+    }
+    if (call_descriptor->FPParameterCount() > kFPRegisterPassedArguments) {
+      claim_count +=
+          RoundUp<int>(static_cast<int>(call_descriptor->FPParameterCount()) -
+                           kFPRegisterPassedArguments,
+                       2);
+    }
+    DCHECK_EQ(claim_count % 2, 0);
+    if (claim_count > 0) {
+      Emit(kArm64Claim, g.NoOutput(), g.TempImmediate(claim_count));
+    }
+    for (size_t slot = 0; slot < arguments->size(); ++slot) {
+      PushParameter argument = (*arguments)[slot];
+      if (!argument.node.valid()) continue;
+      Emit(kArm64PokeCArgument, g.NoOutput(), g.UseRegister(argument.node),
+           g.TempImmediate(static_cast<int>(slot * 8)),
+           g.TempImmediate(
+               static_cast<int>(argument.location.GetType().representation())));
+    }
+    return;
+  }
+#endif  // V8_TARGET_CHERI
+
   // `arguments` includes alignment "holes". This means that slots bigger than
   // kSystemPointerSize, e.g. Simd128, will span across multiple arguments.
   int claim_count = static_cast<int>(arguments->size());

@@ -13,6 +13,10 @@
 #include "src/compiler/osr.h"
 #include "src/compiler/pipeline.h"
 
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+#include "src/compiler/c-linkage.h"
+#endif
+
 #if V8_ENABLE_WEBASSEMBLY
 #include "src/compiler/wasm-compiler-definitions.h"
 #endif
@@ -120,7 +124,16 @@ int CallDescriptor::GetOffsetToFirstUnusedStackSlot() const {
     if (!operand.IsRegister()) {
       DCHECK(operand.IsCallerFrameSlot());
       int slot_offset = -operand.GetLocation();
-      offset = std::max(offset, slot_offset + operand.GetSizeInPointers());
+      // CHERI C-call slots use 8-byte units. The first unused slot is just past
+      // the argument with the greatest end offset; other calls use
+      // pointer-sized units.
+      int num_slots = operand.GetSizeInPointers();
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+      if (IsCFunctionCall()) {
+        num_slots = GetSizeInCallSlots(this, operand);
+      }
+#endif
+      offset = std::max(offset, slot_offset + num_slots);
     }
   }
   return offset;
@@ -848,6 +861,33 @@ LinkageLocation Linkage::GetParameterSecondaryLocation(int index) const {
   UNREACHABLE();
 }
 
+int GetSizeInCallSlots(const CallDescriptor* descriptor,
+                       LinkageLocation location) {
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  if (descriptor->IsCFunctionCall()) {
+    return AAPCS64CapArgumentSizeInBytes(location.GetType()) / kAbiSlotSize;
+  }
+#endif
+  return location.GetSizeInPointers();
+}
+
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+int GetCCallerFrameByteOffset(LinkageLocation location) {
+  return (-location.GetLocation() - 1) * kAbiSlotSize;
+}
+
+int GetCMemoryArgumentSizeInBytes(const CallDescriptor* descriptor) {
+  int size = 0;
+  for (size_t i = 0; i < descriptor->ParameterCount(); ++i) {
+    LinkageLocation location = descriptor->GetInputLocation(i + 1);
+    if (location.IsCallerFrameSlot()) {
+      size = std::max(size, GetCCallerFrameByteOffset(location) +
+                                AAPCS64CapArgumentSizeInBytes(location.GetType()));
+    }
+  }
+  return size;
+}
+#endif
 
 }  // namespace compiler
 }  // namespace internal

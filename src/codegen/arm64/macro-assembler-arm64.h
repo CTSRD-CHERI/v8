@@ -1176,7 +1176,7 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
   void LoadFromConstantsTable(Register destination, int constant_index) final;
 #if V8_TARGET_CHERI
-  void PrepareMemoryArguments() final;
+  void PrepareMemoryArguments(int memory_argument_bytes) final;
 #endif
   void LoadRootRegisterOffset(Register destination, ScaledInt offset) final;
   void LoadRootRelative(Register destination, int32_t offset) final;
@@ -1269,16 +1269,16 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   int CallCFunction(
       ExternalReference function, int num_reg_arguments,
       SetIsolateDataSlots set_isolate_data_slots = SetIsolateDataSlots::kYes,
-      Label* return_location = nullptr);
+      Label* return_location = nullptr, int memory_argument_bytes = 0);
   int CallCFunction(
       ExternalReference function, int num_reg_arguments,
       int num_double_arguments,
       SetIsolateDataSlots set_isolate_data_slots = SetIsolateDataSlots::kYes,
-      Label* return_location = nullptr);
+      Label* return_location = nullptr, int memory_argument_bytes = 0);
   int CallCFunction(
       Register function, int num_reg_arguments, int num_double_arguments,
       SetIsolateDataSlots set_isolate_data_slots = SetIsolateDataSlots::kYes,
-      Label* return_location = nullptr);
+      Label* return_location = nullptr, int memory_argument_bytes = 0);
 
   // Performs a truncating conversion of a floating point number as used by
   // the JS bitwise operations. See ECMA-262 9.5: ToInt32.

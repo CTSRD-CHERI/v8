@@ -121,6 +121,13 @@ void CodeGenerator::RecordProtectedInstruction(uint32_t instr_offset) {
 void CodeGenerator::CreateFrameAccessState(Frame* frame) {
   FinishFrame(frame);
   frame_access_state_ = zone()->New<FrameAccessState>(frame);
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  if (linkage_->GetIncomingDescriptor()->IsCFunctionCall()) {
+    // AAPCS64-cap lays out memory arguments in 8-byte units, unlike V8's
+    // pointer-sized caller frame slots.
+    frame_access_state_->SetCallerFrameSlotSize(kInt64Size);
+  }
+#endif
 }
 
 bool CodeGenerator::ShouldApplyOffsetToStackCheck(Instruction* instr,
@@ -944,7 +951,7 @@ bool CodeGenerator::GetSlotAboveSPBeforeTailCall(Instruction* instr,
                                                  int* slot) {
   if (instr->IsTailCall()) {
     InstructionOperandConverter g(this, instr);
-    *slot = g.InputInt32(instr->InputCount() - 1);
+    *slot = g.InputInt32(instr->TailCallFirstUnusedSlotInputIndex());
     return true;
   } else {
     return false;

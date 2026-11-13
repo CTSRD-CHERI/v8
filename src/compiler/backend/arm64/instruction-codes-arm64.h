@@ -333,6 +333,8 @@ namespace compiler {
   V(Arm64Claim)                                      \
   V(Arm64Poke)                                       \
   V(Arm64PokePair)                                   \
+  V(Arm64PokeCArgument)                              \
+  V(Arm64TailCallPokeCArgument)                      \
   V(Arm64Peek)                                       \
   V(Arm64Float16RoundDown)                           \
   V(Arm64Float16RoundUp)                             \
