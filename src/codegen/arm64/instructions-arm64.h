@@ -503,11 +503,15 @@ class Instruction {
   }
 
   bool IsNop(int n) {
+#if V8_TARGET_CHERI
+    return (Mask(CopyCapabilityMask) == CPY) && (Rd() == Rn()) && (Rd() == n);
+#else
     // A marking nop is an instruction
     //   mov r<n>,  r<n>
     // which is encoded as
     //   orr r<n>, xzr, r<n>
     return (Mask(LogicalShiftedMask) == ORR_x) && (Rd() == Rm()) && (Rd() == n);
+#endif
   }
 
   // Find the PC offset encoded in this instruction. 'this' may be a branch or
