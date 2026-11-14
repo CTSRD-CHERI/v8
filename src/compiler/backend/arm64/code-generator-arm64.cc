@@ -495,8 +495,13 @@ class OutOfLineVerifySkippedWriteBarrier final : public OutOfLineCode {
 
     if (must_save_lr_) {
       // We need to save and restore lr if the frame was elided.
+#if V8_TARGET_CHERI
+      // A capability-sized lr needs no padding to keep the stack aligned.
+      __ Push<MacroAssembler::kSignLR>(lr);
+#else
       __ Push<MacroAssembler::kSignLR>(lr, padreg);
-      unwinding_info_writer_->MarkLinkRegisterOnTopOfStack(__ pc_offset(), sp);
+#endif
+      unwinding_info_writer_->MarkLinkRegisterOnTopOfStack(__ pc_offset(), csp);
     }
 
     SaveFPRegsMode const save_fp_mode = frame()->DidAllocateDoubleRegisters()
@@ -507,7 +512,11 @@ class OutOfLineVerifySkippedWriteBarrier final : public OutOfLineCode {
                                                       save_fp_mode);
 
     if (must_save_lr_) {
+#if V8_TARGET_CHERI
+      __ Pop<MacroAssembler::kAuthLR>(lr);
+#else
       __ Pop<MacroAssembler::kAuthLR>(padreg, lr);
+#endif
       unwinding_info_writer_->MarkPopLinkRegisterFromTopOfStack(__ pc_offset());
     }
   }
@@ -536,8 +545,13 @@ class OutOfLineVerifySkippedIndirectWriteBarrier final : public OutOfLineCode {
   void Generate() final {
     if (must_save_lr_) {
       // We need to save and restore lr if the frame was elided.
+#if V8_TARGET_CHERI
+      // A capability-sized lr needs no padding to keep the stack aligned.
+      __ Push<MacroAssembler::kSignLR>(lr);
+#else
       __ Push<MacroAssembler::kSignLR>(lr, padreg);
-      unwinding_info_writer_->MarkLinkRegisterOnTopOfStack(__ pc_offset(), sp);
+#endif
+      unwinding_info_writer_->MarkLinkRegisterOnTopOfStack(__ pc_offset(), csp);
     }
 
     SaveFPRegsMode const save_fp_mode = frame()->DidAllocateDoubleRegisters()
@@ -548,7 +562,11 @@ class OutOfLineVerifySkippedIndirectWriteBarrier final : public OutOfLineCode {
                                                               save_fp_mode);
 
     if (must_save_lr_) {
+#if V8_TARGET_CHERI
+      __ Pop<MacroAssembler::kAuthLR>(lr);
+#else
       __ Pop<MacroAssembler::kAuthLR>(padreg, lr);
+#endif
       unwinding_info_writer_->MarkPopLinkRegisterFromTopOfStack(__ pc_offset());
     }
   }
