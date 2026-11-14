@@ -47,7 +47,9 @@ MainAllocator::MainAllocator(LocalHeap* local_heap, SpaceWithLinearArea* space,
                                                   : &owned_allocation_info_),
       allocator_policy_(space->CreateAllocatorPolicy(this)),
       supports_extending_lab_(allocator_policy_->SupportsExtendingLAB()),
-      black_allocation_(ComputeBlackAllocation(is_new_generation)) {
+      black_allocation_(ComputeBlackAllocation(is_new_generation)),
+      should_set_object_bounds_(
+          ShouldSetObjectBoundsInSpace(space->identity())) {
   CHECK_NOT_NULL(local_heap_);
   if (local_heap_->is_main_thread()) {
     allocation_counter_.emplace();
@@ -62,7 +64,9 @@ MainAllocator::MainAllocator(Heap* heap, SpaceWithLinearArea* space, InGCTag)
       allocation_info_(&owned_allocation_info_),
       allocator_policy_(space->CreateAllocatorPolicy(this)),
       supports_extending_lab_(false),
-      black_allocation_(BlackAllocation::kAlwaysDisabled) {
+      black_allocation_(BlackAllocation::kAlwaysDisabled),
+      should_set_object_bounds_(
+          ShouldSetObjectBoundsInSpace(space->identity())) {
   DCHECK(!allocation_counter_.has_value());
   DCHECK(!linear_area_original_data_.has_value());
 }

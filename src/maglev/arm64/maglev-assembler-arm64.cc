@@ -18,11 +18,18 @@ namespace {
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          Register size_in_bytes) {
   __ Sub(object.C(), object.C(), size_in_bytes);
+  __ SetAllocationBounds(object, size_in_bytes.X());
   __ Add(object.C(), object.C(), kHeapObjectTag);
 }
 
 void SubSizeAndTagObject(MaglevAssembler* masm, Register object,
                          int size_in_bytes) {
+  if (V8_CHERI_TIGHT_BOUNDS_BOOL) {
+    __ Sub(object.C(), object.C(), size_in_bytes);
+    __ SetAllocationBounds(object, size_in_bytes);
+    __ Add(object.C(), object.C(), kHeapObjectTag);
+    return;
+  }
   __ Add(object.C(), object.C(), kHeapObjectTag - size_in_bytes);
 }
 

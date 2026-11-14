@@ -1294,6 +1294,11 @@ class V8_EXPORT_PRIVATE MachineOperatorBuilder final
   // value of the second argument.
   const Operator* SetBounds();
 
+  // Returns the original pointer provided to it with its address set to the
+  // value of the second argument (bounds, permissions and tag are inherited
+  // from the first argument). 
+  const Operator* SetAddress();
+
   // Returns the original pointer sealed with the type provided. On CHERI
   // Morello, this maps to an otype. All other architectures return the pointer
   // itself.

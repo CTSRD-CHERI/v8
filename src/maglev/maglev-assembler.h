@@ -162,6 +162,11 @@ class V8_EXPORT_PRIVATE MaglevAssembler : public MacroAssembler {
                 AllocationType alloc_type = AllocationType::kYoung,
                 AllocationAlignment alignment = kTaggedAligned);
 
+#if defined(V8_TARGET_ARCH_ARM64)
+  inline void SetAllocationBounds(Register object,
+                                  const Operand& size_in_bytes);
+#endif  // V8_TARGET_ARCH_ARM64
+
   void AllocateHeapNumber(RegisterSnapshot register_snapshot, Register result,
                           DoubleRegister value);
 

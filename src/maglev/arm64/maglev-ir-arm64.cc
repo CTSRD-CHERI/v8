@@ -186,8 +186,17 @@ void InlinedAllocation::SetValueLocationConstraints() {
 
 void InlinedAllocation::GenerateCode(MaglevAssembler* masm,
                                      const ProcessingState& state) {
+  Register object = ToRegister(result());
+  Register block = ToRegister(AllocationBlockInput());
+  if (V8_CHERI_TIGHT_BOUNDS_BOOL) {
+    // Narrow folded objects to the object size.
+    __ Add(object.C(), block.C(), offset() - kHeapObjectTag);
+    __ SetAllocationBounds(object, static_cast<int>(size()));
+    __ Add(object.C(), object.C(), kHeapObjectTag);
+    return;
+  }
   if (offset() != 0) {
-    __ Add(ToRegister(result()), ToRegister(AllocationBlockInput()), offset());
+    __ Add(object, block, offset());
   }
 }
 

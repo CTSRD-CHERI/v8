@@ -13,6 +13,10 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 
+#if defined(__CHERI_PURE_CAPABILITY__) && V8_OS_FREEBSD
+#include <cheri/cherireg.h>  // OS-specific capability permission bits
+#endif
+
 #ifdef __CHERI_PURE_CAPABILITY__
 #define _CHERI_DIAGNOSTIC_PRAGMA(d) _Pragma(#d)
 #define CheriDiagnosticOff(d)      \
@@ -57,11 +61,18 @@
 
 #define V8_CHERI_SET_BOUNDS(cap, len) __builtin_cheri_bounds_set(cap, len)
 
-// TODO(cheri): We need to fix the masking of objects to the start of the page
-// to make this work.
-#define V8_CHERI_TIGHT_BOUNDS 0
+#define V8_CHERI_PERMS_CLEAR(cap, perms) \
+  __builtin_cheri_perms_and(cap, ~static_cast<size_t>(perms))
+
+#if V8_OS_FREEBSD
+#define V8_CHERI_NON_DATA_PERMS \
+  (__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | CHERI_PERM_SW_VMEM)
+#else
+#define V8_CHERI_NON_DATA_PERMS __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__
+#endif
+
+#define V8_CHERI_DATA_ONLY(cap) V8_CHERI_PERMS_CLEAR(cap, V8_CHERI_NON_DATA_PERMS)
 #else  // !__CHERI_PURE_CAPABILITY__
-#define V8_CHERI_TIGHT_BOUNDS 0
 #define CheriDiagnosticOff(...)
 #define CheriDiagnosticPop
 #define V8_CHERI_ADDR_GET(cap) (cap)
@@ -73,6 +84,8 @@
 #define V8_CHERI_PCC nullptr
 #define V8_CHERI_TO_SENTRY(cap) (cap)
 #define V8_CHERI_ADDR_SET(cap, addr) reinterpret_cast<void*>(addr)
+#define V8_CHERI_PERMS_CLEAR(cap, perms) (cap)
+#define V8_CHERI_DATA_ONLY(cap) (cap)
 #endif  // __CHERI_PURE_CAPABILITY__
 
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.

@@ -134,29 +134,21 @@ Node* MemoryLowering::GetWasmInstanceNode() {
 #define __ gasm()->
 
 Node* MemoryLowering::AlignToAllocationAlignment(Node* value) {
-#if !(V8_TARGET_CHERI && !defined(V8_COMPRESS_POINTERS))
+  if (V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL) {
+    return __ WordAnd(
+        __ IntPtrAdd(value, __ IntPtrConstant(kPointerAlignmentMask)),
+        __ UintPtrConstant(~kPointerAlignmentMask));
+  }
   if (!V8_COMPRESS_POINTERS_8GB_BOOL) return value;
-#endif
 
   auto already_aligned = __ MakeLabel(MachineRepresentation::kWord64);
-#if V8_TARGET_CHERI
-  Node* alignment_check = __ WordEqual(
-      __ WordAnd(value, __ UintPtrConstant(kSystemPointerSize - 1)),
-      __ UintPtrConstant(0));
-#else
   Node* alignment_check = __ WordEqual(
       __ WordAnd(value, __ UintPtrConstant(kObjectAlignment8GbHeapMask)),
       __ UintPtrConstant(0));
-#endif
 
   __ GotoIf(alignment_check, &already_aligned, value);
   {
     Node* aligned_value;
-#if V8_TARGET_CHERI
-    aligned_value = __ WordAnd(
-        __ CapAdd(value, __ IntPtrConstant(kSystemPointerSize - 1)),
-        __ UintPtrConstant(~(kSystemPointerSize - 1)));
-#else
     if (kObjectAlignment8GbHeap == 2 * kTaggedSize) {
       aligned_value = __ IntPtrAdd(value, __ IntPtrConstant(kTaggedSize));
     } else {
@@ -164,7 +156,6 @@ Node* MemoryLowering::AlignToAllocationAlignment(Node* value) {
           __ IntPtrAdd(value, __ IntPtrConstant(kObjectAlignment8GbHeapMask)),
           __ UintPtrConstant(~kObjectAlignment8GbHeapMask));
     }
-#endif
     __ Goto(&already_aligned, aligned_value);
   }
 
@@ -172,6 +163,13 @@ Node* MemoryLowering::AlignToAllocationAlignment(Node* value) {
 
   return already_aligned.PhiAt(0);
 }
+
+#if V8_TARGET_CHERI
+Node* MemoryLowering::SetAllocationBounds(Node* address, Node* size) {
+  if (!V8_CHERI_TIGHT_BOUNDS_BOOL) return address;
+  return __ SetBounds(address, size);
+}
+#endif  // V8_TARGET_CHERI
 
 Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
                                             AllocationType allocation_type,
@@ -286,7 +284,9 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
       // Compute the effective inner allocated address.
 #if V8_TARGET_CHERI
       value = __ BitcastWordToTagged(
-          __ CapAdd(state->top(), __ IntPtrConstant(kHeapObjectTag)));
+          __ CapAdd(SetAllocationBounds(state->top(),
+                                        __ IntPtrConstant(object_size)),
+                    __ IntPtrConstant(kHeapObjectTag)));
 #else
       value = __ BitcastWordToTagged(
           __ IntAdd(state->top(), __ IntPtrConstant(kHeapObjectTag)));
@@ -326,6 +326,11 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
             allocate_operator_.get(), allocate_builtin, reservation_size));
 #if V8_TARGET_CHERI
         vfalse = __ CapSub(vfalse, __ IntPtrConstant(kHeapObjectTag));
+        if (V8_CHERI_TIGHT_BOUNDS_BOOL) {
+          Node* lab_top = __ Load(MachineType::Pointer(), top_address,
+                                  __ IntPtrConstant(0));
+          vfalse = __ SetAddress(lab_top, vfalse);
+        }
 #else
         vfalse = __ IntSub(vfalse, __ IntPtrConstant(kHeapObjectTag));
 #endif
@@ -349,7 +354,9 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
       // Compute the initial object address.
 #if V8_TARGET_CHERI
       value = __ BitcastWordToTagged(
-          __ CapAdd(done.PhiAt(0), __ IntPtrConstant(kHeapObjectTag)));
+          __ CapAdd(SetAllocationBounds(done.PhiAt(0),
+                                        __ IntPtrConstant(object_size)),
+                    __ IntPtrConstant(kHeapObjectTag)));
 #else
       value = __ BitcastWordToTagged(
           __ IntAdd(done.PhiAt(0), __ IntPtrConstant(kHeapObjectTag)));
@@ -374,10 +381,11 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
         __ Load(MachineType::Pointer(), limit_address, __ IntPtrConstant(0));
 
     // Compute the new top.
+    Node* aligned_size = AlignToAllocationAlignment(size);
 #if V8_TARGET_CHERI
-    Node* new_top = __ CapAdd(top, AlignToAllocationAlignment(size));
+    Node* new_top = __ CapAdd(top, aligned_size);
 #else
-    Node* new_top = __ IntAdd(top, AlignToAllocationAlignment(size));
+    Node* new_top = __ IntAdd(top, aligned_size);
 #endif
 
     // Check if we can do bump pointer allocation here.
@@ -391,7 +399,8 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node,
              top_address, __ IntPtrConstant(0), new_top);
 #if V8_TARGET_CHERI
     __ Goto(&done, __ BitcastWordToTagged(
-                       __ CapAdd(top, __ IntPtrConstant(kHeapObjectTag))));
+                       __ CapAdd(SetAllocationBounds(top, aligned_size),
+                                 __ IntPtrConstant(kHeapObjectTag))));
 #else
     __ Goto(&done, __ BitcastWordToTagged(
                        __ IntAdd(top, __ IntPtrConstant(kHeapObjectTag))));
