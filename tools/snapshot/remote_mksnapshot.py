@@ -24,6 +24,17 @@ import glob
 from pathlib import Path
 from typing import Iterable
 
+MKSNAPSHOT_NON_SYSTEM_DEPS = [
+    "libv8_libbase.so",
+    "libv8_libplatform.so",
+    "libthird_party_abseil-cpp_absl.so",
+    "libthird_party_perfetto_libperfetto.so",
+    "libthird_party_icu_icui18n.so",
+    "libicuuc.so",
+    "libchrome_zlib.so",
+    "libatomic.so"
+]
+
 def clean_and_expand_path(s: str) -> Path:
     s = s.replace('\\~', '~')
     return Path(os.path.expanduser(s))
@@ -107,7 +118,7 @@ def main() -> int:
 
     try:
         # Push libraries
-        scp_to_remote([Path(s) for s in glob.glob("*.so")], args.keyfile, args.hostname, args.port, f"{args.remote_dir}/{args.mksnapshot.parent}")
+        scp_to_remote([Path(s) for s in MKSNAPSHOT_NON_SYSTEM_DEPS], args.keyfile, args.hostname, args.port, f"{args.remote_dir}/{args.mksnapshot.parent}")
         # Push files
         scp_to_remote([args.mksnapshot], args.keyfile, args.hostname, args.port, f"{args.remote_dir}/{args.mksnapshot.parent}")
         # Ensure these directories exist in remote even though we don't scp anything there
