@@ -212,7 +212,7 @@ class FastApiCallLoweringReducer : public Next {
           GOTO_IF_NOT(__ Word32Equal(encoding, kSeqOneByteStringTag),
                       handle_error);
 
-          V<WordPtr> length_in_bytes = __ template LoadField<WordPtr>(
+          V<Word32> length_in_bytes = __ template LoadField<Word32>(
               argument_obj, AccessBuilder::ForStringLength());
           V<WordPtr> data_ptr = __ GetElementStartPointer(
               argument_obj, AccessBuilder::ForSeqOneByteStringCharacter());
@@ -235,7 +235,8 @@ class FastApiCallLoweringReducer : public Next {
           __ StoreOffHeap(stack_slot, data_ptr,
                           MemoryRepresentation::UintPtr());
           __ StoreOffHeap(stack_slot, length_in_bytes,
-                          MemoryRepresentation::Uint32(), sizeof(size_t));
+                          MemoryRepresentation::Uint32(),
+                          offsetof(FastOneByteString, length));
 #ifndef __CHERI_PURE_CAPABILITY__
           static_assert(sizeof(uintptr_t) == sizeof(size_t),
                         "The string length can't "
