@@ -54,6 +54,7 @@ import shlex
 import subprocess
 import sys
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import (
@@ -67,6 +68,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 DEFAULT_JS_SUITES: List[str] = [
@@ -339,7 +341,7 @@ def ssh_execute(
     ssh_user: Optional[str] = None,
     input_data: Optional[str] = None,
     timeout: int = 60,
-) -> Optional[subprocess.CompletedProcess]:
+) -> Optional[subprocess.CompletedProcess[str]]:
     """
     Execute a command on a remote machine via SSH.
     Returns a subprocess.CompletedProcess object, or None on failure/timeout.
@@ -374,7 +376,13 @@ def ssh_execute(
         return result
     except subprocess.TimeoutExpired as e:
         warn(f"SSH timeout on {machine} after {timeout}s: {e}")
-        return None
+        stdout = e.stdout or ""
+        stderr = e.stderr or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode(errors="replace")
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode(errors="replace")
+        return subprocess.CompletedProcess(ssh_cmd, 124, stdout, stderr)
     except Exception as e:
         warn(f"SSH error on {machine}: {e}")
         return None
@@ -468,8 +476,10 @@ def get_cpp_tests_from_machine(
         cmd = f"cd {remote_v8_root} && cd {build_dir} && {info['binary']} {info['list_arg']}"
         result = ssh_execute(machine, cmd, ssh_user, timeout=60)
         if result is None or result.returncode != 0:
-            warn(f"Could not retrieve {suite} list from {machine}")
-            continue
+            # Fatal rather than skipping: silently dropping a machine's C++
+            # tests would make the completeness check below accept an
+            # incomplete distribution.
+            error(f"Could not retrieve {suite} list from {machine}")
 
         # Parse output according to the parser type
         if info["parser"] == "cctest":
@@ -586,6 +596,19 @@ def split_tests_evenly(tests: List[str], machines: List[str]) -> Dict[str, List[
     return assignments
 
 
+def parse_completed_test_ids(output: str) -> List[str]:
+    """Return test IDs whose terminal status was reported, for any variant."""
+    # run-tests.py prints "<test id> <variant>: <STATUS>". Do not hard-code the
+    # variant: --variants accepts aliases (dev/more/exhaustive/extra) and bare
+    # names, all of which must be parsed for the completeness check to work.
+    status_re = re.compile(r"^(\S+) \S+: (?:PASS|FAIL|TIMEOUT|CRASH|SKIP)$")
+    return [
+        match.group(1)
+        for line in output.splitlines()
+        if (match := status_re.match(line))
+    ]
+
+
 def run_tests_on_machine(
     machine: str,
     test_list: List[str],
@@ -595,12 +618,13 @@ def run_tests_on_machine(
     log_dir: Optional[str] = None,
     batch_size: int = 50,
     test_timeout: int = 60,
+    run_timeout: int = 172800,
     variants: str = DEFAULT_VARIANTS,
 ) -> Tuple[str, bool, str]:
     """
     SSH into a single machine and run all its assigned tests using xargs with batches.
     `build_dir` is relative to `remote_v8_root`.
-    Returns (machine, overall_success, combined_output).
+    Returns (machine, overall_success, result_log_path).
     """
     if not test_list:
         logging.info(f"[{machine}] No tests assigned, skipping.")
@@ -632,8 +656,8 @@ xargs -n {batch_size} tools/run-tests.py -p verbose -t {test_timeout} \
 
     start_time = time.time()
     result = ssh_execute(
-        machine, remote_cmd, ssh_user, input_data=test_data, timeout=21600
-    )  # 6 hours
+        machine, remote_cmd, ssh_user, input_data=test_data, timeout=run_timeout
+    )
     elapsed = time.time() - start_time
 
     if result is None:
@@ -644,10 +668,43 @@ xargs -n {batch_size} tools/run-tests.py -p verbose -t {test_timeout} \
                     f.write("=== SSH connection failed\n")
             except OSError as e:
                 warn(f"Could not write log for {machine}: {e}")
-        return machine, False, "SSH connection failed"
+        return machine, False, str(log_path) if log_path else ""
 
     output = result.stdout + result.stderr
     success = result.returncode == 0
+    if success:
+        completed = Counter(parse_completed_test_ids(result.stdout))
+        assigned = set(test_list)
+        missing = sorted(assigned - completed.keys())
+        unexpected = sorted(completed.keys() - assigned)
+        raw_summaries = [
+            parse_summary_line(line) for line in result.stdout.splitlines()
+        ]
+        summaries = [s for s in raw_summaries if s is not None]
+        total_ran = 0
+        total_failed = 0
+        for kind, value in summaries:
+            if kind == "ran":
+                total_ran += cast(int, value)
+            elif kind == "failed":
+                total_failed += cast(int, value)
+        actual_failed = sum(
+            line.endswith((": FAIL", ": TIMEOUT", ": CRASH"))
+            for line in result.stdout.splitlines()
+        )
+        if (
+            missing
+            or unexpected
+            or total_ran != sum(completed.values())
+            or total_failed != actual_failed
+        ):
+            warn(
+                f"Incomplete results from {machine}: {len(missing)} missing, "
+                f"{len(unexpected)} unexpected IDs, {sum(completed.values())} "
+                f"statuses/{total_ran} reported ran, {actual_failed}/"
+                f"{total_failed} reported failed"
+            )
+            success = False
 
     if log_path:
         try:
@@ -667,7 +724,7 @@ xargs -n {batch_size} tools/run-tests.py -p verbose -t {test_timeout} \
             f"[{machine}] Finished in {elapsed:.1f}s, exit code {result.returncode}"
         )
 
-    return machine, success, output
+    return machine, success, str(log_path) if log_path else ""
 
 
 def run_tests_on_machines(
@@ -680,14 +737,19 @@ def run_tests_on_machines(
     max_workers: int = 10,
     batch_size: int = 50,
     test_timeout: int = 60,
+    run_timeout: int = 172800,
     variants: str = DEFAULT_VARIANTS,
 ) -> Dict[str, Tuple[bool, str]]:
     """
     Run tests on all machines, either sequentially or in parallel.
-    Returns a dict mapping machine -> (success, output).
+    Returns a dict mapping machine -> (success, result_log_path).
     """
     machines = list(assignments.keys())
     results: Dict[str, Tuple[bool, str]] = {}
+
+    for machine, tests in assignments.items():
+        if len(tests) != len(set(tests)):
+            error(f"Duplicate test IDs assigned to {machine}")
 
     if parallel:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -702,6 +764,7 @@ def run_tests_on_machines(
                     log_dir,
                     batch_size,
                     test_timeout,
+                    run_timeout,
                     variants,
                 ): machine
                 for machine in machines
@@ -720,6 +783,7 @@ def run_tests_on_machines(
                 log_dir,
                 batch_size,
                 test_timeout,
+                run_timeout,
                 variants,
             )
             results[machine] = (success, output)
@@ -727,9 +791,11 @@ def run_tests_on_machines(
     logging.info("=" * 60)
     logging.info("Test run summary:")
     success_count = sum(1 for s, _ in results.values() if s)
-    for machine, (success, _) in results.items():
+    for machine, (success, log_path) in results.items():
         status = "SUCCESS" if success else "FAILURE"
         if success:
+            if not log_path or not Path(log_path).is_file():
+                error(f"No complete result log was produced for {machine}")
             logging.info(f"  {machine}: {status}")
         else:
             # Warn, so failures show without -v.
@@ -820,8 +886,7 @@ def combine_logs(log_dir: str, output_file: str) -> None:
 
     log_files = sorted(log_dir_path.glob("*.log"))
     if not log_files:
-        warn(f"No .log files found in '{log_dir}'.")
-        return
+        error(f"No .log files found in '{log_dir}'.")
 
     status_lines: List[str] = []
     error_blocks: List[str] = []
@@ -876,6 +941,24 @@ def combine_logs(log_dir: str, output_file: str) -> None:
                         block_lines.append(next_line)
                     i += 1
                 error_blocks.append("\n".join(block_lines))
+
+    # A JavaScript test can execute more than once under a single variant
+    # (test262 runs strict and non-strict code). Keep every status row and
+    # validate aggregate execution/failure counts rather than collapsing IDs.
+    if len(status_lines) != total_ran:
+        error(
+            f"Refusing to combine incomplete results: "
+            f"{len(status_lines)} statuses but {total_ran} tests reported ran"
+        )
+    failed_statuses = sum(
+        re.search(r": (FAIL|TIMEOUT|CRASH)$", line) is not None
+        for line in status_lines
+    )
+    if failed_statuses != total_failed:
+        error(
+            f"Refusing to combine inconsistent results: "
+            f"{failed_statuses} failed statuses but {total_failed} tests reported failed"
+        )
 
     # Write combined output
     output_path = Path(output_file)
@@ -1113,6 +1196,13 @@ def main() -> None:
         "dcheck/slow-dcheck builds. An explicit value is used as given.",
     )
     parser.add_argument(
+        "--run-timeout",
+        type=int,
+        default=172800,
+        help="Whole-run timeout in seconds for each remote machine. "
+        "Independent of --test-timeout. Default: 172800 (48 hours).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Discover and split tests, print the plan and the exact per-machine "
@@ -1128,7 +1218,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    for name in ("max_workers", "batch_size", "test_timeout"):
+    for name in ("max_workers", "batch_size", "test_timeout", "run_timeout"):
         value = getattr(args, name)
         if value is not None and value <= 0:
             parser.error(f"--{name.replace('_', '-')} must be greater than 0")
@@ -1225,6 +1315,10 @@ def main() -> None:
         logging.info("No tests found. Exiting.")
         sys.exit(0)
 
+    # Reject duplicate discovery before deleting an earlier attempt's logs.
+    if len(all_tests) != len(set(all_tests)):
+        error("Test discovery produced duplicate test IDs")
+
     # Split tests evenly across all machines
     assignments = split_tests_evenly(all_tests, machines)
 
@@ -1254,7 +1348,10 @@ def main() -> None:
         logging.info(f"  tests:    {len(all_tests)} total")
         logging.info(f"  machines: {len(machines)}")
         logging.info(f"  batch:    {args.batch_size}")
-        logging.info(f"  timeout:  {test_timeout}s per test")
+        logging.info(
+            f"  timeout:  {test_timeout}s per test, "
+            f"{args.run_timeout}s per machine"
+        )
         logging.info(f"  variants: {args.variants}")
         logging.info(f"  outdir:   {args.build_directory}")
         logging.info(f"  v8 root:  {remote_v8_root}")
@@ -1288,7 +1385,7 @@ def main() -> None:
     if stale:
         logging.info(f"Removed {len(stale)} log file(s) from a previous run.")
 
-    run_tests_on_machines(
+    results = run_tests_on_machines(
         assignments,
         remote_v8_root=remote_v8_root,
         build_dir=args.build_directory,
@@ -1298,8 +1395,23 @@ def main() -> None:
         max_workers=args.max_workers,
         batch_size=args.batch_size,
         test_timeout=test_timeout,
+        run_timeout=args.run_timeout,
         variants=args.variants,
     )
+
+    failed = [machine for machine, (success, _) in results.items() if not success]
+    if failed:
+        # A machine is marked unsuccessful either because run-tests.py exited
+        # nonzero (i.e. some tests reported FAIL/CRASH/TIMEOUT) or because its
+        # output failed the completeness cross-check. Known test failures are
+        # expected here, and the per-machine .log files have already been
+        # written. Still combine so the results can be inspected; combine_logs
+        # independently rejects logs whose status lines and reported counts do
+        # not match.
+        warn(
+            "Some assignments did not complete cleanly; combining available "
+            "logs anyway: " + ", ".join(sorted(failed))
+        )
 
     combined_file = os.path.join(log_dir, "combined_results.log")
 
