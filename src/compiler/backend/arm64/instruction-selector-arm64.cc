@@ -4259,7 +4259,17 @@ void InstructionSelector::VisitWordCompareZero(OpIndex user, OpIndex value,
         if (const OverflowCheckedBinopOp* binop =
                 TryCast<OverflowCheckedBinopOp>(node);
             binop && CanDoBranchIfOverflowFusion(node)) {
+#if V8_TARGET_CHERI
+          // Purecap Smis use Capability64 as their representation, but their
+          // integer payload is 64 bits wide (Smi values live in the upper
+          // 32 bits). Using the 32-bit add/sub here would zero the upper half
+          // of the incremented Smi.
+          const bool is64 =
+              binop->rep == any_of(WordRepresentation::Word64(),
+                                   WordRepresentation::Capability64());
+#else
           const bool is64 = binop->rep == WordRepresentation::Word64();
+#endif
           switch (binop->kind) {
             case OverflowCheckedBinopOp::Kind::kSignedAdd:
               cont->OverwriteAndNegateIfEqual(kOverflow);
