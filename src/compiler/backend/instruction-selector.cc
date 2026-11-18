@@ -2415,7 +2415,13 @@ void InstructionSelector::VisitTailCall(OpIndex node) {
 
   // Compute InstructionOperands for inputs and outputs.
   CallBufferFlags flags(kCallCodeImmediate | kCallTail);
+#if V8_TARGET_CHERI && V8_TARGET_ARCH_ARM64
+  if (IsTailCallAddressImmediate() ||
+      // Direct wasm calls use an immediate jump-table target on this target.
+      callee->kind() == CallDescriptor::kCallWasmFunction) {
+#else
   if (IsTailCallAddressImmediate()) {
+#endif
     flags |= kCallAddressImmediate;
   }
   if (callee->flags() & CallDescriptor::kFixedTargetRegister) {

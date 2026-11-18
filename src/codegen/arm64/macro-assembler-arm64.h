@@ -241,6 +241,11 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // We should not use near calls or jumps for calls to external references,
   // since the code spaces are not guaranteed to be close to each other.
   bool CanUseNearCallOrJump(RelocInfo::Mode rmode) {
+#if V8_TARGET_CHERI
+    // Wasm calls are direct (near) calls on this target; their targets are
+    // jump-table entries within the same code space.
+    if (RelocInfo::IsWasmCall(rmode)) return true;
+#endif
     return rmode != RelocInfo::EXTERNAL_REFERENCE;
   }
 

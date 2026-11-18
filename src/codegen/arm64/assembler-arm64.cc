@@ -249,7 +249,7 @@ bool RelocInfo::IsCodedSpecially() {
   // specially coded on ARM64 means that it is an immediate branch.
   Instruction* instr = reinterpret_cast<Instruction*>(pc_);
 #if V8_TARGET_CHERI
-  if (instr->IsLdrLiteralC()) {
+  if (instr->IsLdrLiteralC() || instr->IsLdrLiteralX()) {
 #else
   if (instr->IsLdrLiteralX()) {
 #endif
@@ -279,16 +279,15 @@ uint32_t RelocInfo::wasm_call_tag() const {
   DCHECK(rmode_ == WASM_CALL || rmode_ == WASM_STUB_CALL);
   Instruction* instr = reinterpret_cast<Instruction*>(pc_);
 #if V8_TARGET_CHERI
-  if (instr->IsLdrLiteralC()) {
+  if (instr->IsLdrLiteralC() || instr->IsLdrLiteralX()) {
 #else
   if (instr->IsLdrLiteralX()) {
 #endif
-    return static_cast<uint32_t>(
-        Memory<Address>(Assembler::target_pointer_address_at(pc_)));
-  } else {
-    DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
-    return static_cast<uint32_t>(instr->ImmPCOffset() / kInstrSize);
+    return ReadUnalignedValue<uint32_t>(
+        Assembler::target_pointer_address_at(pc_));
   }
+  DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
+  return static_cast<uint32_t>(instr->ImmPCOffset() / kInstrSize);
 }
 
 bool AreAliased(const CPURegister& reg1, const CPURegister& reg2,
@@ -1837,7 +1836,8 @@ void Assembler::ldr_pcrel(const CPURegister& rt, int imm19) {
   // constant pool. It should not be emitted.
   DCHECK(!rt.IsZero());
 #if V8_TARGET_CHERI
-  DCHECK(!rt.IsX());
+  // X-register literal loads are valid here: they are used for integer-valued
+  // relocations such as wasm call targets (see target_address_at()).
   // On CHERI systems, when we load a pcrel literal into a capability register,
   // we are actually dealing with an imm17 rather than an imm19.
   if (rt.IsC())

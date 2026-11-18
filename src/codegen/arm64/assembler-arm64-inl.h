@@ -624,16 +624,24 @@ Address Assembler::target_pointer_address_at(Address pc) {
 // Read/Modify the code target address in the branch/call instruction at pc.
 Address Assembler::target_address_at(Address pc, Address constant_pool) {
   Instruction* instr = reinterpret_cast<Instruction*>(pc);
+  // A literal load into a C register holds a full tagged capability; a load
+  // into an X register holds the integer encoding of a wasm call target
+  // (WASM_CALL / WASM_STUB_CALL relocations). Read each at its stored width.
 #if V8_TARGET_CHERI
+  if (instr->IsLdrLiteralX()) {
+    return static_cast<Address>(
+        ReadUnalignedValue<uint64_t>(target_pointer_address_at(pc)));
+  }
   if (instr->IsLdrLiteralC()) {
+    return Memory<Address>(target_pointer_address_at(pc));
+  }
 #else
   if (instr->IsLdrLiteralX()) {
-#endif
     return Memory<Address>(target_pointer_address_at(pc));
-  } else {
-    DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
-    return reinterpret_cast<Address>(instr->ImmPCOffsetTarget());
   }
+#endif
+  DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
+  return reinterpret_cast<Address>(instr->ImmPCOffsetTarget());
 }
 
 Tagged_t Assembler::target_compressed_address_at(Address pc,
@@ -730,15 +738,24 @@ void Assembler::set_target_address_at(Address pc, Address constant_pool,
                                       ICacheFlushMode icache_flush_mode) {
   Instruction* instr = reinterpret_cast<Instruction*>(pc);
 #if V8_TARGET_CHERI
-  if (instr->IsLdrLiteralC()) {
+  if (instr->IsLdrLiteralC() || instr->IsLdrLiteralX()) {
 #else
   if (instr->IsLdrLiteralX()) {
 #endif
-    if (jit_allocation) {
-      jit_allocation->WriteValue<Address>(target_pointer_address_at(pc),
-                                          target);
+    const Address slot = target_pointer_address_at(pc);
+    if (instr->IsLdrLiteralX()) {
+      // Integer-valued relocation (e.g. a wasm call target): write only the
+      // address bits, matching the 64-bit load in target_address_at().
+      const uint64_t integer_target = static_cast<uint64_t>(target);
+      if (jit_allocation) {
+        jit_allocation->WriteUnalignedValue(slot, integer_target);
+      } else {
+        WriteUnalignedValue(slot, integer_target);
+      }
+    } else if (jit_allocation) {
+      jit_allocation->WriteValue<Address>(slot, target);
     } else {
-      Memory<Address>(target_pointer_address_at(pc)) = target;
+      Memory<Address>(slot) = target;
     }
     // Intuitively, we would think it is necessary to always flush the
     // instruction cache after patching a target address in the code. However,

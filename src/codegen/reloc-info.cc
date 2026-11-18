@@ -257,6 +257,16 @@ Address RelocInfo::wasm_call_address() const {
 
 void WritableRelocInfo::set_wasm_call_address(Address address) {
   DCHECK_EQ(rmode_, WASM_CALL);
+#if V8_TARGET_CHERI
+  Instruction* instr = reinterpret_cast<Instruction*>(pc_);
+  // A direct wasm call is encoded as a branch; patch its immediate directly
+  // rather than rewriting a constant-pool entry.
+  if (instr->IsUnconditionalBranch()) {
+    instr->SetBranchImmTarget<UncondBranchType>(
+        reinterpret_cast<Instruction*>(address), &jit_allocation_);
+    return;
+  }
+#endif
   Assembler::set_target_address_at(pc_, constant_pool_, address,
                                    &jit_allocation_, SKIP_ICACHE_FLUSH);
 }

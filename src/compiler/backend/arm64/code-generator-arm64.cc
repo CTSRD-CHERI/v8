@@ -5274,9 +5274,10 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
       __ Mov(dst, src.ToExternalReference());
     } else {
       Operand src_op = g.ToImmediate(source);
-      if (src.type() == Constant::kInt32 && src_op.NeedsRelocation(masm())) {
-        // Use 32-bit loads for relocatable 32-bit constants.
-        dst = dst.W();
+      if ((src.type() == Constant::kInt32 || src.type() == Constant::kInt64) &&
+          src_op.NeedsRelocation(masm())) {
+        // Use integer-width loads for relocatable integer constants.
+        dst = src.type() == Constant::kInt32 ? dst.W() : dst.X();
       }
       __ Mov(dst, src_op);
     }
