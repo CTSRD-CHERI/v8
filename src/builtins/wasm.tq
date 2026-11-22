@@ -39,7 +39,7 @@ extern runtime ThrowWasmStackOverflow(Context): JSAny;
 extern runtime WasmTraceGlobal(NoContext, Smi): JSAny;
 extern runtime WasmTraceMemory(NoContext, Smi): JSAny;
 extern runtime WasmTraceEnter(Context): JSAny;
-extern runtime WasmTraceExit(Context, Smi): JSAny;
+extern runtime WasmTraceExit(Context, Object): JSAny;
 extern runtime WasmI32AtomicWait(
     Context, WasmTrustedInstanceData, Smi, Number, Number, BigInt): Smi;
 extern runtime WasmI64AtomicWait(
@@ -538,7 +538,7 @@ builtin WasmTraceEnter(): JSAny {
   tail runtime::WasmTraceEnter(LoadContextFromFrame());
 }
 
-builtin WasmTraceExit(info: Smi): JSAny {
+builtin WasmTraceExit(info: Object): JSAny {
   tail runtime::WasmTraceExit(LoadContextFromFrame(), info);
 }
 

@@ -295,7 +295,9 @@ RUNTIME_FUNCTION(Runtime_WasmTraceExit) {
   HandleScope shs(isolate);
   // This isn't exposed to fuzzers so doesn't need to handle invalid arguments.
   DCHECK_EQ(1, args.length());
-  Tagged<Smi> return_addr_smi = Cast<Smi>(args[0]);
+  // The return slot address is passed as a tagged Object so that it keeps its
+  // capability tag on purecap builds.
+  Tagged<Object> return_addr_object = args[0];
 
   PrintIndentation(WasmStackSize(isolate));
   PrintF("}");
@@ -315,29 +317,28 @@ RUNTIME_FUNCTION(Runtime_WasmTraceExit) {
 
   size_t num_returns = sig->return_count();
   // If we have no returns, we should have passed {Smi::zero()}.
-  DCHECK_IMPLIES(num_returns == 0, IsZero(return_addr_smi));
+  DCHECK_IMPLIES(num_returns == 0, IsZero(return_addr_object));
+  Address return_addr = return_addr_object.ptr();
   if (num_returns == 1) {
     wasm::ValueType return_type = sig->GetReturn(0);
     switch (return_type.kind()) {
       case wasm::kI32: {
-        int32_t value =
-            base::ReadUnalignedValue<int32_t>(return_addr_smi.ptr());
+        int32_t value = base::ReadUnalignedValue<int32_t>(return_addr);
         PrintF(" -> %d\n", value);
         break;
       }
       case wasm::kI64: {
-        int64_t value =
-            base::ReadUnalignedValue<int64_t>(return_addr_smi.ptr());
+        int64_t value = base::ReadUnalignedValue<int64_t>(return_addr);
         PrintF(" -> %" PRId64 "\n", value);
         break;
       }
       case wasm::kF32: {
-        float value = base::ReadUnalignedValue<float>(return_addr_smi.ptr());
+        float value = base::ReadUnalignedValue<float>(return_addr);
         PrintF(" -> %f\n", value);
         break;
       }
       case wasm::kF64: {
-        double value = base::ReadUnalignedValue<double>(return_addr_smi.ptr());
+        double value = base::ReadUnalignedValue<double>(return_addr);
         PrintF(" -> %f\n", value);
         break;
       }
