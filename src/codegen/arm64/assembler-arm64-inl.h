@@ -259,7 +259,12 @@ struct ImmediateInitializer<intptr_t> {
 
 template <>
 struct ImmediateInitializer<Address> {
-  static inline RelocInfo::Mode rmode_for(Address) { return RelocInfo::NO_INFO; }
+  static inline RelocInfo::Mode rmode_for(Address t) {
+    // A tagged Address must go through the constant pool to keep its tag;
+    // using NO_INFO would make Mov's pcrel path hit a DCHECK.
+    return V8_CHERI_TAG_GET(t) ? RelocInfo::CAPABILITY_CONSTANT
+                               : RelocInfo::NO_INFO;
+  }
   static inline uintptr_t immediate_for(Address t) {
     static_assert(sizeof(Address) <= 16);
     static_assert(std::is_integral<Address>::value);
