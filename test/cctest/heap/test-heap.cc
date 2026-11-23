@@ -5913,8 +5913,14 @@ HEAP_TEST(Regress589413) {
 
     // Make sure the byte arrays will be promoted on the next GC.
     heap::InvokeMinorGC(heap);
-    // This number is close to large free list category threshold.
-    const int N = 0x3EEE;
+    // This number is close to large free list category threshold. Purecap
+    // tagged values are twice as wide, so halve it to keep the same size class.
+    const int N =
+#ifdef __CHERI_PURE_CAPABILITY__
+        0x3EEE / 2;
+#else
+        0x3EEE;
+#endif
 
     std::vector<Tagged<FixedArray>> arrays;
     std::set<NormalPage*> pages;
