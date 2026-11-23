@@ -12,6 +12,7 @@
 #include "src/api/api-arguments.h"
 #include "src/api/api-natives.h"
 #include "src/base/bits.h"
+#include "src/base/macros.h"
 #include "src/codegen/interface-descriptors-inl.h"
 #include "src/codegen/linkage-location.h"
 #include "src/codegen/macro-assembler.h"
@@ -1618,6 +1619,10 @@ FrameSummaries CommonFrame::Summarize(bool never_allocate) const {
 namespace {
 void VisitSpillSlot(Isolate* isolate, RootVisitor* v,
                     FullObjectSlot spill_slot) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Wasm spill slots can hold untagged integers.
+  if (!V8_CHERI_TAG_GET(*spill_slot.location())) return;
+#endif
 #ifdef V8_COMPRESS_POINTERS
   PtrComprCageBase cage_base(isolate);
   bool was_compressed = false;

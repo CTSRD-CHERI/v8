@@ -8,6 +8,7 @@
 #include "src/heap/conservative-stack-visitor.h"
 // Include the non-inl header before the rest of the headers.
 
+#include "src/base/macros.h"
 #include "src/common/globals.h"
 #include "src/execution/isolate-inl.h"
 #include "src/heap/base-page.h"
@@ -183,6 +184,10 @@ template <typename ConcreteVisitor>
 void ConservativeStackVisitorBase<
     ConcreteVisitor>::VisitConservativelyIfPointer(Address address,
                                                    PtrComprCageBase cage_base) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Untagged or sealed capabilities cannot be dereferenced.
+  if (!V8_CHERI_TAG_GET(address) || V8_CHERI_SEALED(address)) return;
+#endif
   // Bail out immediately if the pointer is not in the space managed by the
   // allocator.
   if (allocator_->IsOutsideAllocatedSpace(address)) {
