@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
+// Purecap wasm locals occupy twice as much stack, so give this test a larger
+// stack to fit the two functions with tens of thousands of locals.
+// Flags: --stack-size=2000
 // Flags: --wasm-deopt --wasm-inlining-ignore-call-counts --allow-natives-syntax
 // Flags: --liftoff --wasm-inlining
 

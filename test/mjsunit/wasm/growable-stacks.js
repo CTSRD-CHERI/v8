@@ -3,7 +3,9 @@
 // found in the LICENSE file.
 
 // Flags: --allow-natives-syntax --experimental-wasm-growable-stacks
-// Flags: --expose-gc --wasm-staging --stack-size=400
+// Purecap stack frames are roughly twice as large, so double the stack size
+// to reach the same stack-overflow thresholds as on 64-bit platforms.
+// Flags: --expose-gc --wasm-staging --stack-size=800
 
 d8.file.execute("test/mjsunit/wasm/wasm-module-builder.js");
 
