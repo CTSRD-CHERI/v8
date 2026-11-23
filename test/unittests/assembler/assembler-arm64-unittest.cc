@@ -4029,11 +4029,11 @@ TEST_F(AssemblerArm64Test, neon_ld2_lane_postindex) {
   __ Ld2(v14.D(), v15.D(), 1, MemOperand(c24, x25, PostIndex));
 
   // Check PostIndex operation on sp.
-  __ Mov(x25, sp);
-  __ Ld2(v18.D(), v19.D(), 1, MemOperand(sp, 16, PostIndex));
-  __ Mov(x26, sp);  // actual sp with post index.
-  __ Mov(sp, x25);
-  __ Add(x25, x25, 16);  // expected sp with post index.
+  __ Mov(c25, csp);
+  __ Ld2(v18.D(), v19.D(), 1, MemOperand(csp, 16, PostIndex));
+  __ Mov(c26, csp);  // actual sp with post index.
+  __ Mov(csp, c25);
+  __ Add(c25, c25, 16);  // expected sp with post index.
   END();
 
   RUN();
