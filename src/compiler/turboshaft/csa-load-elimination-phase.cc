@@ -13,6 +13,9 @@
 namespace v8::internal::compiler::turboshaft {
 
 void CsaLoadEliminationPhase::Run(PipelineData* data, Zone* temp_zone) {
+  // Value-number first so load elimination treats identical constants in
+  // different blocks as the same value.
+  CopyingPhase<ValueNumberingReducer>::Run(data, temp_zone);
   CopyingPhase<LateLoadEliminationReducer, MachineOptimizationReducer,
                ValueNumberingReducer>::Run(data, temp_zone);
 }
