@@ -123,11 +123,17 @@ class FrameDescription {
   }
 
   void SetLiftoffFrameSlotPointer(unsigned offset, intptr_t value) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    // A full capability store is needed as SetLiftoffFrameSlot64 uses
+    // WriteUnalignedValue.
+    SetFrameSlot(offset, value);
+#else
     if constexpr (Is64()) {
       SetLiftoffFrameSlot64(offset, value);
     } else {
       SetLiftoffFrameSlot32(offset, value);
     }
+#endif
   }
 
   void SetCallerPc(unsigned offset, intptr_t value);
