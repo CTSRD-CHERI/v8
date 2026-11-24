@@ -28,7 +28,7 @@ void BitVector::Print() const {
 #endif
 
 int BitVector::Count() const {
-  auto accumulate_popcnt = [](int cnt, uintptr_t word) -> int {
+  auto accumulate_popcnt = [](int cnt, ptraddr_t word) -> int {
     return cnt + base::bits::CountPopulation(word);
   };
   return std::accumulate(data_begin_, data_end_, 0, accumulate_popcnt);
