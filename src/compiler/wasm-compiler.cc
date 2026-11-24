@@ -851,12 +851,21 @@ class WasmWrapperGraphBuilder : public WasmGraphBuilder {
         MachineType::TaggedPointer(), Param(0),
         wasm::ObjectAccess::ToTagged(WasmImportData::kNativeContextOffset));
 
+#if V8_TARGET_CHERI
+    // The context slot holds a tagged pointer; a Word64 store would use the X
+    // register and clear the capability tag.
+    gasm_->Store(StoreRepresentation(MachineRepresentation::kCapability64,
+                                     WriteBarrierKind::kNoWriteBarrier),
+                 gasm_->LoadRootRegister(), Isolate::context_offset(),
+                 gasm_->BitcastMaybeObjectToWord(native_context));
+#else
     gasm_->Store(StoreRepresentation(mcgraph_->machine()->Is64()
                                          ? MachineRepresentation::kWord64
                                          : MachineRepresentation::kWord32,
                                      WriteBarrierKind::kNoWriteBarrier),
                  gasm_->LoadRootRegister(), Isolate::context_offset(),
                  gasm_->BitcastMaybeObjectToWord(native_context));
+#endif
 
     Node* undefined_node = UndefinedValue();
 
