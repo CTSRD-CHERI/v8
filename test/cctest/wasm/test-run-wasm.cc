@@ -2747,9 +2747,17 @@ int GetStackSizeKB() {
          KB;
 }
 
+// Purecap frames are ~2x larger, so use 2x the slack.
+#ifdef __CHERI_PURE_CAPABILITY__
+constexpr int kStackSlackKB = 16;
+#else
+constexpr int kStackSlackKB = 8;
+#endif
+
 UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_Factorial) {
-  // Run in bounded amount of stack - 8kb.
-  FlagScope<int32_t> stack_size(&v8_flags.stack_size, GetStackSizeKB() + 8);
+  // Run in bounded amount of stack.
+  FlagScope<int32_t> stack_size(&v8_flags.stack_size,
+                                GetStackSizeKB() + kStackSlackKB);
 
   IsolateScope isolate_scope;
   LocalContext current(isolate_scope.isolate());
@@ -2782,8 +2790,9 @@ UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_Factorial) {
 // g(X,N) => f(N-1,X*N).
 
 UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_MutualFactorial) {
-  // Run in bounded amount of stack - 8kb.
-  FlagScope<int32_t> stack_size(&v8_flags.stack_size, GetStackSizeKB() + 8);
+  // Run in bounded amount of stack.
+  FlagScope<int32_t> stack_size(&v8_flags.stack_size,
+                                GetStackSizeKB() + kStackSlackKB);
 
   IsolateScope isolate_scope;
   LocalContext current(isolate_scope.isolate());
@@ -2823,8 +2832,9 @@ UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_MutualFactorial) {
 // f(N,X,F) => F(N-1,X*N,F).
 
 UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_IndirectFactorial) {
-  // Run in bounded amount of stack - 8kb.
-  FlagScope<int32_t> stack_size(&v8_flags.stack_size, GetStackSizeKB() + 8);
+  // Run in bounded amount of stack.
+  FlagScope<int32_t> stack_size(&v8_flags.stack_size,
+                                GetStackSizeKB() + kStackSlackKB);
 
   IsolateScope isolate_scope;
   LocalContext current(isolate_scope.isolate());
@@ -2868,8 +2878,9 @@ UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_IndirectFactorial) {
 // sum(N,k) => sum(N-1,k+N).
 
 UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_Sum) {
-  // Run in bounded amount of stack - 8kb.
-  FlagScope<int32_t> stack_size(&v8_flags.stack_size, GetStackSizeKB() + 8);
+  // Run in bounded amount of stack.
+  FlagScope<int32_t> stack_size(&v8_flags.stack_size,
+                                GetStackSizeKB() + kStackSlackKB);
 
   IsolateScope isolate_scope;
   LocalContext current(isolate_scope.isolate());
@@ -2906,8 +2917,9 @@ UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_Sum) {
 // b3(N,_,_,k) => b1(N-1,k+N).
 
 UNINITIALIZED_WASM_EXEC_TEST(ReturnCall_Bounce_Sum) {
-  // Run in bounded amount of stack - 8kb.
-  FlagScope<int32_t> stack_size(&v8_flags.stack_size, GetStackSizeKB() + 8);
+  // Run in bounded amount of stack.
+  FlagScope<int32_t> stack_size(&v8_flags.stack_size,
+                                GetStackSizeKB() + kStackSlackKB);
 
   IsolateScope isolate_scope;
   LocalContext current(isolate_scope.isolate());
