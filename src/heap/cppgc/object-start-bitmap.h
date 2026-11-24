@@ -134,7 +134,13 @@ HeapObjectHeader* ObjectStartBitmap::FindHeader(
   object_start_number =
       (cell_index * kBitsPerCell) + (kBitsPerCell - 1) - leading_zeroes;
   object_offset = object_start_number * kAllocationGranularity;
+#ifdef __CHERI_PURE_CAPABILITY__
+  // page_base is untagged, so we derive from the this pointer.
+  return reinterpret_cast<HeapObjectHeader*>(V8_CHERI_ADDR_SET(
+      const_cast<ObjectStartBitmap*>(this), page_base + object_offset));
+#else
   return reinterpret_cast<HeapObjectHeader*>(page_base + object_offset);
+#endif
 }
 
 template <AccessMode mode>

@@ -333,8 +333,15 @@ HeapObjectHeader* HeapObjectHeader::GetNextUnfinalized(
   DCHECK_EQ(
       api_constants::kCagedHeapReservationAlignment - 1,
       CagedHeap::OffsetFromAddress(reinterpret_cast<void*>(cage_base_or_mask)));
-  return reinterpret_cast<HeapObjectHeader*>(
-      CompressedPointer::Decompress(next_unfinalized_, cage_base_or_mask));
+  void* next =
+      CompressedPointer::Decompress(next_unfinalized_, cage_base_or_mask);
+#ifdef __CHERI_PURE_CAPABILITY__
+  // Decompress yields an untagged capability, re-derive from the this pointer.
+  return reinterpret_cast<HeapObjectHeader*>(V8_CHERI_ADDR_SET(
+      const_cast<HeapObjectHeader*>(this), V8_CHERI_ADDR_GET(next)));
+#else
+  return reinterpret_cast<HeapObjectHeader*>(next);
+#endif
 #else   // !defined(CPPGC_POINTER_COMPRESSION)
   DCHECK_EQ(0, CagedHeap::OffsetFromAddress(
                    reinterpret_cast<void*>(cage_base_or_mask)));
