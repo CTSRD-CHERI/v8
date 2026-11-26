@@ -5485,12 +5485,26 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
         __ Str(temp_1.Q(), src);
 #if V8_TARGET_CHERI
       } else if (source->IsCapabilityStackSlot()) {
-        Register temp_0 = scope.AcquireC();
-        Register temp_1 = scope.AcquireC();
-        __ Ldr(temp_0, src);
-        __ Ldr(temp_1, dst);
-        __ Str(temp_0, dst);
-        __ Str(temp_1, src);
+        // Only two scratch capability registers exist (ip0/ip1). Large stack
+        // offsets would make Ldr/Str call LoadStoreMacroComplex, which needs a
+        // third scratch. Use one register for the value, one for the offset,
+        // and a temporary slot below csp to hold the first value.
+        Register value = scope.AcquireC();
+        Register offset = scope.AcquireC();
+        auto load = [&](const MemOperand& slot) {
+          __ Mov(offset.X(), slot.offset());
+          __ Ldr(value, MemOperand(slot.base(), offset.X()));
+        };
+        auto store = [&](const MemOperand& slot) {
+          __ Mov(offset.X(), slot.offset());
+          __ Str(value, MemOperand(slot.base(), offset.X()));
+        };
+        load(src);                                            // value = *src
+        __ Str(value, MemOperand(csp, -kSystemPointerSize));  // spill
+        load(dst);                                            // value = *dst
+        store(src);                                           // *src = *dst
+        __ Ldr(value, MemOperand(csp, -kSystemPointerSize));  // restore
+        store(dst);                                           // *dst = old *src
 #endif
       } else {
         __ Ldr(temp_0, src);
