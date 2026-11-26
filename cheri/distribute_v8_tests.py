@@ -68,7 +68,6 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast,
 )
 
 DEFAULT_JS_SUITES: List[str] = [
@@ -672,39 +671,45 @@ xargs -n {batch_size} tools/run-tests.py -p verbose -t {test_timeout} \
 
     output = result.stdout + result.stderr
     success = result.returncode == 0
-    if success:
-        completed = Counter(parse_completed_test_ids(result.stdout))
-        assigned = set(test_list)
-        missing = sorted(assigned - completed.keys())
-        unexpected = sorted(completed.keys() - assigned)
-        raw_summaries = [
-            parse_summary_line(line) for line in result.stdout.splitlines()
-        ]
-        summaries = [s for s in raw_summaries if s is not None]
-        total_ran = 0
-        total_failed = 0
-        for kind, value in summaries:
-            if kind == "ran":
-                total_ran += cast(int, value)
-            elif kind == "failed":
-                total_failed += cast(int, value)
-        actual_failed = sum(
-            line.endswith((": FAIL", ": TIMEOUT", ": CRASH"))
-            for line in result.stdout.splitlines()
+    # Cross-check against the runner's own accounting, not the assigned file
+    # list. The runner filters tests (status files, _FIXTURE files, unsupported
+    # features, ...) and expands some of them into several variants, so the set
+    # and the number of status lines need not match the assigned tests. What
+    # must hold is that every batch reported a summary, that the summary counts
+    # agree with the status lines, and that no foreign test IDs showed up.
+    completed = Counter(parse_completed_test_ids(result.stdout))
+    unexpected = sorted(completed.keys() - set(test_list))
+    summaries = [
+        s for s in map(parse_summary_line, result.stdout.splitlines()) if s
+    ]
+    ran_counts = [int(value) for kind, value in summaries if kind == "ran"]
+    total_ran = sum(ran_counts)
+    total_failed = sum(
+        int(value) for kind, value in summaries if kind == "failed"
+    )
+    actual_failed = sum(
+        line.endswith((": FAIL", ": TIMEOUT", ": CRASH"))
+        for line in result.stdout.splitlines()
+    )
+    expected_batches = (len(test_list) + batch_size - 1) // batch_size
+    problems = []
+    if unexpected:
+        problems.append(f"{len(unexpected)} unexpected IDs")
+    if len(ran_counts) != expected_batches:
+        problems.append(
+            f"{len(ran_counts)} of {expected_batches} batches reported a summary"
         )
-        if (
-            missing
-            or unexpected
-            or total_ran != sum(completed.values())
-            or total_failed != actual_failed
-        ):
-            warn(
-                f"Incomplete results from {machine}: {len(missing)} missing, "
-                f"{len(unexpected)} unexpected IDs, {sum(completed.values())} "
-                f"statuses/{total_ran} reported ran, {actual_failed}/"
-                f"{total_failed} reported failed"
-            )
-            success = False
+    if total_ran != sum(completed.values()):
+        problems.append(
+            f"{sum(completed.values())} statuses vs {total_ran} reported ran"
+        )
+    if total_failed != actual_failed:
+        problems.append(
+            f"{actual_failed} failed statuses vs {total_failed} reported failed"
+        )
+    if problems:
+        warn(f"Inconsistent results from {machine}: " + "; ".join(problems))
+        success = False
 
     if log_path:
         try:
