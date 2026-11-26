@@ -4786,6 +4786,9 @@ void InstructionSelector::VisitWord64AtomicExchange(OpIndex node) {
 }
 
 void InstructionSelector::VisitTaggedAtomicExchange(OpIndex node) {
+  if (V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL) {
+    return VisitCapabilityAtomicExchange(node);
+  }
   const AtomicRMWOp& atomic_op = Cast<AtomicRMWOp>(node);
   AtomicWidth width =
       COMPRESS_POINTERS_BOOL ? AtomicWidth::kWord32 : AtomicWidth::kWord64;
@@ -4848,6 +4851,9 @@ void InstructionSelector::VisitWord64AtomicCompareExchange(OpIndex node) {
 }
 
 void InstructionSelector::VisitTaggedAtomicCompareExchange(OpIndex node) {
+  if (V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL) {
+    return VisitCapabilityAtomicCompareExchange(node);
+  }
   const AtomicRMWOp& atomic_op = Cast<AtomicRMWOp>(node);
   AtomicWidth width =
       COMPRESS_POINTERS_BOOL ? AtomicWidth::kWord32 : AtomicWidth::kWord64;

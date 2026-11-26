@@ -1989,6 +1989,11 @@ VISIT_UNSUPPORTED_OP(VisitCapabilityAtomicStore);
         // !V8_TARGET_ARCH_MIPS64 && !V8_TARGET_ARCH_S390X &&
         // !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64
 
+#if !V8_TARGET_CHERI
+VISIT_UNSUPPORTED_OP(CapabilityAtomicExchange);
+VISIT_UNSUPPORTED_OP(CapabilityAtomicCompareExchange);
+#endif
+
 #if !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM && !V8_TARGET_ARCH_RISCV32
 // This is only needed on 32-bit to split the 64-bit value into two operands.
 IF_WASM(VISIT_UNSUPPORTED_OP, I64x2SplatI32Pair)
