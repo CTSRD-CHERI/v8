@@ -948,6 +948,113 @@ inline Register CalculateActualAddress(LiftoffAssembler* lasm,
   return result;
 }
 
+// Templated on the assembler so that the purecap-only instructions are
+// dependent names.
+template <typename Assembler>
+inline void AtomicExchangeTagged(Assembler* lasm, Register dst_addr,
+                                 Register offset_reg, uintptr_t offset_imm,
+                                 Register value, Register result,
+                                 uint32_t* protected_load_pc) {
+  UseScratchRegisterScope temps(lasm);
+  Register actual_addr =
+      CalculateActualAddress(lasm, temps, dst_addr, offset_reg, offset_imm);
+  if constexpr (V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL) {
+    if (CpuFeatures::IsSupported(LSE)) {
+      CpuFeatureScope scope(lasm, LSE);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      __ swpa_c(value, result, MemOperand(actual_addr));
+    } else {
+      Label retry;
+      __ Bind(&retry);
+      UseScratchRegisterScope inner_temps(lasm);
+      Register store_result = inner_temps.AcquireW();
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      __ ldaxr_c(result, actual_addr);
+      __ stlxr_c(store_result, value, actual_addr);
+      __ Cbnz(store_result, &retry);
+    }
+  } else {
+    if (CpuFeatures::IsSupported(LSE)) {
+      CpuFeatureScope scope(lasm, LSE);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      if constexpr (COMPRESS_POINTERS_BOOL) {
+        __ swpal(value.W(), result.W(), MemOperand(actual_addr));
+        __ add(result.X(), result.X(), kPtrComprCageBaseRegister);
+      } else {
+        __ swpal(value, result, MemOperand(actual_addr));
+      }
+    } else {
+      Label retry;
+      __ Bind(&retry);
+      UseScratchRegisterScope inner_temps(lasm);
+      Register store_result = inner_temps.AcquireW();
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      if constexpr (COMPRESS_POINTERS_BOOL) {
+        __ ldaxr(result.W(), actual_addr);
+        __ stlxr(store_result.W(), value.W(), actual_addr);
+      } else {
+        __ ldaxr(result, actual_addr);
+        __ stlxr(store_result.W(), value, actual_addr);
+      }
+      __ Cbnz(store_result.W(), &retry);
+      if constexpr (COMPRESS_POINTERS_BOOL) {
+        __ add(result.X(), result.X(), kPtrComprCageBaseRegister);
+      }
+    }
+  }
+}
+
+template <typename Assembler>
+inline void AtomicCompareExchangeTagged(Assembler* lasm, Register dst_addr,
+                                        Register offset_reg,
+                                        uintptr_t offset_imm, Register expected,
+                                        Register new_value, Register result,
+                                        uint32_t* protected_load_pc) {
+  UseScratchRegisterScope temps(lasm);
+  Register actual_addr =
+      CalculateActualAddress(lasm, temps, dst_addr, offset_reg, offset_imm);
+  if constexpr (V8_CHERI_PURECAP_BOOL && !COMPRESS_POINTERS_BOOL) {
+    if (CpuFeatures::IsSupported(LSE)) {
+      CpuFeatureScope scope(lasm, LSE);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      if (result != expected) __ capmov(result, expected);
+      __ casal_c(result, new_value, MemOperand(actual_addr));
+    } else {
+      Label retry, done;
+      __ Bind(&retry);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      __ ldaxr_c(result, actual_addr);
+      __ Cmpc(result, expected);
+      __ B(ne, &done);
+      Register store_result = temps.AcquireW();
+      __ stlxr_c(store_result, new_value, actual_addr);
+      __ Cbnz(store_result, &retry);
+      __ Bind(&done);
+    }
+  } else {
+    DCHECK_EQ(result, expected);
+    if (CpuFeatures::IsSupported(LSE)) {
+      CpuFeatureScope scope(lasm, LSE);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      __ casal(result, new_value, MemOperand(actual_addr));
+    } else {
+      Label retry, done;
+      __ Bind(&retry);
+      if (protected_load_pc) *protected_load_pc = lasm->pc_offset();
+      __ ldaxr(result, actual_addr);
+      __ cmp(result, Operand(expected));
+      __ B(ne, &done);
+      Register store_result = temps.AcquireW();
+      __ stlxr(store_result.W(), new_value, actual_addr);
+      __ Cbnz(store_result.W(), &retry);
+      __ Bind(&done);
+    }
+    if constexpr (COMPRESS_POINTERS_BOOL) {
+      __ add(result.X(), result.X(), kPtrComprCageBaseRegister);
+    }
+  }
+}
+
 enum class Binop { kAdd, kSub, kAnd, kOr, kXor, kExchange };
 
 inline void AtomicBinop(LiftoffAssembler* lasm, Register dst_addr,
@@ -1361,40 +1468,9 @@ void LiftoffAssembler::AtomicExchangeTaggedPointer(
     Register dst_addr, Register offset_reg, uintptr_t offset_imm,
     LiftoffRegister value, LiftoffRegister result, uint32_t* protected_load_pc,
     LiftoffRegList pinned) {
-  // Perform the atomic exchange.
-  {
-    UseScratchRegisterScope temps(this);
-    Register actual_addr = liftoff::CalculateActualAddress(
-        this, temps, dst_addr, offset_reg, offset_imm);
-    if (CpuFeatures::IsSupported(LSE)) {
-      CpuFeatureScope scope(this, LSE);
-      if (protected_load_pc) *protected_load_pc = pc_offset();
-      if constexpr (COMPRESS_POINTERS_BOOL) {
-        swpal(value.gp().W(), result.gp().W(), MemOperand(actual_addr));
-        add(result.gp().X(), result.gp().X(), kPtrComprCageBaseRegister);
-      } else {
-        swpal(value.gp(), result.gp(), MemOperand(actual_addr));
-      }
-    } else {
-      DCHECK_NE(value, result);
-      Label retry;
-      Bind(&retry);
-      UseScratchRegisterScope temps(this);
-      Register store_result = temps.AcquireW();
-      if (protected_load_pc) *protected_load_pc = pc_offset();
-      if constexpr (COMPRESS_POINTERS_BOOL) {
-        ldaxr(result.gp().W(), actual_addr);
-        stlxr(store_result.W(), value.gp().W(), actual_addr);
-      } else {
-        ldaxr(result.gp().X(), actual_addr);
-        stlxr(store_result.W(), value.gp().X(), actual_addr);
-      }
-      Cbnz(store_result.W(), &retry);
-      if constexpr (COMPRESS_POINTERS_BOOL) {
-        add(result.gp().X(), result.gp().X(), kPtrComprCageBaseRegister);
-      }
-    }
-  }
+  liftoff::AtomicExchangeTagged(this, dst_addr, offset_reg, offset_imm,
+                                value.gp().C(), result.gp().C(),
+                                protected_load_pc);
 
   if (v8_flags.disable_write_barriers) return;
   // Emit the write barrier.
@@ -1520,14 +1596,9 @@ void LiftoffAssembler::AtomicCompareExchangeTaggedPointer(
     Register dst_addr, Register offset_reg, uintptr_t offset_imm,
     LiftoffRegister expected, LiftoffRegister new_value, LiftoffRegister result,
     uint32_t* protected_load_pc, LiftoffRegList pinned) {
-  AtomicCompareExchange(
-      dst_addr, offset_reg, offset_imm, expected, new_value, result,
-      COMPRESS_POINTERS_BOOL ? StoreType::kI32Store : StoreType::kI64Store,
-      protected_load_pc, false);
-
-  if constexpr (COMPRESS_POINTERS_BOOL) {
-    add(result.gp().X(), result.gp().X(), kPtrComprCageBaseRegister);
-  }
+  liftoff::AtomicCompareExchangeTagged(this, dst_addr, offset_reg, offset_imm,
+                                       expected.gp().C(), new_value.gp().C(),
+                                       result.gp().C(), protected_load_pc);
 
   if (v8_flags.disable_write_barriers) return;
   // Emit the write barrier.
