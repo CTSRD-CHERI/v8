@@ -3020,6 +3020,7 @@ void MacroAssembler::CallCodeObject(Register code_object,
                                     CodeEntrypointTag tag) {
   ASM_CODE_COMMENT(this);
   LoadCodeInstructionStart(code_object, code_object, tag);
+  PrepareC64Jump(code_object);
   Call(code_object);
 }
 
