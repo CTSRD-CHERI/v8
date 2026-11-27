@@ -369,7 +369,7 @@ class ReadStringVisitor : public TqObjectVisitor {
           GetOrFinish(object->GetResourceDataValue(accessor_));
 #ifdef V8_ENABLE_SANDBOX
       Address memory_chunk =
-          MemoryChunk::FromAddress(object->GetMapAddress())->address();
+          MemoryChunk::BaseAddress(object->GetMapAddress());
       uint32_t metadata_index = GetOrFinish(ReadValue<uint32_t>(
           memory_chunk + MemoryChunk::MetadataIndexOffset()));
       auto metadata_entry =

@@ -15,7 +15,7 @@ namespace debug_helper_internal {
 
 std::string FindKnownObject(uintptr_t address,
                             const d::HeapAddresses& heap_addresses) {
-  uintptr_t containing_page = MemoryChunk::FromAddress(address)->address();
+  uintptr_t containing_page = MemoryChunk::BaseAddress(address);
   uintptr_t offset_in_page = MemoryChunk::AddressToOffset(address);
 
   // If there's a match with a known page, then search only that page.
@@ -55,7 +55,7 @@ std::string FindKnownObject(uintptr_t address,
 
 KnownInstanceType FindKnownMapInstanceTypes(
     uintptr_t address, const d::HeapAddresses& heap_addresses) {
-  uintptr_t containing_page = MemoryChunk::FromAddress(address)->address();
+  uintptr_t containing_page = MemoryChunk::BaseAddress(address);
   uintptr_t offset_in_page = MemoryChunk::AddressToOffset(address);
 
   // If there's a match with a known page, then search only that page.

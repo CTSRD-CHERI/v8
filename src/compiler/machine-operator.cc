@@ -2021,6 +2021,13 @@ struct MachineOperatorGlobalCache {
   };
   SetBoundsOperator kSetBounds;
 
+  struct SetAddressOperator : public Operator {
+    SetAddressOperator()
+        : Operator(IrOpcode::kSetAddress, Operator::kNoThrow, "SetAddress", 2,
+                   0, 0, 1, 0, 0) {}
+  };
+  SetAddressOperator kSetAddress;
+
   struct SealWithTypeOperator : public Operator {
     SealWithTypeOperator()
         : Operator(IrOpcode::kSealWithType, Operator::kNoThrow, "SealWithType",
@@ -2506,6 +2513,9 @@ const Operator* MachineOperatorBuilder::DebugBreak() {
 #if V8_TARGET_CHERI
 const Operator* MachineOperatorBuilder::SetBounds() {
   return &cache_.kSetBounds;
+}
+const Operator* MachineOperatorBuilder::SetAddress() {
+  return &cache_.kSetAddress;
 }
 const Operator* MachineOperatorBuilder::SealWithType() {
   return &cache_.kSealWithType;

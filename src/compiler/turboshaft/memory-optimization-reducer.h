@@ -77,6 +77,8 @@ inline const AllocateOp* UnwrapAllocate(const Graph* graph,
       op = &graph->Get(capadd->left());
     } else if (const CapSubOp* capsub = op->TryCast<CapSubOp>()) {
       op = &graph->Get(capsub->left());
+    } else if (const SetBoundsOp* set_bounds = op->TryCast<SetBoundsOp>()) {
+      op = &graph->Get(set_bounds->pointer());
 #endif
     } else {
       return nullptr;
@@ -275,6 +277,7 @@ class MemoryOptimizationReducer : public Next {
     if (v8_flags.single_generation && type == AllocationType::kYoung) {
       type = AllocationType::kOld;
     }
+    size = AlignToAllocationAlignment(size);
 
     V<WordPtr> top_address = __ IsolateField(
         type == AllocationType::kYoung ? IsolateFieldId::kNewAllocationInfoTop
@@ -295,6 +298,7 @@ class MemoryOptimizationReducer : public Next {
                                               __ WordPtrConstant(bump_size)));
       __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                       MemoryRepresentation::UintPtr());
+      obj_addr = SetAllocationBounds(obj_addr, size);
       return __ BitcastWordPtrToHeapObject(
           __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
     }
@@ -355,22 +359,12 @@ class MemoryOptimizationReducer : public Next {
       if (!constant_size) {
         // Check if we can do bump pointer allocation here.
         V<WordPtr> top_value = __ GetVariable(top(type));
+        V<WordPtr> obj_addr = top_value;
+        obj_addr = SetAllocationBounds(obj_addr, size);
         __ SetVariable(result,
                        __ BitcastWordPtrToHeapObject(__ WordPtrAdd(
-                           top_value, __ IntPtrConstant(kHeapObjectTag))));
-#if V8_TARGET_CHERI
-        // On CHERI the object alignment is 16 bytes, but an object whose last
-        // field is an 8-byte double (e.g. HeapNumber) has a size that is only a
-        // multiple of 8, so without this the allocation top would end up
-        // misaligned and every later 16-byte capability access to the heap
-        // would fault.
-        V<WordPtr> aligned_size = __ WordPtrBitwiseAnd(
-            __ WordPtrAdd(size, __ WordPtrConstant(kObjectAlignment - 1)),
-            __ WordPtrConstant(~static_cast<ScaledUint>(kObjectAlignmentMask)));
-        V<WordPtr> new_top = __ WordPtrAdd(top_value, aligned_size);
-#else
+                           obj_addr, __ IntPtrConstant(kHeapObjectTag))));
         V<WordPtr> new_top = __ WordPtrAdd(top_value, size);
-#endif
         V<WordPtr> limit =
             __ LoadOffHeap(limit_address, MemoryRepresentation::UintPtr());
         __ GotoIfNot(LIKELY(__ UintPtrLessThan(new_top, limit)), call_runtime);
@@ -420,9 +414,11 @@ class MemoryOptimizationReducer : public Next {
     if (__ Bind(call_runtime)) {
       V<HeapObject> allocated = __ template Call<HeapObject>(
           allocate_builtin, {reservation_size}, AllocateBuiltinDescriptor());
-      __ SetVariable(top(type),
-                     __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
-                                   __ IntPtrConstant(kHeapObjectTag)));
+      V<WordPtr> allocated_addr =
+          __ WordPtrSub(__ BitcastHeapObjectToWordPtr(allocated),
+                        __ IntPtrConstant(kHeapObjectTag));
+      allocated_addr = RederiveFromLabTop(top_address, allocated_addr);
+      __ SetVariable(top(type), allocated_addr);
       __ Goto(done);
     }
 
@@ -438,6 +434,7 @@ class MemoryOptimizationReducer : public Next {
                                             __ WordPtrConstant(bump_size)));
     __ StoreOffHeap(top_address, __ GetVariable(top(type)),
                     MemoryRepresentation::UintPtr());
+    obj_addr = SetAllocationBounds(obj_addr, size);
     return __ BitcastWordPtrToHeapObject(
         __ WordPtrAdd(obj_addr, __ IntPtrConstant(kHeapObjectTag)));
   }
@@ -578,6 +575,36 @@ class MemoryOptimizationReducer : public Next {
     __ StoreOffHeap(__ IsolateField(IsolateFieldId::kLastYoungAllocation),
                     last_value, MemoryRepresentation::UintPtr());
   }
+
+  V<WordPtr> AlignToAllocationAlignment(V<WordPtr> size) {
+    if (!V8_CHERI_PURECAP_BOOL || COMPRESS_POINTERS_BOOL) return size;
+    uint64_t constant_size;
+    if (__ matcher().MatchWordPtrConstant(size, &constant_size)) {
+      return __ UintPtrConstant(ALIGN_TO_ALLOCATION_ALIGNMENT(constant_size));
+    }
+    return __ WordPtrBitwiseAnd(
+        __ WordPtrAdd(size, __ WordPtrConstant(kPointerAlignmentMask)),
+        __ WordPtrConstant(~static_cast<ScaledUint>(kPointerAlignmentMask)));
+  }
+
+#ifdef V8_CHERI_TIGHT_BOUNDS
+  V<WordPtr> SetAllocationBounds(V<WordPtr> address, V<WordPtr> size) {
+    return __ SetBounds(address, V<MachineWord>::Cast(size));
+  }
+
+  V<WordPtr> RederiveFromLabTop(V<WordPtr> top_address, V<WordPtr> address) {
+    V<WordPtr> lab_top =
+        __ LoadOffHeap(top_address, MemoryRepresentation::UintPtr());
+    return __ SetAddress(lab_top, V<MachineWord>::Cast(address));
+  }
+#else
+  V<WordPtr> SetAllocationBounds(V<WordPtr> address, V<WordPtr> size) {
+    return address;
+  }
+  V<WordPtr> RederiveFromLabTop(V<WordPtr> top_address, V<WordPtr> address) {
+    return address;
+  }
+#endif  // V8_CHERI_TIGHT_BOUNDS
 
   V<WordPtr> GetLimitAddress(AllocationType type) {
     return __ IsolateField(type == AllocationType::kYoung

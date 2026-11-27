@@ -400,6 +400,8 @@ class VirtualMemoryCage {
     PageAllocator::Permission permissions;
     base::PageInitializationMode page_initialization_mode;
     base::PageFreeingMode page_freeing_mode;
+    // CHERI bounding to the page size.
+    bool tight_page_bounds = false;
 
     static constexpr size_t kAnyBaseAlignment = 1;
   };
